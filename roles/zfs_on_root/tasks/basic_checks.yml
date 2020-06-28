@@ -1,0 +1,23 @@
+---
+# If disk_devices to use not specified on command line fail playbook
+- fail: 
+    msg: "ERROR: This playbook requires --extra-vars='{\"disk_devices\": [sda,sdb]}'"
+  when: 
+    disk_devices is undefined
+  tags:
+    - basic_check
+
+# This playbook can never be run on localhost as it is destructive.
+- fail:
+    msg: "ERROR: This playbook can not be used on localhost."
+  when:
+    ansible_nodename == "localhost"
+  tags:
+    - basic_check
+
+#- name: Collect only facts about hardware
+#  setup:
+#    gather_subset:
+#      - hardware
+#    tags:
+#      - basic_check

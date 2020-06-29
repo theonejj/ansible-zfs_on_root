@@ -9,7 +9,7 @@
   register:
      sgdisk_ouput
   tags:
-    - clear-partition-tables-from-devices
+    - clear_partition_tables_from_devices
 
 # Fail if return code is not 0      
 - name: Clear Partition Table Result Check 
@@ -18,4 +18,4 @@
   when: item.rc != 0
   loop: "{{ sgdisk_ouput.results }}"
   tags:
-    - clear-partition-tables-from-devices
+    - clear_partition_tables_from_devices

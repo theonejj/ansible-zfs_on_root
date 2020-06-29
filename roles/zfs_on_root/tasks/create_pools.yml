@@ -1,0 +1,9 @@
+---
+- name: Test Pool Creation
+  vars:
+    pool_type: "{{ boot_pool_type[(disk_by_id|length)]|default(boot_pool_type['default']) }}"
+
+  debug:
+    msg: "zpool create {{ boot_pool_options|join(' ') }} {{pool_type}}"
+  tags:
+    - test

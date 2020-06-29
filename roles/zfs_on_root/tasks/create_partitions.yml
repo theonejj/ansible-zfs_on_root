@@ -43,15 +43,14 @@
   tags:
     - create_partitions
 
-# Single Disk SWAP Partition work ---------------------------------------------
-- name: Create Single Disk SWAP Partition
+# Create SWAP Partition work --------------------------------------------------
+- name: Create SWAP Partition
   command:
-    cmd: "sgdisk {{ single_disk_swap_flags }} {{ item }}"
+    "sgdisk {{ (disk_by_id|length == 1) | ternary(single_disk_swap_flags,multi_disk_swap_flags) }} {{ item }}"
   loop: 
     "{{ disk_by_id }}"
   when:
     - ansible_nodename != "localhost"
-    - disk_by_id|length == 1
   register:
      sgdisk_ouput
   tags:
@@ -62,32 +61,6 @@
   fail:
     msg: "The command ({{ item.cmd }}) did not have a 0 return code"
   when: 
-    - disk_by_id|length == 1
-    - item.rc != 0
-  loop: "{{ sgdisk_ouput.results }}"
-  tags:
-    - create_partitions
-
-# Multi-Disk SWAP Partition work ----------------------------------------------
-- name: Create Multi-Disk SWAP Partition
-  command:
-    cmd: "sgdisk {{ multi_disk_swap_flags }} {{ item }}"
-  loop: 
-    "{{ disk_by_id }}"
-  when:
-    - ansible_nodename != "localhost"
-    - disk_by_id|length > 1
-  register:
-     sgdisk_ouput
-  tags:
-    - create_partitions
-
-# Fail if return code is not 0      
-- name: Create Multi-Disk SWAP Partitions Result Check 
-  fail:
-    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
-  when: 
-    - disk_by_id|length > 1
     - item.rc != 0
   loop: "{{ sgdisk_ouput.results }}"
   tags:

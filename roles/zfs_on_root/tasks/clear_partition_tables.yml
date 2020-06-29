@@ -1,0 +1,21 @@
+---
+- name: Clear Partition Table from Devices
+  command:
+    cmd: "sgdisk --zap-all {{ item }}"
+  loop: 
+    "{{ disk_by_id }}"
+  when:
+    ansible_nodename != "localhost"
+  register:
+     sgdisk_ouput
+  tags:
+    - clear-partition-tables-from-devices
+
+# Fail if return code is not 0      
+- name: Clear Partition Table Result Check 
+  fail:
+    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
+  when: item.rc != 0
+  loop: "{{ sgdisk_ouput.results }}"
+  tags:
+    - clear-partition-tables-from-devices

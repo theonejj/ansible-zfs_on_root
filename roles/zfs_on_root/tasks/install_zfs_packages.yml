@@ -1,13 +1,9 @@
 ---
 - name: Install ZFS packages (assumes Live CD Environment)
   apt: 
-    name: "{{ item }}"
+    name: ['debootstrap','gdisk','python-pexpect','zfs-initramfs']
     state: present 
     update_cache: yes
   when: ansible_os_family == "Debian"
-  with_items:
-    - debootstrap
-    - gdisk
-    - zfs-initramfs
   tags:
     - install-zfs-packages

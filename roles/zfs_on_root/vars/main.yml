@@ -6,15 +6,32 @@ swap_partition_size: "2G"
 boot_pool_name: "bpool"
 root_pool_name: "rpool"
 
+# Enable root pool encryption (true or false)
+root_pool_encryption: false
+
 # Define the boot pool type based on number of devices.
 # If you want 3 devices to be a 3 way mirror enable it, etc.
+# A raidz will be the default if more than 2 devices are used
 boot_pool_type:
   1: ""
   2: "mirror"
 #  3: "mirror"
 #  4: "mirror"
   default: "raidz"
- 
+
+# Define the root pool type based on number of devices.
+# If you want 3 devices to be a 3 way mirror enable it, etc.
+# A raidz will be the default if more than 2 devices are used
+# The "raidz" option can be changed if you understand what it does.
+root_pool_type:
+  1: ""
+  2: "mirror"
+#  3: "mirror"
+#  4: "mirror"
+  default: "raidz"
+#  default: "raidz2"
+#  default: "raidz3"
+
 ####### Nothing Below Here Needs to be Edited ############
 
 # Boot Partition Flags
@@ -30,6 +47,10 @@ boot_partition_flags: "-n3:0:+2G        -t3:BE00"
 
 # Define Root Pool Partition Flags - for Unencrypted or ZFS native Encrytpion
 root_partition_flags: "-n4:0:0          -t4:BF00"
+
+# Define Pool Partition Suffixes
+boot_partition_name_suffix: "-part3"
+root_partition_name_suffix: "-part4"
 
 # Define Boot Pool Options
 boot_pool_options:
@@ -50,3 +71,15 @@ boot_pool_options:
   - "-O devices=off -O normalization=formD"
   - "-O relatime=on -O xattr=sa"
   - "-O mountpoint=/boot -R /mnt {{ boot_pool_name }}"
+
+# Define Root Pool Options
+root_pool_options:
+  - "-o ashift=12{{' '+(root_pool_encryption|default(false)) | ternary(root_pool_encryption_options|join(' '), '') }}"
+  - "-O acltype=posixacl -O canmount=off -O compression=lz4"
+  - "-O dnodesize=auto -O normalization=formD -O relatime=on"
+  - "-O xattr=sa -O mountpoint=/ -R /mnt {{ root_pool_name }}"
+
+# Define Root Pool Encryption Options
+root_pool_encryption_options:
+  - "-O encryption=aes-256-gcm"
+  - "-O keylocation=prompt -O keyformat=passphrase"

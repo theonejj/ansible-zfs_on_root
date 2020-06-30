@@ -5,7 +5,7 @@
   when: 
     disk_devices is undefined
   tags:
-    - basic_check
+    - basic_checks
 
 # This playbook can never be run on localhost as it is destructive.
 - fail:
@@ -13,11 +13,22 @@
   when:
     ansible_nodename == "localhost"
   tags:
-    - basic_check
+    - basic_checks
 
-#- name: Collect only facts about hardware
-#  setup:
-#    gather_subset:
-#      - hardware
-#    tags:
-#      - basic_check
+# ZFS Native Encryption Passphrase must be 8 chars or longer
+- fail:
+    msg: "ERROR: ZFS passphase must be at least 8 characters."
+  when:
+    - passphrase is defined and passphrase|length <8
+
+- set_fact:
+    root_pool_encryption: true
+  when: passphrase is defined
+  tags:
+    - basic_checks
+
+- debug:
+    msg: "NOTE: Passphase Supplied -- Root Pool Encryption Enabled"
+  when: root_pool_encryption is true
+  tags: 
+    - basic_checks

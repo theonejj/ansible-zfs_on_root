@@ -46,7 +46,7 @@
 # Create SWAP Partition work --------------------------------------------------
 - name: Create SWAP Partition
   command:
-    "sgdisk {{ (disk_by_id|length == 1) | ternary(single_disk_swap_flags,multi_disk_swap_flags) }} {{ item }}"
+    "sgdisk {{(disk_by_id|length == 1)|ternary(single_disk_swap_flags,multi_disk_swap_flags)}} {{ item }}"
   loop: 
     "{{ disk_by_id }}"
   when:
@@ -57,7 +57,7 @@
     - create_partitions
 
 # Fail if return code is not 0      
-- name: Create Single Disk SWAP Partitions Result Check 
+- name: Create SWAP Partitions Result Check 
   fail:
     msg: "The command ({{ item.cmd }}) did not have a 0 return code"
   when: 

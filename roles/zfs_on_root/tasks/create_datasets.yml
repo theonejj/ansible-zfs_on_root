@@ -73,3 +73,6 @@
   with_items:
     - "zfs create {{grub_dataset_options}}"
   
+- name: Installing a minimal linux system
+  command:
+    cmd: "debootstrap {{ubuntu_release}} /mnt"

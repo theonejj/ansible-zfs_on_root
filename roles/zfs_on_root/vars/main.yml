@@ -1,4 +1,6 @@
 ---
+# This configuration is designed to Ubuntu 20.04, it is not backward compatible to older versions.
+
 # Set swap size that makes sense
 swap_partition_size: "2G"
 
@@ -30,6 +32,10 @@ set_root_pool_type:
 #  default: "raidz3"
 
 ####### Nothing Below Here Needs to be Edited ############
+
+# Ubuntu Release name
+ubuntu_release: "focal"
+distro_name: "ubuntu"
 
 # Boot Partition Flags
 uefi_partition_flags: "-n1:1M:+512M     -t1:EF00"
@@ -97,8 +103,8 @@ root_pool_container_options: "-o canmount=off -o mountpoint=none {{root_pool_nam
 boot_dataset_options: "-o canmount=noauto -o mountpoint=/boot"
 root_dataset_options: "-o canmount=noauto -o mountpoint=/ -o com.ubuntu.zsys:bootfs=yes"
 
-boot_pool_dataset_path: "{{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
-root_pool_dataset_path: "{{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
+boot_pool_dataset_path: "{{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
+root_pool_dataset_path: "{{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
 
 srv_dataset_options: "-o com.ubuntu.zsys:bootfs=no {{root_pool_dataset_path}}/srv"
 usr_dataset_options: "-o com.ubuntu.zsys:bootfs=no -o canmount=off {{root_pool_dataset_path}}/usr"

@@ -27,10 +27,10 @@
   debug:
     msg: "{{item}}"
   with_items:
-    - "zfs create {{root_dataset_options}} -o com.ubuntu.zsys:last-used={{epoch.stdout}} {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
-    - "zfs mount {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
-    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
-    - "zfs mount {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
+    - "zfs create {{root_dataset_options}} -o com.ubuntu.zsys:last-used={{epoch.stdout}} {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
+    - "zfs mount {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
+    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
+    - "zfs mount {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
   when:
     debug is defined
   tags:
@@ -42,9 +42,9 @@
   when:
     - ansible_nodename != "localhost"
   with_items:
-    - "zfs create {{root_dataset_options}} -o com.ubuntu.zsys:last-used={{epoch.stdout}} {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
-    - "zfs mount {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
-    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
-    - "zfs mount {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
+    - "zfs create {{root_dataset_options}} -o com.ubuntu.zsys:last-used={{epoch.stdout}} {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
+    - "zfs mount {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
+    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
+    - "zfs mount {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
   tags:
     - create_filesystems

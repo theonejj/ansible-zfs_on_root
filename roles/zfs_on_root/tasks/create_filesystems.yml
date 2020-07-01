@@ -1,15 +1,15 @@
 ---
-# Create Dataset Containers ---------------------------------------------------
-#- name: Debug Create ZFS Boot and Root Dataset Container
+# Create Filesystem Containers ---------------------------------------------------
+#- name: Debug Create Boot and Root Filesystem Dataset Container
 #  debug:
 #    msg: "{{item}}"
 #  with_items:
 #    - "zfs create {{boot_pool_container_options}}"
 #    - "zfs create {{root_pool_container_options}}"
 #  tags:
-#    - create_datasets
+#    - create_filesystems
 
-- name: Create ZFS Boot and Root Dataset Container
+- name: Create Boot and Root Filesystem Dataset Container
   command:
     cmd: "{{item}}"
   when:
@@ -18,10 +18,10 @@
     - "zfs create {{boot_pool_container_options}}"
     - "zfs create {{root_pool_container_options}}"
   tags:
-    - create_datasets
+    - create_filesystems
 
 # Create Filesystems Boot and Root Containers ---------------------------------
-#- name: Debug Create Boot and Root File System
+#- name: Debug Create Boot and Root Filesystem
 #  debug:
 #    msg: "{{item}}"
 #  with_items:
@@ -30,9 +30,9 @@
 #    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
 #    - "zfs mount {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
 #  tags:
-#    - create_datasets
+#    - create_filesystems
 
-- name: Create Boot and Root File Systems
+- name: Create Boot and Root Filesystems
   command:
     cmd: "{{item}}"
   when:
@@ -43,4 +43,4 @@
     - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
     - "zfs mount {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
   tags:
-    - create_datasets
+    - create_filesystems

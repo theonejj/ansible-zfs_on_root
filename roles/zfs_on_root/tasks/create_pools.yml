@@ -5,7 +5,7 @@
   tags:
     - create_pools
 
-- name: Create ZFS Boot Pool
+- name: Debug Create ZFS Boot Pool
   debug:
     msg: "zpool create {{ boot_pool_options|join(' ') }} {{pool_type}} {{ disk_by_id|join(boot_partition_name_suffix+' ')+boot_partition_name_suffix+' ' }}"
   tags:
@@ -25,19 +25,19 @@
   tags:
     - create_pools
 
-- name: Create ZFS Root Pool
+- name: Debut Create ZFS Root Pool
   debug:
     msg: "zpool create {{ root_pool_options|join(' ') }} {{pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
   tags:
     - create_pools
 
 # This creates a copy of the Pool Create Command, handy for testing
-- name: Copy Pool Create Command
-  copy: 
-    content: "zpool create -f {{ root_pool_options|join(' ') }} {{pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
-    dest: /tmp/pool.txt
-  tags:
-    - create_pools
+#- name: Copy Pool Create Command
+#  copy: 
+#    content: "zpool create -f {{ root_pool_options|join(' ') }} {{pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
+#    dest: /tmp/pool.txt
+#  tags:
+#    - create_pools
 
 - name: Create ZFS Root Pool for Encryption
   expect:

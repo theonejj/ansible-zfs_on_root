@@ -6,13 +6,10 @@ swap_partition_size: "2G"
 boot_pool_name: "bpool"
 root_pool_name: "rpool"
 
-# Enable root pool encryption (true or false)
-root_pool_encryption: false
-
 # Define the boot pool type based on number of devices.
 # If you want 3 devices to be a 3 way mirror enable it, etc.
 # A raidz will be the default if more than 2 devices are used
-boot_pool_type:
+set_boot_pool_type:
   1: ""
   2: "mirror"
 #  3: "mirror"
@@ -23,7 +20,7 @@ boot_pool_type:
 # If you want 3 devices to be a 3 way mirror enable it, etc.
 # A raidz will be the default if more than 2 devices are used
 # The "raidz" option can be changed if you understand what it does.
-root_pool_type:
+set_root_pool_type:
   1: ""
   2: "mirror"
 #  3: "mirror"
@@ -51,6 +48,14 @@ root_partition_flags: "-n4:0:0          -t4:BF00"
 # Define Pool Partition Suffixes
 boot_partition_name_suffix: "-part3"
 root_partition_name_suffix: "-part4"
+
+# Enable native ZFS root pool encryption (default false) - This will be set to true when a passprhase 
+# is specified as an extra variable.
+root_pool_encryption: false
+
+# Set the boot and root pool type based on number of devices given ("", "mirror", "raidz", etc.)
+boot_pool_type: "{{set_boot_pool_type[(disk_by_id|length)]|default(set_boot_pool_type['default'])}}"
+root_pool_type: "{{set_root_pool_type[(disk_by_id|length)]|default(set_root_pool_type['default'])}}"
 
 # Define Boot Pool Options
 boot_pool_options:
@@ -91,3 +96,28 @@ root_pool_container_options: "-o canmount=off -o mountpoint=none {{root_pool_nam
 # Define Fileystem Dataset Options
 boot_dataset_options: "-o canmount=noauto -o mountpoint=/boot"
 root_dataset_options: "-o canmount=noauto -o mountpoint=/ -o com.ubuntu.zsys:bootfs=yes"
+
+boot_pool_dataset_path: "{{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
+root_pool_dataset_path: "{{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
+
+srv_dataset_options: "-o com.ubuntu.zsys:bootfs=no {{root_pool_dataset_path}}/srv"
+usr_dataset_options: "-o com.ubuntu.zsys:bootfs=no -o canmount=off {{root_pool_dataset_path}}/usr"
+usr_local_dataset_options: "{{root_pool_dataset_path}}/usr/local"
+var_dataset_options: "-o com.ubuntu.zsys:bootfs=no -o canmount=off {{root_pool_dataset_path}}/var"
+var_games_dataset_options: "{{root_pool_dataset_path}}/var/games"
+var_lib_dataset_options: "{{root_pool_dataset_path}}/var/lib"
+var_lib_acc_dataset_options: "{{root_pool_dataset_path}}/var/lib/AccountsService"
+var_lib_apt_dataset_options: "{{root_pool_dataset_path}}/var/lib/apt"
+var_lib_dpkg_dataset_options: "{{root_pool_dataset_path}}/var/lib/dpkg"
+var_lib_net_dataset_options: "{{root_pool_dataset_path}}/var/lib/NetworkManager"
+var_lib_docker_dataset_options: "-o com.sun:auto-snapshot=false {{root_pool_dataset_path}}/var/lib/docker"
+var_log_dataset_options: "{{root_pool_dataset_path}}/var/log"
+var_mail_dataset_options: "{{root_pool_dataset_path}}/var/mail"
+var_snap_dataset_options: "{{root_pool_dataset_path}}/var/snap"
+var_spool_dataset_options: "{{root_pool_dataset_path}}/var/spool"
+var_www_dataset_options: "{{root_pool_dataset_path}}/var/www"
+
+userdata_dataset_options: "-o canmount=off -o mountpoint=/ {{root_pool_name}}/USERDATA"
+userdata_root_dataset_options: "-o com.ubuntu.zsys:bootfs-datasets={{root_pool_dataset_path}} -o canmount=on -o mountpoint=/root {{root_pool_name}}/USERDATA/root_{{UUID.stdout}}"
+
+grub_dataset_options: "{{boot_pool_dataset_path}}/grub"

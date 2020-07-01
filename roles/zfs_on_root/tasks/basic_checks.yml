@@ -58,8 +58,10 @@
   tags:
     - create_datasets
 
-#- name: Display Generated Values
-#  debug:
-#    msg: "UUID Generated: {{UUID.stdout}}  Epoch: {{epoch.stdout}}"
-#  tags:
-#    - create_datasets
+- name: Display Generated Values
+  debug:
+    msg: "UUID Generated: {{UUID.stdout}}  Epoch: {{epoch.stdout}}"
+  when:
+    debug is defined
+  tags:
+    - create_datasets

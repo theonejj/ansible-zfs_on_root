@@ -1,0 +1,75 @@
+---
+# Create Datasets -------------------------------------------------------------
+
+- name: Debug Create Boot and Root Filesystems
+  debug:
+    msg: "{{item}}"
+  with_items:
+    - "zfs create {{srv_dataset_options}}"
+    - "zfs create {{usr_dataset_options}}"
+    - "zfs create {{usr_local_dataset_options}}"
+    - "zfs create {{var_dataset_options}}"
+    - "zfs create {{var_games_dataset_options}}"
+    - "zfs create {{var_lib_dataset_options}}"
+    - "zfs create {{var_lib_acc_dataset_options}}"
+    - "zfs create {{var_lib_apt_dataset_options}}"
+    - "zfs create {{var_lib_dpkg_dataset_options}}"
+    - "zfs create {{var_lib_net_dataset_options}}"
+    - "zfs create {{var_lib_docker_dataset_options}}"
+    - "zfs create {{var_log_dataset_options}}"
+    - "zfs create {{var_mail_dataset_options}}"
+    - "zfs create {{var_snap_dataset_options}}"
+    - "zfs create {{var_spool_dataset_options}}"
+    - "zfs create {{var_www_dataset_options}}"
+    - "zfs create {{userdata_dataset_options}}"
+    - "zfs create {{userdata_root_dataset_options}}"
+  when:
+    debug is defined
+  tags:
+    - create_datasets
+
+- name: Create Boot and Root Filesystems
+  command:
+    cmd: "{{item}}"
+  when:
+    - ansible_nodename != "localhost"
+  with_items:
+    - "zfs create {{srv_dataset_options}}"
+    - "zfs create {{usr_dataset_options}}"
+    - "zfs create {{usr_local_dataset_options}}"
+    - "zfs create {{var_dataset_options}}"
+    - "zfs create {{var_games_dataset_options}}"
+    - "zfs create {{var_lib_dataset_options}}"
+    - "zfs create {{var_lib_acc_dataset_options}}"
+    - "zfs create {{var_lib_apt_dataset_options}}"
+    - "zfs create {{var_lib_dpkg_dataset_options}}"
+    - "zfs create {{var_lib_net_dataset_options}}"
+    - "zfs create {{var_lib_docker_dataset_options}}"
+    - "zfs create {{var_log_dataset_options}}"
+    - "zfs create {{var_mail_dataset_options}}"
+    - "zfs create {{var_snap_dataset_options}}"
+    - "zfs create {{var_spool_dataset_options}}"
+    - "zfs create {{var_www_dataset_options}}"
+    - "zfs create {{userdata_dataset_options}}"
+    - "zfs create {{userdata_root_dataset_options}}"
+  tags:
+    - create_datasets
+
+- name: Debug Create Grub Dataset only when root_pool_type is a mirror, raidz, raidz2, raidz3
+  debug:
+    msg: "{{item}}"
+  with_items:
+    - "zfs create {{grub_dataset_options}}"
+  when:
+    - root_pool_type != ""
+    - debug is defined
+
+- name: Create Grub Dataset only when root_pool_type is a mirror, raidz, raidz2, raidz3
+  command:
+    cmd: "{{item}}"
+  when:
+    - root_pool_type != ""
+    - ansible_nodename != "localhost"
+  with_items:
+    - "zfs create {{grub_dataset_options}}"
+  

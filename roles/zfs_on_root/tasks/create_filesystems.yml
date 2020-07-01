@@ -1,13 +1,15 @@
 ---
 # Create Filesystem Containers ---------------------------------------------------
-#- name: Debug Create Boot and Root Filesystem Dataset Container
-#  debug:
-#    msg: "{{item}}"
-#  with_items:
-#    - "zfs create {{boot_pool_container_options}}"
-#    - "zfs create {{root_pool_container_options}}"
-#  tags:
-#    - create_filesystems
+- name: Debug Create Boot and Root Filesystem Dataset Container
+  debug:
+    msg: "{{item}}"
+  with_items:
+    - "zfs create {{boot_pool_container_options}}"
+    - "zfs create {{root_pool_container_options}}"
+  when:
+    debug is defined
+  tags:
+    - create_filesystems
 
 - name: Create Boot and Root Filesystem Dataset Container
   command:
@@ -21,16 +23,18 @@
     - create_filesystems
 
 # Create Filesystems Boot and Root Containers ---------------------------------
-#- name: Debug Create Boot and Root Filesystem
-#  debug:
-#    msg: "{{item}}"
-#  with_items:
-#    - "zfs create {{root_dataset_options}} -o com.ubuntu.zsys:last-used={{epoch.stdout}} {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
-#    - "zfs mount {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
-#    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
-#    - "zfs mount {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
-#  tags:
-#    - create_filesystems
+- name: Debug Create Boot and Root Filesystem
+  debug:
+    msg: "{{item}}"
+  with_items:
+    - "zfs create {{root_dataset_options}} -o com.ubuntu.zsys:last-used={{epoch.stdout}} {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
+    - "zfs mount {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
+    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
+    - "zfs mount {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
+  when:
+    debug is defined
+  tags:
+    - create_filesystems
 
 - name: Create Boot and Root Filesystems
   command:

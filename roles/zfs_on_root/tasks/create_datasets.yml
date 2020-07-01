@@ -1,0 +1,46 @@
+---
+# Create Dataset Containers ---------------------------------------------------
+#- name: Debug Create ZFS Boot and Root Dataset Container
+#  debug:
+#    msg: "{{item}}"
+#  with_items:
+#    - "zfs create {{boot_pool_container_options}}"
+#    - "zfs create {{root_pool_container_options}}"
+#  tags:
+#    - create_datasets
+
+- name: Create ZFS Boot and Root Dataset Container
+  command:
+    cmd: "{{item}}"
+  when:
+    - ansible_nodename != "localhost"
+  with_items:
+    - "zfs create {{boot_pool_container_options}}"
+    - "zfs create {{root_pool_container_options}}"
+  tags:
+    - create_datasets
+
+# Create Filesystems Boot and Root Containers ---------------------------------
+#- name: Debug Create Boot and Root File System
+#  debug:
+#    msg: "{{item}}"
+#  with_items:
+#    - "zfs create {{root_dataset_options}} -o com.ubuntu.zsys:last-used={{epoch.stdout}} {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
+#    - "zfs mount {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
+#    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
+#    - "zfs mount {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
+#  tags:
+#    - create_datasets
+
+- name: Create Boot and Root File Systems
+  command:
+    cmd: "{{item}}"
+  when:
+    - ansible_nodename != "localhost"
+  with_items:
+    - "zfs create {{root_dataset_options}} -o com.ubuntu.zsys:last-used={{epoch.stdout}} {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
+    - "zfs mount {{root_pool_name}}/ROOT/ubuntu_{{UUID.stdout}}"
+    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
+    - "zfs mount {{boot_pool_name}}/BOOT/ubuntu_{{UUID.stdout}}"
+  tags:
+    - create_datasets

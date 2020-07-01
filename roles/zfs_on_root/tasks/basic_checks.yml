@@ -21,9 +21,17 @@
   when:
     - passphrase is defined and passphrase|length <8
 
+# Turn on encrypotion flags if a passphrase was set.
 - set_fact:
     root_pool_encryption: true
   when: passphrase is defined
+  tags:
+    - basic_checks
+
+# If passphrase was not set, just define it.
+- set_fact:
+    passphrase = "none"
+  when: passphrase is undefined
   tags:
     - basic_checks
 
@@ -32,3 +40,26 @@
   when: root_pool_encryption is true
   tags: 
     - basic_checks
+
+# Generate values used in File System Datasets
+- name: Generate UUID
+  shell:
+    cmd: "dd if=/dev/urandom of=/dev/stdout bs=1 count=100 2>/dev/null | tr -dc 'a-z0-9' | cut -c-6"
+  register:
+    UUID
+  tags:
+    - create_datasets
+
+- name: Generate Epoch value
+  command:
+    cmd: "date +%s"
+  register:
+    epoch
+  tags:
+    - create_datasets
+
+#- name: Display Generated Values
+#  debug:
+#    msg: "UUID Generated: {{UUID.stdout}}  Epoch: {{epoch.stdout}}"
+#  tags:
+#    - create_datasets

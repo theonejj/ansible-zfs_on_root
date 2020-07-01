@@ -70,16 +70,24 @@ boot_pool_options:
   - "-O acltype=posixacl -O canmount=off -O compression=lz4"
   - "-O devices=off -O normalization=formD"
   - "-O relatime=on -O xattr=sa"
-  - "-O mountpoint=/boot -R /mnt {{ boot_pool_name }}"
+  - "-O mountpoint=/boot -R /mnt {{boot_pool_name}}"
 
 # Define Root Pool Options
 root_pool_options:
   - "-o ashift=12{{' '+(root_pool_encryption|default(false)) | ternary(root_pool_encryption_options|join(' '), '') }}"
   - "-O acltype=posixacl -O canmount=off -O compression=lz4"
   - "-O dnodesize=auto -O normalization=formD -O relatime=on"
-  - "-O xattr=sa -O mountpoint=/ -R /mnt {{ root_pool_name }}"
+  - "-O xattr=sa -O mountpoint=/ -R /mnt {{root_pool_name}}"
 
 # Define Root Pool Encryption Options
 root_pool_encryption_options:
   - "-O encryption=aes-256-gcm"
   - "-O keylocation=prompt -O keyformat=passphrase"
+
+# Define datasets to act as containers
+boot_pool_container_options: "-o canmount=off -o mountpoint=none {{boot_pool_name}}/BOOT"
+root_pool_container_options: "-o canmount=off -o mountpoint=none {{root_pool_name}}/ROOT"
+
+# Define Fileystem Dataset Options
+boot_dataset_options: "-o canmount=noauto -o mountpoint=/boot"
+root_dataset_options: "-o canmount=noauto -o mountpoint=/ -o com.ubuntu.zsys:bootfs=yes"

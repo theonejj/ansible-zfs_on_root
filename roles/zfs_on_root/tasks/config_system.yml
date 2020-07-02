@@ -1,0 +1,72 @@
+---
+# Update /etc/hostname to host_name specified on command line
+#- name: Updating /etc/hostname to "{{host_name}}"
+#  replace:
+#    path: /etc/hostname
+#    regexp: '^{{distro_name}}'
+#    replace: '{{host_name}}'
+#  when:
+#    - ansible_nodename != "localhost"
+#  tags:
+#    - config_system
+- name: Copy hostname template to /etc/hostname
+  template:
+    src: hostname.j2
+    dest: /etc/hostname
+    owner: root
+    group: root
+    mode: '0644'
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - config_system
+
+# Update /etc/hosts to host_name specified on command line
+- name: Updating /etc/hosts to "{{host_name}}"
+  replace:
+    path: /etc/hosts
+    regexp: '\b{{distro_name}}\b'
+    replace: '{{host_name}}'
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - config_system
+
+# Update Netplan Network file - not tested on multiple adapters, might break
+- name: Get Network adapter name on Ubuntu
+  shell:
+    cmd: "nmcli device status | grep 'ethernet' | grep 'connected' | cut -d' ' -f1"
+  register:
+    nic_name
+  tags:
+    - config_system
+
+- name: Debug Show Network Adapter Name Detected
+  debug:
+    msg: "{{nic_name.stdout}}"
+  when:
+    debug is defined
+  tags:
+    - config_system
+
+- name: Copy netplan template to /mnt/etc/netplan/01-netcfg.yaml
+  template:
+    src: netplan.j2
+    dest: /mnt/etc/netplan/01-netcfg.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  tags:
+    - config_system
+
+# Update sources.list file on Ubuntu
+- name: Copy sources.list template to /mnt/etc/apt/sources.list
+  template:
+    src: sources.list.j2
+    dest: /mnt/etc/apt/sources.list
+    owner: root
+    group: root
+    mode: '0644'
+  when: ansible_distribution == 'Ubuntu'
+  tags:
+    - config_system

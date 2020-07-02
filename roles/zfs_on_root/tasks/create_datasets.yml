@@ -64,7 +64,7 @@
     - root_pool_type != ""
     - debug is defined
 
-- name: Create Grub Dataset only when root_pool_type is a mirror, raidz, raidz2, raidz3
+- name: Create Grub Dataset only when root_pool_type is a mirror, raidz, raidz2, raidz3 (anything other than empty)
   command:
     cmd: "{{item}}"
   when:

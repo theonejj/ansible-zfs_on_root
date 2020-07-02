@@ -1,9 +1,18 @@
 ---
-# If disk_devices to use not specified on command line fail playbook
+# Fail if disk_devices not specified on command line for playbook
+# This specifies the devices to wipe and install ZFS.
 - fail: 
-    msg: "ERROR: This playbook requires --extra-vars='{\"disk_devices\": [sda,sdb]}'"
+    msg: "ERROR: This playbook requires --extra-vars='{disk_devices: [sda,sdb],host_name: mydesktop}'"
   when: 
     disk_devices is undefined
+  tags:
+    - basic_checks
+
+# Fail if hostname not specified on command line for import_playbook
+- fail:
+    msg: "ERROR: This playbook requires --extra-vars='{disk_devices: [sda,sdb],host_name: mydesktop}'"
+  when:
+    host_name is undefined
   tags:
     - basic_checks
 

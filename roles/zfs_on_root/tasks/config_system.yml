@@ -70,3 +70,61 @@
   when: ansible_distribution == 'Ubuntu'
   tags:
     - config_system
+
+# Bind Virtual Filesystems from Live CD to New environment
+# NOTE: Not using ansible mount module as we don't want these added to fstab
+- name: Binding Virtual File Systems
+  command:
+    cmd: "{{item}}"
+    warn: no
+  when:
+    - ansible_nodename != "localhost"
+  with_items:
+    - "mount --rbind /dev  /mnt/dev"
+    - "mount --rbind /proc /mnt/proc"
+    - "mount --rbind /sys  /mnt/sys"
+  tags:
+    - config_system
+
+# Run chrooted commands
+- name: Run chrooted command for apt update
+  command:
+    cmd: "{{chroot_cmd}} bash -c 'apt update'"
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - config_system
+
+# uncomment the specified locale from the default locale.gen file
+- name:  Enable locale for {{locale_prefix}}
+  replace:
+    path: /mnt/etc/locale.gen
+    regexp: '^#.* {{locale_prefix}}'
+    replace: '{{locale_prefix}}'
+  tags:
+    - config_system
+
+- name: Run chrooted Commands to update locale
+  command:
+    cmd: "{{chroot_cmd}} bash -c 'locale-gen'"
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - config_system
+
+- name: Run chrooted Commands to update locale
+  command:
+    cmd: "{{chroot_cmd}} bash -c 'locale-gen'"
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - config_system
+
+- name: Run chrooted Commands to install dosfstool on Debian based hosts
+  command:
+    cmd: "{{chroot_cmd}} bash -c 'apt install --yes vim dosfstools'"
+  when:
+    - ansible_nodename != "localhost"
+    - ansible_os_family == "Debian"
+  tags:
+    - config_system

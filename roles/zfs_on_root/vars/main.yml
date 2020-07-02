@@ -31,6 +31,9 @@ set_root_pool_type:
 #  default: "raidz2"
 #  default: "raidz3"
 
+# Define the local pre-fix to enable in /etc/locale.gen
+locale_prefix: "en_US"
+
 ####### Nothing Below Here Needs to be Edited ############
 
 # Ubuntu Release name
@@ -127,3 +130,7 @@ userdata_dataset_options: "-o canmount=off -o mountpoint=/ {{root_pool_name}}/US
 userdata_root_dataset_options: "-o com.ubuntu.zsys:bootfs-datasets={{root_pool_dataset_path}} -o canmount=on -o mountpoint=/root {{root_pool_name}}/USERDATA/root_{{UUID.stdout}}"
 
 grub_dataset_options: "{{boot_pool_dataset_path}}/grub"
+
+# Misc Definitions
+#chroot_cmd: "chroot /mnt /usr/bin/env"
+chroot_cmd: "chroot /mnt"

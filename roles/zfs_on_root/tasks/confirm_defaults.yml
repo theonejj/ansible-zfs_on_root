@@ -1,0 +1,20 @@
+---
+- pause:
+    prompt: |
+      ##########################################################
+      # Please review the following defaults
+      ##########################################################
+
+      Default Root Password: {{default_root_password}}
+          Default Swap Size: {{swap_partition_size}}
+           Use UEFI Booting: {{use_uefi_booting}}
+               Local Prefix: {{locale_prefix}}
+
+          Disk Devices Specified: {{disk_by_id|length}}
+      Default ZFS Boot Pool Name: {{boot_pool_name}}  Type: {{boot_pool_type}}
+      Default ZFS Root Pool Name: {{root_pool_name}}  Type: {{root_pool_type}}
+        Use ZFS Native Encyption: {{root_pool_encryption}}
+        
+      ###### Press ctrl-c to abort or <enter> to continue ###### 
+  tags:
+      - basic_checks

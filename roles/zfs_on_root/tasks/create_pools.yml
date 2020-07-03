@@ -23,16 +23,6 @@
   tags:
     - create_pools
 
-# This creates a copy of the Pool Create Command, handy for testing
-- name: Copy Pool Create Command
-  copy: 
-    content: "zpool create -f {{ root_pool_options|join(' ') }} {{pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
-    dest: /tmp/pool.txt
-  when:
-    debug is defined
-  tags:
-    - create_pools
-
 - name: Create ZFS Root Pool for Encryption
   expect:
     command:

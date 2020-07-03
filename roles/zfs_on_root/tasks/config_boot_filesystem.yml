@@ -1,5 +1,5 @@
 ---
-- name: Create EFI Filesystems on all "-part1" partitions
+- name: Run chrooted command to create EFI filesystems on all "-part1" partitions
   command:
     cmd: "{{chroot_cmd}} bash -c 'mkdosfs -F 32 -s 1 -n EFI {{ item }}-part1'"
   loop: 
@@ -21,10 +21,20 @@
     - config_boot_fs
 
 # Create /boot/efi directory
-- name: Create /boot/efi directory
+- name: Run chrooted command to create /boot/efi directory
   command: "{{chroot_cmd}} bash -c 'mkdir -p /boot/efi'"
   when:
     ansible_nodename != "localhost"
+  tags:
+    - config_boot_fs
+
+# Create additional /boot/efi directories for each additional device
+- name: Run chrooted command to create additional /boot/efi directories
+  command: "{{chroot_cmd}} bash -c 'mkdir -p /boot/efi{{item}}'"
+  loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
+  when:
+    - ansible_nodename != "localhost"
+    - disk_by_id|length > 1
   tags:
     - config_boot_fs
 
@@ -33,12 +43,12 @@
 - name:  Remove any existing /boot/efi references from fstab
   replace:
     path: /mnt/etc/fstab
-    regexp: '(?m)^UUID=.*/boot/efi .*\n?'
+    regexp: '(?m)^UUID=.*/boot/efi.*\n?'
     replace: ''
   tags:
     - config_boot_fs
 
-- name: Create EFI Filesystems on all "-part1" partitions
+- name: Run chrooted command to add EFI Filesystems to /etc/fstab
   shell:
     cmd: "{{chroot_cmd}} bash -c 'echo UUID=$(blkid -s UUID -o value {{item}}-part1) /boot/efi vfat umask=0022,fmask=0022,dmask=0022 0 1>> /etc/fstab'"
   loop: 
@@ -48,11 +58,38 @@
   tags:
     - config_boot_fs
 
-- name: If multiple references to /boot/efi adjust names to be unique
+- name: Remove UNCONFIGURED message in /etc/fstab
+  blockinfile:
+    path: /mnt/etc/fstab
+    marker: "# UNCONFIGURED FSTAB FOR BASE SYSTEM"
+    block: ""
+  tags:
+    - config_boot_fs
+
+# If multiple devices then references to /boot/efi need to be unique
+- name: Fix multiple EFI entries in /etc/fstab in chroot environment 
   command:
     cmd: "sed -i ':a;N;$!ba;s/efi /efi{{item}} /2' /mnt/etc/fstab"
+    warn: no
   loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
   when: disk_by_id|length > 1
   tags:
     - config_boot_fs
-  
+
+# Mount /boot/efi directory in chroot environment
+- name: Run chrooted command to mount /boot/efi directory
+  command: "{{chroot_cmd}} bash -c 'mount /boot/efi'"
+  when:
+    ansible_nodename != "localhost"
+  tags:
+    - config_boot_fs
+
+# Mount additional /boot/efi directories in chroot env for each additional device
+- name: Run chrooted command to mount additional /boot/efi directories
+  command: "{{chroot_cmd}} bash -c 'mount /boot/efi{{item}}'"
+  loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
+  when:
+    - ansible_nodename != "localhost"
+    - disk_by_id|length > 1
+  tags:
+    - config_boot_fs

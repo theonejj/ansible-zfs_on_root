@@ -1,14 +1,4 @@
 ---
-# Update /etc/hostname to host_name specified on command line
-#- name: Updating /etc/hostname to "{{host_name}}"
-#  replace:
-#    path: /etc/hostname
-#    regexp: '^{{distro_name}}'
-#    replace: '{{host_name}}'
-#  when:
-#    - ansible_nodename != "localhost"
-#  tags:
-#    - config_system
 - name: Copy hostname template to /etc/hostname
   template:
     src: hostname.j2
@@ -38,6 +28,8 @@
     cmd: "nmcli device status | grep 'ethernet' | grep 'connected' | cut -d' ' -f1"
   register:
     nic_name
+  when:
+    - ansible_nodename != "localhost"
   tags:
     - config_system
 
@@ -45,7 +37,8 @@
   debug:
     msg: "{{nic_name.stdout}}"
   when:
-    debug is defined
+    - debug is defined
+    - ansible_nodename != "localhost"
   tags:
     - config_system
 
@@ -56,6 +49,8 @@
     owner: root
     group: root
     mode: '0644'
+  when:
+    - ansible_nodename != "localhost"
   tags:
     - config_system
 
@@ -67,7 +62,9 @@
     owner: root
     group: root
     mode: '0644'
-  when: ansible_distribution == 'Ubuntu'
+  when: 
+    - ansible_distribution == 'Ubuntu'
+    - ansible_nodename != "localhost"
   tags:
     - config_system
 
@@ -77,12 +74,12 @@
   command:
     cmd: "{{item}}"
     warn: no
-  when:
-    - ansible_nodename != "localhost"
   with_items:
     - "mount --rbind /dev  /mnt/dev"
     - "mount --rbind /proc /mnt/proc"
     - "mount --rbind /sys  /mnt/sys"
+  when:
+    - ansible_nodename != "localhost"
   tags:
     - config_system
 
@@ -101,6 +98,8 @@
     path: /mnt/etc/locale.gen
     regexp: '^#.* {{locale_prefix}}'
     replace: '{{locale_prefix}}'
+  when:
+    - ansible_nodename != "localhost"
   tags:
     - config_system
 

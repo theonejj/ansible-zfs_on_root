@@ -1,0 +1,58 @@
+---
+- name: Create EFI Filesystems on all "-part1" partitions
+  command:
+    cmd: "{{chroot_cmd}} bash -c 'mkdosfs -F 32 -s 1 -n EFI {{ item }}-part1'"
+  loop: 
+    "{{ disk_by_id }}"
+  when:
+    ansible_nodename != "localhost"
+  register:
+     mkdosfs_ouput
+  tags:
+    - config_boot_fs
+
+# Fail if return code is not 0      
+- name: Create EFI Filesystems Result Check 
+  fail:
+    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
+  when: item.rc != 0
+  loop: "{{ mkdosfs_ouput.results }}"
+  tags:
+    - config_boot_fs
+
+# Create /boot/efi directory
+- name: Create /boot/efi directory
+  command: "{{chroot_cmd}} bash -c 'mkdir -p /boot/efi'"
+  when:
+    ansible_nodename != "localhost"
+  tags:
+    - config_boot_fs
+
+# Debug Remove any existing /boot/efi references within chroot environment
+# Enteries would only exist if this task had been run previously
+- name:  Remove any existing /boot/efi references from fstab
+  replace:
+    path: /mnt/etc/fstab
+    regexp: '(?m)^UUID=.*/boot/efi .*\n?'
+    replace: ''
+  tags:
+    - config_boot_fs
+
+- name: Create EFI Filesystems on all "-part1" partitions
+  shell:
+    cmd: "{{chroot_cmd}} bash -c 'echo UUID=$(blkid -s UUID -o value {{item}}-part1) /boot/efi vfat umask=0022,fmask=0022,dmask=0022 0 1>> /etc/fstab'"
+  loop: 
+    "{{ disk_by_id }}"
+  when:
+    ansible_nodename != "localhost"
+  tags:
+    - config_boot_fs
+
+- name: If multiple references to /boot/efi adjust names to be unique
+  command:
+    cmd: "sed -i ':a;N;$!ba;s/efi /efi{{item}} /2' /mnt/etc/fstab"
+  loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
+  when: disk_by_id|length > 1
+  tags:
+    - config_boot_fs
+  

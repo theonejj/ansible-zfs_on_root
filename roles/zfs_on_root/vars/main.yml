@@ -132,5 +132,4 @@ userdata_root_dataset_options: "-o com.ubuntu.zsys:bootfs-datasets={{root_pool_d
 grub_dataset_options: "{{boot_pool_dataset_path}}/grub"
 
 # Misc Definitions
-#chroot_cmd: "chroot /mnt /usr/bin/env"
 chroot_cmd: "chroot /mnt"

@@ -1,0 +1,53 @@
+---
+# Some tasks that are only performed on single disk configurations
+- name: Run chrooted command to create Grub directories (single disk only)
+  command: "{{chroot_cmd}} bash -c 'mkdir -p /boot/efi/grub /boot/grub'"
+  when:
+    - ansible_nodename != "localhost"
+    - disk_by_id|length == 1
+  tags:
+    - config_grub
+
+- name: Run chrooted command to add Grub to /etc/fstab (single disk only)
+  shell: 
+    cmd: "{{chroot_cmd}} bash -c 'echo /boot/efi/grub /boot/grub none defaults,bind 0 0 >> /etc/fstab'"
+  when:
+    - ansible_nodename != "localhost"
+    - disk_by_id|length == 1
+  tags:
+    - config_grub
+
+- name: Run chrooted command to mount Grub in /etc/fstab (single disk only)
+  command: "{{chroot_cmd}} bash -c 'mount /boot/grub'"
+  when:
+    - ansible_nodename != "localhost"
+    - disk_by_id|length == 1
+  tags:
+    - config_grub
+
+# Parameters added to prevent grub menu selection for legacy devices
+- name: Installing GRUB, Linux and ZFS for Legacy BIOS Booting
+  command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' install grub-pc linux-image-generic zfs-initramfs zsys"
+  when:
+    - ansible_nodename != "localhost"
+    - use_uefi_booting|default(false)|bool == false
+  tags:
+    - config_grub
+
+- name: Installing GRUB, Linux and ZFS for UEFI Booting
+  command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes install grub-efi-amd64 grub-efi-amd64-signed linux-image-generic shim-signed zfs-initramfs zsys"
+  when:
+    - ansible_nodename != "localhost"
+    - use_uefi_booting|default(false)|bool == true
+  tags:
+    - config_grub
+
+# os-prober is only needed on dual-boot systems.
+- name: Removing os-prober
+  command: "{{chroot_cmd}} dpkg --purge os-prober"
+  when:
+    - ansible_nodename != "localhost"
+    - remove_os_prober|default(true)|bool == true
+  tags:
+    - config_grub
+

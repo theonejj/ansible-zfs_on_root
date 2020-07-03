@@ -71,6 +71,6 @@
   debug:
     msg: "UUID Generated: {{UUID.stdout}}  Epoch: {{epoch.stdout}}"
   when:
-    debug is defined
+    debug|default(false) == true
   tags:
     - create_datasets

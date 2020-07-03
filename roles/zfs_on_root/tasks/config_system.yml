@@ -37,7 +37,7 @@
   debug:
     msg: "{{nic_name.stdout}}"
   when:
-    - debug is defined
+    - debug|default(false) == true
     - ansible_nodename != "localhost"
   tags:
     - config_system

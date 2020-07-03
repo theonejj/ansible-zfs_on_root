@@ -4,6 +4,9 @@
 # Set swap size that makes sense
 swap_partition_size: "2G"
 
+# Use Grub with UEFI (will do Grub with Legacy BIOS if false)
+use_uefi_booting: true
+
 # Define Pool Names
 boot_pool_name: "bpool"
 root_pool_name: "rpool"
@@ -133,3 +136,6 @@ grub_dataset_options: "{{boot_pool_dataset_path}}/grub"
 
 # Misc Definitions
 chroot_cmd: "chroot /mnt"
+
+# OS Prober is only needed on dual-boot configurations.
+remove_os_prober: true

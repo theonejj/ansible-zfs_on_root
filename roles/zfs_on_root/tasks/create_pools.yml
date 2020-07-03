@@ -3,7 +3,7 @@
   debug:
     msg: "zpool create {{ boot_pool_options|join(' ') }} {{boot_pool_type}} {{ disk_by_id|join(boot_partition_name_suffix+' ')+boot_partition_name_suffix+' ' }}"
   when:
-    debug is defined
+    debug|default(false) == true
   tags:
     - create_pools
 
@@ -19,7 +19,7 @@
   debug:
     msg: "zpool create {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
   when:
-    debug is defined
+    debug|default(false) == true
   tags:
     - create_pools
 
@@ -32,7 +32,7 @@
       again: "{{passphrase}}"
   when:
     - ansible_nodename != "localhost"
-    - root_pool_encryption is true
+    - root_pool_encryption|default(false) == true
   tags:
     - create_pools
 
@@ -41,6 +41,6 @@
      cmd: "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
   when:
     - ansible_nodename != "localhost"
-    - root_pool_encryption is false
+    - root_pool_encryption|default(false) == false
   tags:
     - create_pools

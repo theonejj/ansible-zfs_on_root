@@ -7,7 +7,7 @@
     - "zfs create {{boot_pool_container_options}}"
     - "zfs create {{root_pool_container_options}}"
   when:
-    debug is defined
+    debug|default(false) == true
   tags:
     - create_filesystems
 
@@ -32,7 +32,7 @@
     - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
     - "zfs mount {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
   when:
-    debug is defined
+    debug|default(false) == true
   tags:
     - create_filesystems
 

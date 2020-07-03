@@ -1,42 +1,6 @@
 ---
 # This configuration is designed to Ubuntu 20.04, it is not backward compatible to older versions.
 
-# Set swap size that makes sense
-swap_partition_size: "2G"
-
-# Use Grub with UEFI (will do Grub with Legacy BIOS if false)
-use_uefi_booting: true
-
-# Define Pool Names
-boot_pool_name: "bpool"
-root_pool_name: "rpool"
-
-# Define the boot pool type based on number of devices.
-# If you want 3 devices to be a 3 way mirror enable it, etc.
-# A raidz will be the default if more than 2 devices are used
-set_boot_pool_type:
-  1: ""
-  2: "mirror"
-#  3: "mirror"
-#  4: "mirror"
-  default: "raidz"
-
-# Define the root pool type based on number of devices.
-# If you want 3 devices to be a 3 way mirror enable it, etc.
-# A raidz will be the default if more than 2 devices are used
-# The "raidz" option can be changed if you understand what it does.
-set_root_pool_type:
-  1: ""
-  2: "mirror"
-#  3: "mirror"
-#  4: "mirror"
-  default: "raidz"
-#  default: "raidz2"
-#  default: "raidz3"
-
-# Define the local pre-fix to enable in /etc/locale.gen
-locale_prefix: "en_US"
-
 ####### Nothing Below Here Needs to be Edited ############
 
 # Ubuntu Release name

@@ -26,7 +26,7 @@
     - config_grub
 
 # Parameters added to prevent grub menu selection for legacy devices
-- name: Installing GRUB, Linux and ZFS for Legacy BIOS Booting
+- name: Run chrooted command to install GRUB, Linux and ZFS for Legacy BIOS Booting
   command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' install grub-pc linux-image-generic zfs-initramfs zsys"
   when:
     - ansible_nodename != "localhost"
@@ -34,7 +34,19 @@
   tags:
     - config_grub
 
-- name: Installing GRUB, Linux and ZFS for UEFI Booting
+# Run grub-install per legacy disk device
+- name: Run chrooted command to run grub-install per disk device
+  command:
+    cmd: "{{chroot_cmd}} grub-install {{ item }}"
+  loop: 
+    "{{ disk_by_id }}"
+  when:
+    - ansible_nodename != "localhost"
+    - use_uefi_booting|default(false)|bool == false
+  tags:
+    - config_grub
+
+- name: Run chrooted command to install GRUB, Linux and ZFS for UEFI Booting
   command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes install grub-efi-amd64 grub-efi-amd64-signed linux-image-generic shim-signed zfs-initramfs zsys"
   when:
     - ansible_nodename != "localhost"

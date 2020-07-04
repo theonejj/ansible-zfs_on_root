@@ -31,7 +31,6 @@ set_root_pool_type:
 #  4: "mirror"
   default: "raidz"
 #  default: "raidz2"
-#  default: "raidz3"
 
 # Define Pool Names
 boot_pool_name: "bpool"

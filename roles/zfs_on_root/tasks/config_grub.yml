@@ -31,6 +31,7 @@
   when:
     - ansible_nodename != "localhost"
     - use_uefi_booting|default(false)|bool == false
+    - ansible_os_family == "Debian"
   tags:
     - config_grub
 
@@ -51,15 +52,17 @@
   when:
     - ansible_nodename != "localhost"
     - use_uefi_booting|default(false)|bool == true
+    - ansible_os_family == "Debian"
   tags:
     - config_grub
 
 # os-prober is only needed on dual-boot systems.
 - name: Removing os-prober
-  command: "{{chroot_cmd}} dpkg --purge os-prober"
+  command: "{{chroot_cmd}} bash -c 'dpkg --purge os-prober'"
   when:
     - ansible_nodename != "localhost"
     - remove_os_prober|default(true)|bool == true
+    - ansible_os_family == "Debian"
   tags:
     - config_grub
 

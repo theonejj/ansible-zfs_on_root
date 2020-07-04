@@ -24,6 +24,9 @@
       {% endif %}
 
         Use ZFS Native Encyption: {{root_pool_encryption}}
+      {% if root_pool_encryption|default(false)|bool == true %}
+           Encryption Passphrase: {{passphrase}}
+      {% endif %}
         
       ###### Press Ctrl-C to abort or ENTER to continue ###### 
   tags:

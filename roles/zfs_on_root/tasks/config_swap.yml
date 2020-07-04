@@ -178,3 +178,25 @@
     - root_pool_encryption|default(false)|bool == true
   tags:
     - config_swap
+
+- name: Run chrooted command to install cural and patch for Bug#1875577 Encrypted Swap with ZFS
+  command: 
+    "{{chroot_cmd}} bash -c 'apt install --yes curl patch'"
+  when:
+    - ansible_nodename != "localhost"
+    - enable_swap_partitions|default(true)|bool == true
+    - root_pool_encryption|default(false)|bool == true
+    - ansible_os_family == "Debian"
+  tags:
+    - config_swap
+  
+- name: Run chrooted command to curl and apply patch for Bug#1875577 Encrypted Swap with ZFS
+  shell:
+    cmd: "{{chroot_cmd}} bash -c 'curl https://launchpadlibrarian.net/478315221/2150-fix-systemd-dependency-loops.patch | sed \"s|/etc|/lib|;s|\\.in$||\" | (cd / ; patch -p1)'"
+  when:
+    - ansible_nodename != "localhost"
+    - enable_swap_partitions|default(true)|bool == true
+    - root_pool_encryption|default(false)|bool == true
+    - ansible_os_family == "Debian"
+  tags:
+    - config_swap

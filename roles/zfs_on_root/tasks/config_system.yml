@@ -70,7 +70,7 @@
 
 # Bind Virtual Filesystems from Live CD to New environment
 # NOTE: Not using ansible mount module as we don't want these added to fstab
-- name: Binding Virtual File Systems
+- name: Binding virtual file systems
   command:
     cmd: "{{item}}"
     warn: no
@@ -103,7 +103,7 @@
   tags:
     - config_system
 
-- name: Run chrooted Commands to update locale
+- name: Run chrooted command to update locale
   command:
     cmd: "{{chroot_cmd}} bash -c 'locale-gen'"
   when:
@@ -111,15 +111,7 @@
   tags:
     - config_system
 
-- name: Run chrooted Commands to update locale
-  command:
-    cmd: "{{chroot_cmd}} bash -c 'locale-gen'"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
-- name: Run chrooted Commands to install dosfstool on Debian based hosts
+- name: Run chrooted command to install dosfstool on Debian based hosts
   command:
     cmd: "{{chroot_cmd}} bash -c 'apt install --yes vim dosfstools'"
   when:
@@ -128,11 +120,39 @@
   tags:
     - config_system
 
-- name: Run chrooted Commands to set default root password
+- name: Run chrooted command to set default root password
   expect:
     command: "{{chroot_cmd}} passwd"
     responses:
       (?i)password: "{{ default_root_password }}"
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - config_system
+
+- name: Setup /tmp to use tmpfs
+  copy:
+    src: /usr/share/systemd/tmp.mount
+    dest: /mnt/etc/systemd/system/tmp.mount
+    remote_src: yes
+  tags:
+    - config_system
+
+- name: Run chrooted command enable /tmp
+  command:
+    cmd: "{{chroot_cmd}} bash -c 'systemctl enable tmp.mount'"
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - config_system
+
+- name: Run chrooted commands to add system groups
+  command:
+    cmd: "{{chroot_cmd}} bash -c '{{item}}'"
+  with_items:
+    - "addgroup --system lpadmin"
+    - "addgroup --system lxd"
+    - "addgroup --system sambashare"
   when:
     - ansible_nodename != "localhost"
   tags:

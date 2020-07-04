@@ -51,6 +51,7 @@
     "{{ disk_by_id }}"
   when:
     - ansible_nodename != "localhost"
+    - enable_swap_partitions|default(true)|bool == true 
   register:
      sgdisk_ouput
   tags:
@@ -61,6 +62,7 @@
   fail:
     msg: "The command ({{ item.cmd }}) did not have a 0 return code"
   when: 
+    - enable_swap_partitions|default(true)|bool == true
     - item.rc != 0
   loop: "{{ sgdisk_ouput.results }}"
   tags:

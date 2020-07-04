@@ -128,14 +128,6 @@
   tags:
     - config_system
 
-#- name: Run chrooted Commands to set default root password
-#  shell:
-#    cmd: "{{chroot_cmd}} bash -c 'echo -e {{ default_root_password }}\n{{ default_root_password }} | passwd root'"
-#  when:
-#    - ansible_nodename != "localhost"
-#  tags:
-#    - config_system
-
 - name: Run chrooted Commands to set default root password
   expect:
     command: "{{chroot_cmd}} passwd"

@@ -1,0 +1,38 @@
+---
+# Work for Single Disk Unencrypted SWAP
+- name: Run chrooted command to create SWAP filesystem
+  command:
+    "{{chroot_cmd}} bash -c 'mkswap -f {{ item }}-part2'"
+  loop: 
+    "{{ disk_by_id }}"
+  when:
+    - ansible_nodename != "localhost"
+    - enable_swap_partitions|default(true)|bool == true
+    - disk_by_id|length == 1
+  tags:
+    - config_swap
+
+- name: Run chrooted command to adding Single Disk Unencrypted Swap Partitions to /etc/fstab
+  shell:
+    cmd: "{{chroot_cmd}} bash -c 'echo UUID=$(blkid -s UUID -o value {{item}}-part2) none swap discard 0 0 >> /etc/fstab'"
+  loop: 
+    "{{ disk_by_id }}"
+  when:
+    - ansible_nodename != "localhost"
+    - enable_swap_partitions|default(true)|bool == true
+    - disk_by_id|length == 1
+  tags:
+    - config_swap
+
+- name: Run chrooted command to enable SWAP device
+  command:
+    "{{chroot_cmd}} bash -c 'swapon -a'"
+  loop: 
+    "{{ disk_by_id }}"
+  when:
+    - ansible_nodename != "localhost"
+    - enable_swap_partitions|default(true)|bool == true
+    - disk_by_id|length == 1
+  tags:
+    - config_swap
+

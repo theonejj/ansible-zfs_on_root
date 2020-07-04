@@ -2,6 +2,8 @@
 # Default root password to set
 default_root_password: "change!me"
 
+# Create Swap Paritions
+enable_swap_partitions: true
 # Set swap size that makes sense
 swap_partition_size: "2G"
 

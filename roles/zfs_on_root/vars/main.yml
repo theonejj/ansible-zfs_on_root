@@ -103,3 +103,6 @@ chroot_cmd: "chroot /mnt"
 
 # OS Prober is only needed on dual-boot configurations.
 remove_os_prober: true
+
+# Directory to check for UEFI available
+efi_firmware_path: "/sys/firmware/efi"

@@ -113,8 +113,6 @@
 - name: Run chrooted command to enable swap device
   command:
     "{{chroot_cmd}} bash -c 'swapon -a'"
-  loop: 
-    "{{ disk_by_id }}"
   when:
     - ansible_nodename != "localhost"
     - enable_swap_partitions|default(true)|bool == true

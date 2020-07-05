@@ -10,7 +10,11 @@
       {% if enable_swap_partitions|default(true)|bool == true %}
            Default Swap Size: {{swap_partition_size}}
       {% endif %}
-            Use UEFI Booting: {{use_uefi_booting}}
+            Use UEFI Booting: {{use_uefi_booting}}{% if use_uefi_booting|default(false)|bool == true %}
+      {% if efi_firmware_directory is defined %}
+        (Confirmed UEFI Firmware found)
+      {% endif %}
+      {% endif %}
                 Local Prefix: {{locale_prefix}}
 
           Disk Devices Specified: {{disk_by_id|length}}

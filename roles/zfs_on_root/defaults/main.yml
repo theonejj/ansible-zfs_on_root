@@ -8,7 +8,7 @@ enable_swap_partitions: true
 swap_partition_size: "2G"
 
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
-use_uefi_booting: false
+use_uefi_booting: true
 
 # Define the boot pool type based on number of devices.
 # If you want 3 devices to be a 3 way mirror enable it, etc.

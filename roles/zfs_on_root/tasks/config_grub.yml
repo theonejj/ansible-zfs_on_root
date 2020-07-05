@@ -36,7 +36,7 @@
     - config_grub
 
 # Run grub-install per legacy disk device
-- name: Run chrooted command to run grub-install per disk device
+- name: Run chrooted command to run grub-install per legacy disk device
   command:
     cmd: "{{chroot_cmd}} grub-install {{ item }}"
   loop: 

@@ -1,6 +1,20 @@
 ---
+###############################################################################
+# User Specific Settings
+###############################################################################
+
 # Default root password to set
 default_root_password: "change!me"
+
+# Define non-root usr account to create (home drive will be its own dataset)
+regular_user_account: "rich"
+regular_user_password: "change!me"
+regular_user_fullname: "Richard Durso"
+regular_user_groups: "adm,cdrom,dip,lpadmin,lxd,plugdev,sambashare,sudo"
+
+###############################################################################
+# Computer Configuration Settings
+###############################################################################
 
 # Create Swap Paritions
 enable_swap_partitions: true
@@ -9,6 +23,13 @@ swap_partition_size: "2G"
 
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
 use_uefi_booting: true
+
+# Define the local pre-fix to enable in /etc/locale.gen
+locale_prefix: "en_US"
+
+###############################################################################
+# ZFS Specific Adjustable Settings
+###############################################################################
 
 # Define the boot pool type based on number of devices.
 # If you want 3 devices to be a 3 way mirror enable it, etc.
@@ -35,6 +56,3 @@ set_root_pool_type:
 # Define Pool Names
 boot_pool_name: "bpool"
 root_pool_name: "rpool"
-
-# Define the local pre-fix to enable in /etc/locale.gen
-locale_prefix: "en_US"

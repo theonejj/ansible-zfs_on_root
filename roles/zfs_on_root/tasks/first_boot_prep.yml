@@ -18,6 +18,16 @@
   tags:
     - first_boot_prep
 
+- name: Copy over ansible sudoers include file to chrooted environment
+  copy:
+    src: "{{sudoers_include_file}}"
+    dest: "/mnt/{{sudoers_include_file}}"
+    remote_src: yes
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - first_boot_prep
+
 - name: Copy over ansible ssh key to chrooted environment
   copy:
     src: /home/{{ ansible_user }}/.ssh

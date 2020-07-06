@@ -106,3 +106,6 @@ remove_os_prober: true
 
 # Directory to check for UEFI available
 efi_firmware_path: "/sys/firmware/efi"
+
+# Location of sudoers include file which contains: ansible ALL=(ALL) NOPASSWD:ALL
+sudoers_include_file: "/etc/sudoers.d/99_sudo_include_file"

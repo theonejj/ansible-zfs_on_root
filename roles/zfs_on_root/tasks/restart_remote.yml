@@ -1,0 +1,25 @@
+---
+- pause:
+    prompt: |
+      ##########################################################
+      # {{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }} will be rebooted.
+      ##########################################################
+
+      {% if root_pool_encryption|default(false)|bool == true %}
+           When prompted for passphrase for {{root_pool_name}}:
+           Encryption Passphrase: {{passphrase}}
+      {% endif %}
+       
+           Reminder Root Password: {{default_root_password}}
+
+      Press ENTER to reboot {{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}
+  tags:
+    - restart_remote
+
+- name: Commencing Reboot, will take a few minutes....
+  reboot:
+    pre_reboot_delay: 30
+    reboot_timeout: 3600
+  tags:
+    - restart_remote
+

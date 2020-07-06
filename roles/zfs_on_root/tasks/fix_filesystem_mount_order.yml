@@ -75,7 +75,7 @@
   tags:
     - fix_mount_order
 
-- name: Run chrooted command to , attempt forced cache update, rpool cache was empty
+- name: Run chrooted command to attempt forced cache update, rpool cache was empty
   command: "{{chroot_cmd}} bash -c 'zfs set canmount=noauto {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}'"
   when:
     - ansible_nodename != "localhost"

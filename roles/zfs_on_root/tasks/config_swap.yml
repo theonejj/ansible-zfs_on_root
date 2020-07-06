@@ -177,7 +177,7 @@
   tags:
     - config_swap
 
-- name: Run chrooted command to install cural and patch for Bug#1875577 Encrypted Swap with ZFS
+- name: Run chrooted command to install curl and patch for Bug#1875577 Encrypted Swap with ZFS
   command: 
     "{{chroot_cmd}} bash -c 'apt install --yes curl patch'"
   when:

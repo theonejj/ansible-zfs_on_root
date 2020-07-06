@@ -1,0 +1,62 @@
+---
+- name: Run chrooted command to install SSH Server
+  command: 
+    "{{chroot_cmd}} bash -c 'apt install --yes openssh-server'"
+  when:
+    - ansible_nodename != "localhost"
+    - ansible_os_family == "Debian"
+  tags:
+    - first_boot_prep
+
+- name: Run chrooted command add ansible user account (password disabled)
+  command: 
+    "{{chroot_cmd}} bash -c 'adduser {{ ansible_user }} --disabled-password --gecos Ansible_User'"
+  args:
+    creates: "/mnt/home/{{ ansible_user }}"
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - first_boot_prep
+
+- name: Copy over ansible ssh key to chrooted environment
+  copy:
+    src: /home/{{ ansible_user }}/.ssh
+    dest: /mnt/home/{{ ansible_user }}/
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    remote_src: yes
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - first_boot_prep
+
+- name: Copy create user script to /root
+  template:
+    src: add_user.j2
+    dest: /mnt/root/add_user.sh
+    owner: root
+    group: root
+    mode: '0700'
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - first_boot_prep
+
+- name: Unmount chrooted filesystems
+  shell: 
+    cmd: "mount | grep -v zfs | tac | awk '/\\/mnt/ {print $3}' | xargs -i{} umount -lf {}"
+    warn: false
+  register:
+    mount_output
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - first_boot_prep
+
+- name: Export all ZFS Pools
+  command: 
+    "zpool export -a"
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - first_boot_prep

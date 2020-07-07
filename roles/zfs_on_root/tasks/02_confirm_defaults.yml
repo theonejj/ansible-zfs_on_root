@@ -6,15 +6,12 @@
       ####################################################################
 
         Default Root Password: {{default_root_password}}
-      Create non-root account: {{create_regular_user}}
-      {% if create_regular_user|default(false)|bool == true %}
-
-      Create non-root Account: {{regular_user_account}}       
+      
+             Non-root Account: {{regular_user_account}}       
                      Password: {{regular_user_password}}
                     Full Name: {{regular_user_fullname}}
                 Add to Groups: {{regular_user_groups}}
 
-      {% endif %}
       Environment Installation: {% if command_line_only|default(false)|bool == true%}Command-line only{%else%}Full GUI Environment{% endif %}
 
         Create Swap Partitions: {{enable_swap_partitions}}

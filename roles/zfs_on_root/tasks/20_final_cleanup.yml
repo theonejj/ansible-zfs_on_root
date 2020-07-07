@@ -1,0 +1,45 @@
+---
+- name: Disable root password
+  user:
+    name: 'root'
+    password: '*'
+  tags:
+    - final_cleanup
+
+- name:  Update grub - uncomment GRUB_TIMEOUT_STYLE=hidden
+  replace:
+    path: /etc/default/grub
+    regexp: '^#GRUB_TIMEOUT_STYLE=hidden'
+    replace: 'GRUB_TIMEOUT_STYLE=hidden'
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - final_cleanup
+
+- name:  Update grub - enable quiet splash screen
+  replace:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT=.*'
+    replace: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash init_on_alloc=0"'
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - final_cleanup
+
+- name:  Update grub - Comment out GRUB_TERMINAL=console
+  replace:
+    path: /etc/default/grub
+    regexp: '^GRUB_TERMINAL=console'
+    replace: '#GRUB_TERMINAL=console'
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - final_cleanup
+
+- name: Running update-grub
+  command:
+    "update-grub"
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - final_cleanup

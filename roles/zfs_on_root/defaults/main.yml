@@ -3,11 +3,11 @@
 # User Specific Settings
 ###############################################################################
 
-# Default root password to set
+# Default root password to set - temporary, password is disabled at end.
+# The non-root user account will have sudo privileges
 default_root_password: "change!me"
 
 # Define non-root usr account to create (home drive will be its own dataset)
-create_regular_user: true
 regular_user_account: "rich"
 regular_user_password: "change!me"
 regular_user_fullname: "Richard Durso"

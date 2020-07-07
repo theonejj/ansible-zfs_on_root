@@ -1,7 +1,7 @@
 ---
-- name: Run chrooted command to install SSH Server
+- name: Run chrooted command to install SSH Server and python
   command: 
-    "{{chroot_cmd}} bash -c 'apt install --yes openssh-server'"
+    "{{chroot_cmd}} bash -c 'apt install --yes openssh-server python'"
   when:
     - ansible_nodename != "localhost"
     - ansible_os_family == "Debian"

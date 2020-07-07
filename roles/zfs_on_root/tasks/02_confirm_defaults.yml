@@ -1,21 +1,30 @@
 ---
 - pause:
     prompt: |
-      ##########################################################
+      ####################################################################
       # Please review the following defaults
-      ##########################################################
+      ####################################################################
 
-       Default Root Password: {{default_root_password}}
-      Create Swap Partitions: {{enable_swap_partitions}}
+        Default Root Password: {{default_root_password}}
+      Create non-root account: {{create_regular_user}}
+      {% if create_regular_user|default(false)|bool == true %}
+
+      Create non-root Account: {{regular_user_account}}       
+                     Password: {{regular_user_password}}
+                    Full Name: {{regular_user_fullname}}
+                Add to Groups: {{regular_user_groups}}
+
+      {% endif %} 
+       Create Swap Partitions: {{enable_swap_partitions}}
       {% if enable_swap_partitions|default(true)|bool == true %}
-           Default Swap Size: {{swap_partition_size}}
+            Default Swap Size: {{swap_partition_size}}
       {% endif %}
-            Use UEFI Booting: {{use_uefi_booting}}{% if use_uefi_booting|default(false)|bool == true %}
+             Use UEFI Booting: {{use_uefi_booting}}{% if use_uefi_booting|default(false)|bool == true %}
       {% if efi_firmware_directory is defined %}
         (Confirmed UEFI Firmware found)
       {% endif %}
       {% endif %}
-                Local Prefix: {{locale_prefix}}
+                 Local Prefix: {{locale_prefix}}
 
           Disk Devices Specified: {{disk_by_id|length}}
       Default ZFS Boot Pool Name: {{boot_pool_name}}  {% if disk_by_id|length|int > 1 %}Type: {{boot_pool_type}}
@@ -32,6 +41,6 @@
            Encryption Passphrase: {{passphrase}}
       {% endif %}
         
-      ###### Press Ctrl-C to abort or ENTER to continue ###### 
+      ############ Press Ctrl-C to abort or ENTER to continue ############
   tags:
       - basic_checks

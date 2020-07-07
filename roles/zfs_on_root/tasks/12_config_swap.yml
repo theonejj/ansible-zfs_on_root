@@ -155,7 +155,7 @@
 #########################################
 - name: Run chrooted command to add multi-disk encrypted swap partitions to /etc/crypttab
   shell:
-    cmd: "{{chroot_cmd}} bash -c 'echo /dev/md0 /dev/urandom swap,cipher=aes-xts-plain64:sha256,size=512 >> /etc/crypttab'"
+    cmd: "{{chroot_cmd}} bash -c 'echo swap /dev/md0 /dev/urandom swap,cipher=aes-xts-plain64:sha256,size=512 >> /etc/crypttab'"
   when:
     - ansible_nodename != "localhost"
     - enable_swap_partitions|default(true)|bool == true

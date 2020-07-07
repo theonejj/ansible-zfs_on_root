@@ -26,6 +26,9 @@ swap_partition_size: "2G"
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
 use_uefi_booting: true
 
+# Full GUI installtion of command-line only environment
+command_line_only: false
+
 # Define the local pre-fix to enable in /etc/locale.gen
 locale_prefix: "en_US"
 

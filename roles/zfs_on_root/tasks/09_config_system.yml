@@ -1,8 +1,8 @@
 ---
-- name: Copy hostname template to /etc/hostname
+- name: Copy hostname template to /mnt/etc/hostname
   template:
     src: hostname.j2
-    dest: /etc/hostname
+    dest: /mnt/etc/hostname
     owner: root
     group: root
     mode: '0644'
@@ -12,9 +12,9 @@
     - config_system
 
 # Update /etc/hosts to host_name specified on command line
-- name: Updating /etc/hosts to "{{host_name}}"
+- name: Updating /mnt/etc/hosts to "{{host_name}}"
   replace:
-    path: /etc/hosts
+    path: /mnt/etc/hosts
     regexp: '\b{{distro_name}}\b'
     replace: '{{host_name}}'
   when:

@@ -103,6 +103,15 @@
   tags:
     - config_system
 
+- name: Run chrooted command to update timezone setting
+  command:
+    cmd: "{{chroot_cmd}} bash -c 'timedatectl set-timezone {{timezone_value}}'"
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - config_system
+
+
 - name: Run chrooted command to update locale
   command:
     cmd: "{{chroot_cmd}} bash -c 'locale-gen'"

@@ -1,4 +1,12 @@
 ---
+- name: Run chrooted command to update timezone setting
+  command:
+    cmd: "timedatectl set-timezone {{timezone_value}}"
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - final_cleanup
+
 - name: Disable root password
   user:
     name: 'root'

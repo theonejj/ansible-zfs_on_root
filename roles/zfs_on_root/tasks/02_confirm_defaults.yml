@@ -38,6 +38,9 @@
         Use ZFS Native Encyption: {{root_pool_encryption}}
       {% if root_pool_encryption|default(false)|bool == true %}
            Encryption Passphrase: {{passphrase}}
+      {%else%}
+        To enable ZFS Native Encryption:
+        Add passphrase: "<your_passphrase>" to --extra-vars='{disk_devices: {{disk_devices}},host_name: {{host_name}},passphrase: "mys3cret"}'
       {% endif %}
 
       ############ Press Ctrl-C to abort or ENTER to continue ############

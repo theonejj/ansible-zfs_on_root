@@ -11,6 +11,9 @@ sudo useradd -m ansible
 echo "Enter a temporary password for Ansible account. You will be prompted for this"
 echo "password when you attempt to push a generated SSH key to this account."
 echo
+echo "When installation is complete, the Ansible account will be password disabled,"
+echo "Only SSH key based login will be allowed."
+echo
 sudo passwd ansible
 
 # Add user to sudoers file 
@@ -18,8 +21,11 @@ sudo bash -c 'echo "ansible ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/99_sudo_in
 
 # Validate sudoers file update
 sudo visudo -cf /etc/sudoers.d/99_sudo_include_file
-
-#Must return:   /etc/sudoers.d/99_sudo_include_file: parsed OK
+if [[ $? -ne 0 ]]; then 
+  #Must return:   /etc/sudoers.d/99_sudo_include_file: parsed OK
+  echo ERROR: sudoers validation failed, something went wrong updating sudoers file. 
+  echo Unable to continue.
+fi
 
 # install SSH Server and Python to allow ansible to connect
 sudo apt install --yes openssh-server vim python python-apt

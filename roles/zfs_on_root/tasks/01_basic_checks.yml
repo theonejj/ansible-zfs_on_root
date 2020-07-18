@@ -1,9 +1,19 @@
 ---
 # If disk devices not specified on command line, detect available devices
-- name: Detect available disk devices
+- name: Detect available disk devices to show
   shell:
     cmd: "lsblk -d -o name,size,type,mountpoint | grep -v '/'"
   register: lsblk_devices
+  when: 
+    disk_devices is undefined
+  tags:
+    - basic_checks
+
+# If disk devices not specified on command line, provide a default value
+- name: Generate default device list to suggest
+  shell:
+    cmd: "lsblk -ndo name,mountpoint | grep -v '/'"
+  register: lsblk_default
   when: 
     disk_devices is undefined
   tags:
@@ -26,9 +36,11 @@
       Devices Detected:
       {{lsblk_devices.stdout}}
 
+      Devices Selected: {{lsblk_default.stdout.splitlines()|map('trim')|list}}
 
-      Please enter a comma separated list of devices to use such as: sda,sdb
-      OR press CTRL-C to Abort:
+      Press [ENTER] to accept the Devices Selected, or enter a comma separated
+      list of devices to use such as: sda,sdb
+      OR press CTRL-C to Abort.
     echo: yes
   when: 
     disk_devices is undefined
@@ -36,6 +48,14 @@
     prompt
   tags:
   - basic_checks
+
+# If user provided input was only pressing ENTER to accept the default, then set default value
+- set_fact:
+    disk_devices: "{{lsblk_default.stdout.splitlines()|map('trim')|list}}"
+  when:
+    prompt.user_input == ""
+  tags:
+    - basic_checks
 
 # If user provided input, then convert comma seperated values into a list.
 - set_fact:

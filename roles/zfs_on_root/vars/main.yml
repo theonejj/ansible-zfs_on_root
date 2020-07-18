@@ -98,13 +98,15 @@ userdata_root_dataset_options: "-o com.ubuntu.zsys:bootfs-datasets={{root_pool_d
 
 grub_dataset_options: "{{boot_pool_dataset_path}}/grub"
 
-# Misc Definitions
+####### Variable Before are unrelated to ZFS ############
+# Define chroot command to use
 chroot_cmd: "chroot /mnt"
 
 # OS Prober is only needed on dual-boot configurations.
 remove_os_prober: true
 
-# Directory to check for UEFI available
+# Directory to check that UEFI firmware is available
+# This is required to be found if UEFI support is enabled
 efi_firmware_path: "/sys/firmware/efi"
 
 # Location of sudoers include file which contains: ansible ALL=(ALL) NOPASSWD:ALL

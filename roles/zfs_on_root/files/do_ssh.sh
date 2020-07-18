@@ -8,6 +8,9 @@
 sudo useradd -m ansible
 
 # Define remote user password
+echo "Enter a temporary password for Ansible account. You will be prompted for this"
+echo "password when you attempt to push a generated SSH key to this account."
+echo
 sudo passwd ansible
 
 # Add user to sudoers file 

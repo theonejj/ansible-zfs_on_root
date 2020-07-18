@@ -2,7 +2,7 @@
 - pause:
     prompt: |
       ####################################################################
-      # Please review the following defaults
+      # Please review the following defaults for: {{host_name}}
       ####################################################################
 
         Default Root Password: {{default_root_password}}
@@ -40,7 +40,7 @@
            Encryption Passphrase: {{passphrase}}
       {%else%}
         To enable ZFS Native Encryption:
-        Add passphrase: "<your_passphrase>" to --extra-vars='{disk_devices: {{disk_devices}},host_name: {{host_name}},passphrase: "mys3cret"}'
+        Add passphrase: "<your_passphrase>" to --extra-vars='{disk_devices: {{disk_devices}},host_name: "{{host_name}}",passphrase: "mys3cret"}'
       {% endif %}
 
       ############ Press Ctrl-C to abort or ENTER to continue ############

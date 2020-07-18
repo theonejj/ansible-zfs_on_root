@@ -7,3 +7,12 @@
   when: ansible_os_family == "Debian"
   tags:
     - install-zfs-packages
+
+- name: Copy update time script to Live CD Environment
+  copy:
+    src: update-time.sh
+    dest: "/home/{{ansible_distribution|lower}}"
+    mode: "0755"
+  when: ansible_distribution == "Ubuntu"
+  tags:
+    - configure-system

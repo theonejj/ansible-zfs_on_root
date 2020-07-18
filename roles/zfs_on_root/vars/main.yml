@@ -109,3 +109,6 @@ efi_firmware_path: "/sys/firmware/efi"
 
 # Location of sudoers include file which contains: ansible ALL=(ALL) NOPASSWD:ALL
 sudoers_include_file: "/etc/sudoers.d/99_sudo_include_file"
+
+# Name of SSH Installation Helper Script (to remove if found)
+ssh_installation_helper_script: "do_ssh.sh"

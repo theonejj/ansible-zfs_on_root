@@ -1,17 +1,88 @@
 ---
-# Fail if disk_devices not specified on command line for playbook
-# This specifies the devices to wipe and install ZFS.
-- fail: 
-    msg: "ERROR: This playbook requires --extra-vars='{disk_devices: [sda,sdb],host_name: mydesktop}'"
+# If disk devices not specified on command line, detect available devices
+- name: Detect available disk devices
+  shell:
+    cmd: "lsblk -d -o name,size,type,mountpoint | grep -v '/'"
+  register: lsblk_devices
   when: 
     disk_devices is undefined
   tags:
     - basic_checks
 
-# Fail if hostname not specified on command line for import_playbook
-- fail:
-    msg: "ERROR: This playbook requires --extra-vars='{disk_devices: [sda,sdb],host_name: mydesktop}'"
+# If disk devices not specified on command line, then prompt for it.
+- pause:
+    prompt: |
+      #########################################################################
+      This playbook requires that you define one or more disk devices to use.
+      Each disk device specified will have its partitions erased and rebuilt
+      using ZFS on Root recommendations based on Ubuntu 20.04.
+
+      NOTE: You can specify devices to use as an ansible parameter using the
+             extra-vars parameter, for example:
+        
+             --extra-vars='{disk_devices: [sda,sdb]}'
+      #########################################################################
+
+      Devices Detected:
+      {{lsblk_devices.stdout}}
+
+
+      Please enter a comma separated list of devices to use such as: sda,sdb
+      OR press CTRL-C to Abort:
+    echo: yes
+  when: 
+    disk_devices is undefined
+  register: 
+    prompt
+  tags:
+  - basic_checks
+
+# If user provided input, then convert comma seperated values into a list.
+- set_fact:
+    disk_devices: "{{prompt.user_input.split(',')}}"
+  when: 
+    disk_devices is undefined
+  tags:
+    - basic_checks
+
+# If host_name not specified on command line, then prompt for it.
+- pause:
+    prompt: |
+      #########################################################################
+      This playbook requires that you define a hostname to be used for the 
+      new system being created.
+
+      NOTE: You can specify the hostname to use as an ansible parameter using
+            the extra-vars parameter, for example:
+        
+             --extra-vars='{host_name: "mynewpc"}'
+      #########################################################################
+
+      Default Value:
+      {{ansible_host.split(".")[0]|lower}}
+
+      Please enter an alternate hostname or ENTER to accept the default.
+      OR press CTRL-C to Abort:
+    echo: yes
+  when: 
+    host_name is undefined
+  register: 
+    prompt
+  tags:
+  - basic_checks
+
+# If user provided input was only pressing ENTER to accept the default, then set default value
+- set_fact:
+    host_name: "{{ansible_host.split('.')[0]|lower}}"
   when:
+    prompt.user_input == ""
+  tags:
+    - basic_checks
+
+# If user provided input, then convert comma seperated values into a list.
+- set_fact:
+    host_name: "{{prompt.user_input.split('.')[0]|lower}}"
+  when: 
     host_name is undefined
   tags:
     - basic_checks

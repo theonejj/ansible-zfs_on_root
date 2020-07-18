@@ -1,6 +1,8 @@
 #!/bin/bash
 #
-# This is a helper script to reduce the amount of cut & paste needed to get Live CD ready for ansible.
+# This is a helper script to reduce the amount of cut & paste 
+# needed to get Live CD ready for ansible.
+###############################################################
 
 # Create ansible account and a home directory to store SSH keys
 sudo useradd -m ansible

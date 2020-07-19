@@ -20,8 +20,14 @@ regular_user_shell: "/bin/bash"
 
 # Create Swap Paritions
 enable_swap_partitions: true
-# Set swap size that makes sense
-swap_partition_size: "2G"
+
+# Swap partition size when a single device is used
+single_swap_partition_size_MB: "4096"
+
+# Swap partition size, per device, when multiple devices are used
+# If boot pool type is mirror, then it will be a mdm mirror of this size
+# If boot pool type is raidz, then is will be a mdm raid5 of this size (#devices-1*size)
+multiple_swap_partition_size_MB: "2048"
 
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
 use_uefi_booting: true
@@ -53,13 +59,13 @@ set_boot_pool_type:
 # If you want 3 devices to be a 3 way mirror enable it, etc.
 # A raidz will be the default if more than 2 devices are used
 # The "raidz" option can be changed if you understand what it does.
+# A raidz2 required 4 or more devices.
 set_root_pool_type:
   1: ""
   2: "mirror"
-#  3: "mirror"
-#  4: "mirror"
+#  3: "raidz"
+#  4: "raidz2"
   default: "raidz"
-#  default: "raidz2"
 
 # Define Pool Names
 boot_pool_name: "bpool"

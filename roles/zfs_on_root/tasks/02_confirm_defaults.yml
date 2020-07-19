@@ -16,7 +16,15 @@
 
         Create Swap Partitions: {{enable_swap_partitions}}
       {% if enable_swap_partitions|default(true)|bool == true %}
-             Default Swap Size: {{swap_partition_size}}
+      {% if disk_by_id|length|int > 1 %}
+      {% if boot_pool_type == "mirror" %}
+             Mirror Swap Size: {{multiple_swap_partition_size_MB}} MB
+      {%else%}
+             RAID Swap Size: {{multiple_swap_partition_size_MB|int*(disk_by_id|length|int-1)}} MB
+      {% endif %}
+      {%else%}
+             Default Swap Size: {{single_partition_size_MB}} MB
+      {% endif %}
       {% endif %}
               Use UEFI Booting: {{use_uefi_booting}}{% if use_uefi_booting|default(false)|bool == true %}
       {% if efi_firmware_directory is defined %}

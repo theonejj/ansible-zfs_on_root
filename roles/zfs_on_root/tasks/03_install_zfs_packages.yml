@@ -1,13 +1,4 @@
 ---
-- name: Install ZFS packages (assumes Live CD Environment)
-  apt: 
-    name: ['debootstrap','gdisk','python-pexpect','zfs-initramfs']
-    state: present 
-    update_cache: yes
-  when: ansible_os_family == "Debian"
-  tags:
-    - install-zfs-packages
-
 - name: Copy update time script to Live CD Environment
   copy:
     src: update-time.sh
@@ -16,3 +7,19 @@
   when: ansible_distribution == "Ubuntu"
   tags:
     - configure-system
+
+# If install ZFS packages fails due to "not yet valid" message, then run the above update-time
+# script to fix the clock, this happens with virtualbox snapshot images for example.
+
+- name: Install ZFS packages (assumes Live CD Environment)
+  block:
+  - apt: 
+      name: ['debootstrap','gdisk','python-pexpect','zfs-initramfs']
+      state: present 
+      update_cache: yes
+  rescue:
+    - command:
+        cmd: "/home/{{ansible_distribution|lower}}/update-time.sh"
+  when: ansible_os_family == "Debian"
+  tags:
+    - install-zfs-packages

@@ -262,6 +262,18 @@
   tags:
     - basic_checks
 
+# If somehow 4 or more devices are defined as a mirror for mirrored vdevs
+# then number of devices must be even number, otherwise fail. 
+# (IE a 5 way mirror not supported, should be a raidz or raidz2 or not used)
+- name: Confirm mirrored vdevs for root pool has even number of devices.
+  fail:
+    msg: "ERROR: A mirror of more than 4 devices (mirrored vdevs) must use an even number of devices. A {{disk_by_id|length|int}} mirror is not supported, fix it in vars/main.yml"
+  when:
+    - root_pool_type == "mirror"
+    - disk_by_id|length|int > 4
+    - disk_by_id|length|int is odd
+  tags:
+    - basic_checks
 
 # If boot using UEFI specifed, then Ubuntu Live CD should have detected this.
 # Path /sys/firmware/efi must exist, otherwise only legacy booting can be used.

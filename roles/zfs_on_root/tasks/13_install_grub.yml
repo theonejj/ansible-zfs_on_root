@@ -17,7 +17,7 @@
   tags:
     - install_grub
 
-- name: Run chrooted command refresh initrd files
+- name: Run chrooted command to refresh initrd files
   command:
     "{{chroot_cmd}} bash -c 'update-initramfs -c -k all'"
   when:

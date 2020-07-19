@@ -1,9 +1,12 @@
 ---
+# Boot Pools can be standalone, mirror or raidz and if enabled swap partitions follow this as well.
+# Since boot pools are small and swap follows this, for simplicity multiple mirrored vdevs are not supported.
+
 - name: Debug Create ZFS Boot Pool
   debug:
     msg: "zpool create {{ boot_pool_options|join(' ') }} {{boot_pool_type}} {{ disk_by_id|join(boot_partition_name_suffix+' ')+boot_partition_name_suffix+' ' }}"
   when:
-    debug|default(false) == true
+    - debug|default(false) == true
   tags:
     - create_pools
 
@@ -15,15 +18,19 @@
   tags:
     - create_pools
 
-- name: Debut Create ZFS Root Pool
+#### Standard ZFS Root Pools are raidz, raidz2 or simple mirror ####
+- name: Debug Create Standard ZFS Root Pool
   debug:
     msg: "zpool create {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
   when:
-    debug|default(false) == true
+    - ((root_pool_type == "raidz") or (root_pool_type == "raidz2")) or
+      ((root_pool_type == "mirror") and (disk_by_id|length|int <3 ))
+    - debug|default(false) == true
   tags:
     - create_pools
 
-- name: Create ZFS Root Pool for Encryption
+#### Standard ZFS Pools Pools are raidz, raidz2 or simple mirror ####
+- name: Create Standard ZFS Root Pool for Encryption
   expect:
     command:
      "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
@@ -31,16 +38,79 @@
       passphrase: "{{passphrase}}"
       again: "{{passphrase}}"
   when:
+    - ((root_pool_type == "raidz") or (root_pool_type == "raidz2")) or
+      ((root_pool_type == "mirror") and (disk_by_id|length|int <3 ))
     - ansible_nodename != "localhost"
     - root_pool_encryption|default(false) == true
   tags:
     - create_pools
 
-- name: Create ZFS Root Pool without Encrytpion
+#### Standard ZFS Pools Pools are raidz, raidz2 or simple mirror ####
+- name: Create Standard ZFS Root Pool without Encrytpion
   command:
      cmd: "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
   when:
+    - ((root_pool_type == "raidz") or (root_pool_type == "raidz2")) or
+      ((root_pool_type == "mirror") and (disk_by_id|length|int <3 ))
     - ansible_nodename != "localhost"
     - root_pool_encryption|default(false) == false
+  tags:
+    - create_pools
+
+##### High Performance ZFS Root Pool, add mirrored pairs of VDEVS to pools ####
+##### Requires 4 or more devices and root_pool_type must be "mirror"       ####
+
+# Create the pool as a mirror of the 1st two devices.
+- set_fact:
+    two_root_pool_devices: "{{ two_root_pool_devices|default([]) + [ disk_by_id[item|int] ] }}"
+  with_sequence: start=0 end=1
+  when:
+  - ((root_pool_type == "mirror") and (disk_by_id|length|int > 3 ))
+  tags:
+    - create_pools
+
+- name: Debug Create Mirrored vdev ZFS Root Pool without Encryption
+  debug:
+    msg: "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ two_root_pool_devices|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' '}}"
+  when:
+    - ((root_pool_type == "mirror") and (disk_by_id|length|int > 3 ))
+    - ansible_nodename != "localhost"
+    - root_pool_encryption|default(false) == false
+    - debug|default(false) == true
+  tags:
+    - create_pools
+
+- name: Create Mirrored vdev ZFS Root Pool for Encryption
+  expect:
+    command:
+     "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ two_root_pool_devices|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
+    responses:
+      passphrase: "{{passphrase}}"
+      again: "{{passphrase}}"
+  when:
+    - ((root_pool_type == "mirror") and (disk_by_id|length|int > 3 ))
+    - ansible_nodename != "localhost"
+    - root_pool_encryption|default(false) == true
+  tags:
+    - create_pools
+
+- name: Create Mirrored vdev ZFS Root Pool without Encrytpion
+  command:
+    cmd: "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ two_root_pool_devices|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' '}}"
+  when:
+    - ((root_pool_type == "mirror") and (disk_by_id|length|int > 3 ))
+    - ansible_nodename != "localhost"
+    - root_pool_encryption|default(false) == false
+  tags:
+    - create_pools
+
+# Attached remaining Devices 2 at a time as mirrors to Root Pool
+- name:  Attaching remaining vdev mirrors to Root Pool
+  command:
+      cmd: "zpool add {{root_pool_name}} {{root_pool_type}} {{disk_by_id[item|int]}}{{root_partition_name_suffix}} {{disk_by_id[item|int +1]}}{{root_partition_name_suffix}}"
+  with_sequence: start=2 stride=2 end="{{disk_by_id|length|int - 1}}"
+  when:
+    - ((root_pool_type == "mirror") and (disk_by_id|length|int > 3 ))
+    - ansible_nodename != "localhost"
   tags:
     - create_pools

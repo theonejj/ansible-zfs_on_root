@@ -29,19 +29,3 @@
     reboot_timeout: 3600
   tags:
     - restart_remote_final
-
-- pause:
-    prompt: |
-      ##########################################################
-      # {{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }} is nearly complete.
-      ##########################################################
-
-      Once you are done testing the system, Press ENETER to wrap
-      up this configuration:
-
-      * Root password will be disabled (must use sudo instead).
-      * Graphical Boot Process will be enabled.
-
-      Press ENTER to complete {{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}
-  tags:
-    - restart_remote_final

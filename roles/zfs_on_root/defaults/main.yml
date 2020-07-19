@@ -25,14 +25,14 @@ enable_swap_partitions: true
 single_swap_partition_size_MB: "4096"
 
 # Swap partition size, per device, when multiple devices are used
-# If boot pool type is mirror, then it will be a mdm mirror of this size
-# If boot pool type is raidz, then is will be a mdm raid5 of this size (#devices-1*size)
+# If set_boot_pool_type is mirror, then it will be a mdm mirror of this size
+# If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size (#devices-1*size)
 multiple_swap_partition_size_MB: "2048"
 
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
 use_uefi_booting: true
 
-# Full GUI installtion of command-line only environment
+# Full GUI installtion or command-line only environment
 command_line_only: false
 
 # Define the local pre-fix to enable in /etc/locale.gen
@@ -46,25 +46,29 @@ timezone_value: "America/New_York"
 ###############################################################################
 
 # Define the boot pool type based on number of devices.
-# If you want 3 devices to be a 3 way mirror enable it, etc.
-# A raidz will be the default if more than 2 devices are used
+#  - If you want 3 devices to be a 3 way mirror change it, etc.
+#  - Raidz will be the default if something below is not defined.
 set_boot_pool_type:
   1: ""
   2: "mirror"
-#  3: "mirror"
-#  4: "mirror"
+  3: "raidz"
+  4: "raidz"
   default: "raidz"
 
 # Define the root pool type based on number of devices.
-# If you want 3 devices to be a 3 way mirror enable it, etc.
-# A raidz will be the default if more than 2 devices are used
-# The "raidz" option can be changed if you understand what it does.
-# A raidz2 required 4 or more devices.
+#  - If you want 3 devices to be a 3 way mirror change it, etc.
+#  - If even number 2,4,6,8, etc of type mirror, then mirrored vdevs will be used.
+#  - -  This is higher performance with redundancy and much faster resilver times
+#  - -  than using any type of raidz.
+#  - Raidz will be the default if something below is not defined.
+#  - NOTE: A raidz2 requires 4 or more devices.
 set_root_pool_type:
   1: ""
   2: "mirror"
-#  3: "raidz"
-#  4: "raidz2"
+  3: "raidz"
+  4: "mirror"
+  5: "raidz"
+  6: "mirror"
   default: "raidz"
 
 # Define Pool Names

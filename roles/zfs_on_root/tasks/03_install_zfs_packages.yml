@@ -1,25 +1,21 @@
 ---
-- name: Copy update time script to Live CD Environment
-  copy:
-    src: update-time.sh
-    dest: "/home/{{ansible_distribution|lower}}"
-    mode: "0755"
-  when: ansible_distribution == "Ubuntu"
-  tags:
-    - configure-system
+# ZFS package installs have failed due to "not yet valid" message. This ususally happens
+# when time is not set correctly on the new system.  This happened often when virtualbox
+# snapshot images were used.  Restarting timesyncd service forces time to be updated.
 
-# If install ZFS packages fails due to "not yet valid" message, then run the above update-time
-# script to fix the clock, this happens with virtualbox snapshot images for example.
+- name: Restarting timesync service under Virtualbox
+  command: "systemctl restart systemd-timesyncd"
+  when: 
+    - ansible_os_family == "Debian"
+    - virutal_box|default(false)|bool == true
+  tags:
+    - install-zfs-packages
 
 - name: Install ZFS packages (assumes Live CD Environment)
-  block:
-  - apt: 
-      name: ['debootstrap','gdisk','python-pexpect','zfs-initramfs']
-      state: present 
-      update_cache: yes
-  rescue:
-    - command:
-        cmd: "/home/{{ansible_distribution|lower}}/update-time.sh"
+  apt: 
+    name: ['debootstrap','gdisk','python-pexpect','zfs-initramfs']
+    state: present 
+    update_cache: yes
   when: ansible_os_family == "Debian"
   tags:
     - install-zfs-packages

@@ -64,6 +64,8 @@
         * Ansible password is now disabled, only SSH key connection allowed.
         * Graphical Boot Process is be enabled.
 
+        * NOTE: You will likely have to remove (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) from your ~/.ssh/known_hosts
+
         Press ENTER for last reboot
   tags:
     - final_cleanup

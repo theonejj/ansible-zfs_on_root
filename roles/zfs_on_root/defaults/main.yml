@@ -25,8 +25,8 @@ enable_swap_partitions: true
 single_swap_partition_size_MB: "4096"
 
 # Swap partition size, per device, when multiple devices are used
-# If set_boot_pool_type is mirror, then it will be a mdm mirror of this size
-# If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size (#devices-1*size)
+# If set_boot_pool_type is mirror, then it will be a mdm mirror of this size in MB
+# If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in MB (#devices-1*size_MB)
 multiple_swap_partition_size_MB: "2048"
 
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)

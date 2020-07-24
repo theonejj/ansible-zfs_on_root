@@ -49,11 +49,12 @@
   tags:
   - basic_checks
 
-# If user provided input was only pressing ENTER to accept the default, then set default value
+# If user provided input was only pressing ENTER to accept the default then set default value
 - set_fact:
     disk_devices: "{{lsblk_default.stdout.splitlines()|map('trim')|list}}"
   when:
-    prompt.user_input == ""
+    - prompt.user_input|default('') == ""
+    - disk_devices is undefined
   tags:
     - basic_checks
 

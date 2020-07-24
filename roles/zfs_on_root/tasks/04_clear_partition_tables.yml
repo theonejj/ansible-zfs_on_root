@@ -19,18 +19,3 @@
   loop: "{{ sgdisk_ouput.results }}"
   tags:
     - clear_partition_tables_from_devices
-
-# NOTE: It is possible partition changes can not be picked up by the kernel.  A message such as:
-#    "Error: Partition(s) 3 on /dev/sda have been written, but we have been unable to inform the kernel of the change, 
-#    probably because it/they are in use.  As a result, the old partition(s) will remain in use.  You should reboot 
-#    now before making further changes.
-#
-# If this happens, only open is reboot. The step below tried to reload the partition table and failed.
-
-- name: Reload Partition Tables
-  command:
-    cmd: "partprobe"
-  when:
-    ansible_nodename != "localhost"
-  tags:
-    - clear_partition_tables_from_devices

@@ -15,6 +15,10 @@ echo "When installation is complete, the Ansible account will be password disabl
 echo "Only SSH key based login will be allowed."
 echo
 sudo passwd ansible
+while [ $? -ne 0 ]; do
+    sleep 1
+    sudo passwd ansible
+done
 
 # Add user to sudoers file 
 sudo bash -c 'echo "ansible ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/99_sudo_include_file'
@@ -29,3 +33,6 @@ fi
 
 # install SSH Server and Python to allow ansible to connect
 sudo apt install --yes openssh-server vim python python-apt
+
+# Disable swap partitions, we don't want them in use when partitions are removed.
+swapoff -a

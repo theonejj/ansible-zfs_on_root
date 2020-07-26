@@ -7,7 +7,7 @@
   when: 
     disk_devices is undefined
   tags:
-    - basic_checks
+    - always
 
 # If disk devices not specified on command line, provide a default value
 - name: Generate default device list to suggest
@@ -17,7 +17,7 @@
   when: 
     disk_devices is undefined
   tags:
-    - basic_checks
+    - always
 
 # If disk devices not specified on command line, then prompt for it.
 - pause:
@@ -47,7 +47,7 @@
   register: 
     prompt
   tags:
-  - basic_checks
+  - always
 
 # If user provided input was only pressing ENTER to accept the default then set default value
 - set_fact:
@@ -56,7 +56,7 @@
     - prompt.user_input|default('') == ""
     - disk_devices is undefined
   tags:
-    - basic_checks
+    - always
 
 # If user provided input, then convert comma seperated values into a list.
 - set_fact:
@@ -64,7 +64,7 @@
   when: 
     disk_devices is undefined
   tags:
-    - basic_checks
+    - always
 
 # If host_name not specified on command line, then prompt for it.
 - pause:
@@ -90,7 +90,7 @@
   register: 
     prompt
   tags:
-  - basic_checks
+  - always
 
 # If user provided input was only pressing ENTER to accept the default, then set default value
 - set_fact:
@@ -98,7 +98,7 @@
   when:
     prompt.user_input == ""
   tags:
-    - basic_checks
+    - always
 
 # If user provided input, then convert comma seperated values into a list.
 - set_fact:
@@ -106,7 +106,7 @@
   when: 
     host_name is undefined
   tags:
-    - basic_checks
+    - always
 
 # This playbook can never be run on localhost as it is destructive.
 - fail:
@@ -114,33 +114,35 @@
   when:
     ansible_nodename == "localhost"
   tags:
-    - basic_checks
+    - always
 
 # ZFS Native Encryption Passphrase must be 8 chars or longer
 - fail:
     msg: "ERROR: ZFS passphase must be at least 8 characters."
   when:
     - passphrase is defined and passphrase|length <8
+  tags:
+    - always
 
 # Turn on encrypotion flags if a passphrase was set.
 - set_fact:
     root_pool_encryption: true
   when: passphrase is defined
   tags:
-    - basic_checks
+    - always
 
 # If passphrase was not set, just define it.
 - set_fact:
     passphrase = "none"
   when: passphrase is undefined
   tags:
-    - basic_checks
+    - always
 
 - debug:
     msg: "NOTE: Passphase Supplied -- Root Pool Encryption Enabled"
   when: root_pool_encryption is true
   tags: 
-    - basic_checks
+    - always
 
 # Generate values used in File System Datasets
 - name: Generate UUID
@@ -149,7 +151,7 @@
   register:
     UUID
   tags:
-    - basic_checks
+    - always
 
 - name: Generate Epoch value
   command:
@@ -157,7 +159,7 @@
   register:
     epoch
   tags:
-    - basic_checks
+    - always
 
 - name: Display Generated Values
   debug:
@@ -165,13 +167,13 @@
   when:
     debug|default(false) == true
   tags:
-    - basic_checks
+    - always
 
   # Generate disk by-id for disk_devices
 - set_fact:
     disk_by_id: "{{ disk_devices | map('extract', hostvars[inventory_hostname]['ansible_devices'], ['links', 'ids', 0]) | list | map('regex_replace', '^(.*)', '/dev/disk/by-id/\\g<1>') | list }}"
   tags:
-    - basic_checks
+    - always
 
 - name: Display disk by-id for disk_devices
   debug:
@@ -181,7 +183,7 @@
   when:
     debug|default(false) == true
   tags:
-    - basic_checks
+    - always
 
 # If somehow a single device, has been defined as mirror or raidz then fail.
 - name: Confirm single device boot pool type defined correctly.
@@ -191,7 +193,7 @@
     - not boot_pool_type == ""
     - disk_by_id|length|int == 1
   tags:
-    - basic_checks
+    - always
 
 # If somehow a single device, has been defined as mirror or raidz then fail.
 - name: Confirm single device root pool type defined correctly.
@@ -201,7 +203,7 @@
     - not root_pool_type == ""
     - disk_by_id|length|int == 1
   tags:
-    - basic_checks
+    - always
 
 # If somehow 2 devices are not defined as a mirror then fail.
 - name: Confirm dual device boot pool type defined correctly.
@@ -211,7 +213,7 @@
     - not boot_pool_type == "mirror"
     - disk_by_id|length|int == 2
   tags:
-    - basic_checks
+    - always
 
 # If somehow 2 devices are not defined as a mirror then fail.
 - name: Confirm dual device boot pool type defined correctly.
@@ -221,7 +223,7 @@
     - not root_pool_type == "mirror"
     - disk_by_id|length|int == 2
   tags:
-    - basic_checks
+    - always
 
 # If somehow raidz2 was specified and with less than 4 devices then fail
 - name: Confirm raidz2 device boot pool type has more than 4 devices
@@ -231,7 +233,7 @@
     - boot_pool_type == "raidz2"
     - disk_by_id|length|int < 4
   tags:
-    - basic_checks
+    - always
 
 # If somehow raidz2 was specified and with less than 4 devices then fail
 - name: Confirm raidz2 device root pool type has more than 4 devices
@@ -241,27 +243,31 @@
     - root_pool_type == "raidz2"
     - disk_by_id|length|int < 4
   tags:
-    - basic_checks
+    - always
 
 # If somehow 3 or more devices is not mirror or raidz then fail
 - name: Confirm multiple device boot type defined correctly.
   fail:
     msg: "ERROR: Boot pool must be type mirror or raidz with {{disk_by_id|length|int}} devices, fix it in vars/main.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
   when:
-    - not ((boot_pool_type == "mirror") or (boot_pool_type == "raidz"))
+    - (boot_pool_type != "mirror") and
+      (boot_pool_type != "raidz") and
+      (boot_pool_type != "raidz2")
     - disk_by_id|length|int > 2
   tags:
-    - basic_checks
+    - always
 
 # If somehow 3 or more devices is not mirror or raidz then fail
 - name: Confirm multiple device root type defined correctly.
   fail:
     msg: "ERROR: Root pool must be type mirror or raidz with {{disk_by_id|length|int}} devices, fix it in vars/main.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
   when:
-    - not ((root_pool_type == "mirror") or (root_pool_type == "raidz"))
+    - (root_pool_type != "mirror") and 
+      (root_pool_type != "raidz") and
+      (root_pool_type != "raidz2")
     - disk_by_id|length|int > 2
   tags:
-    - basic_checks
+    - always
 
 # If somehow 4 or more devices are defined as a mirror for mirrored vdevs
 # then number of devices must be even number, otherwise fail. 
@@ -274,24 +280,22 @@
     - disk_by_id|length|int > 4
     - disk_by_id|length|int is odd
   tags:
-    - basic_checks
+    - always
 
 # If boot using UEFI specifed, then Ubuntu Live CD should have detected this.
 # Path /sys/firmware/efi must exist, otherwise only legacy booting can be used.
 - name: Confirm UEFI environment exists.
-  stat:
-    path: "{{efi_firmware_path}}"
-  register: efi_firmware_directory
-  when:
-    - use_uefi_booting|default(false)|bool == true
-  tags:
-    - basic_checks
+  block:
+  - stat:
+      path: "{{efi_firmware_path}}"
+    register: efi_firmware_directory
 
-# if {{efi_firmware_path}} is a vaild path, then this would be defined. If not, fail.
-- fail:
-   msg: "UEFI Booting Enabled but UEFI was not detected by {{distro_name}}"
+  # if {{efi_firmware_path}} is a vaild path, then this would be defined. If not, fail.
+  - fail:
+      msg: "UEFI Booting Enabled but UEFI was not detected by {{distro_name}}"
+    when:
+      - efi_firmware_directory is not defined
   when:
     - use_uefi_booting|default(false)|bool == true
-    - efi_firmware_directory is not defined
   tags:
-    - basic_checks
+    - always

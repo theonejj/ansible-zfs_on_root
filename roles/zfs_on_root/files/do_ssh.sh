@@ -8,6 +8,9 @@ sudo apt-add-repository universe && sudo apt update
 
 # Create ansible account and a home directory to store SSH keys
 sudo useradd -m ansible
+if [[ $? -ne 0 ]]; then 
+  echo ERROR: was unable to add anisble user, already created?
+fi
 
 # Define remote user password
 echo "Enter a temporary password for Ansible account. You will be prompted for this"
@@ -32,6 +35,7 @@ if [[ $? -ne 0 ]]; then
   #Must return:   /etc/sudoers.d/99_sudo_include_file: parsed OK
   echo ERROR: sudoers validation failed, something went wrong updating sudoers file. 
   echo Unable to continue.
+  exit
 fi
 
 # install SSH Server and Python to allow ansible to connect

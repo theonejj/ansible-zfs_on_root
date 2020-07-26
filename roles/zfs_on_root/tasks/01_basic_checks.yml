@@ -1,113 +1,4 @@
 ---
-# If disk devices not specified on command line, detect available devices
-- name: Detect available disk devices to show
-  shell:
-    cmd: "lsblk -d -o name,size,type,mountpoint | grep -v '/'"
-  register: lsblk_devices
-  when: 
-    disk_devices is undefined
-  tags:
-    - always
-
-# If disk devices not specified on command line, provide a default value
-- name: Generate default device list to suggest
-  shell:
-    cmd: "lsblk -ndo name,mountpoint | grep -v '/'"
-  register: lsblk_default
-  when: 
-    disk_devices is undefined
-  tags:
-    - always
-
-# If disk devices not specified on command line, then prompt for it.
-- pause:
-    prompt: |
-      #########################################################################
-      This playbook requires that you define one or more disk devices to use.
-      Each disk device specified will have its partitions erased and rebuilt
-      using ZFS on Root recommendations based on Ubuntu 20.04.
-
-      NOTE: You can specify devices to use as an ansible parameter using the
-             extra-vars parameter, for example:
-        
-             --extra-vars='{disk_devices: [sda,sdb]}'
-      #########################################################################
-
-      Devices Detected:
-      {{lsblk_devices.stdout}}
-
-      Devices Selected: {{lsblk_default.stdout.splitlines()|map('trim')|list}}
-
-      Press [ENTER] to accept the Devices Selected, or enter a comma separated
-      list of devices to use such as: sda,sdb
-      OR press CTRL-C to Abort.
-    echo: yes
-  when: 
-    disk_devices is undefined
-  register: 
-    prompt
-  tags:
-  - always
-
-# If user provided input was only pressing ENTER to accept the default then set default value
-- set_fact:
-    disk_devices: "{{lsblk_default.stdout.splitlines()|map('trim')|list}}"
-  when:
-    - prompt.user_input|default('') == ""
-    - disk_devices is undefined
-  tags:
-    - always
-
-# If user provided input, then convert comma seperated values into a list.
-- set_fact:
-    disk_devices: "{{prompt.user_input.split(',')}}"
-  when: 
-    disk_devices is undefined
-  tags:
-    - always
-
-# If host_name not specified on command line, then prompt for it.
-- pause:
-    prompt: |
-      #########################################################################
-      This playbook requires that you define a hostname to be used for the 
-      new system being created.
-
-      NOTE: You can specify the hostname to use as an ansible parameter using
-            the extra-vars parameter, for example:
-        
-             --extra-vars='{host_name: "mynewpc"}'
-      #########################################################################
-
-      Default Value:
-      {{ansible_host.split(".")[0]|lower}}
-
-      Please enter an alternate hostname or ENTER to accept the default.
-      OR press CTRL-C to Abort:
-    echo: yes
-  when: 
-    host_name is undefined
-  register: 
-    prompt
-  tags:
-  - always
-
-# If user provided input was only pressing ENTER to accept the default, then set default value
-- set_fact:
-    host_name: "{{ansible_host.split('.')[0]|lower}}"
-  when:
-    prompt.user_input == ""
-  tags:
-    - always
-
-# If user provided input, then convert comma seperated values into a list.
-- set_fact:
-    host_name: "{{prompt.user_input.split('.')[0]|lower}}"
-  when: 
-    host_name is undefined
-  tags:
-    - always
-
 # This playbook can never be run on localhost as it is destructive.
 - fail:
     msg: "ERROR: This playbook can not be used on localhost."
@@ -116,18 +7,123 @@
   tags:
     - always
 
-# ZFS Native Encryption Passphrase must be 8 chars or longer
-- fail:
-    msg: "ERROR: ZFS passphase must be at least 8 characters."
-  when:
-    - passphrase is defined and passphrase|length <8
+
+###[ Process Devices to use ZFS ]##############################################
+# If disk devices not specified on command line, detect available devices
+- name: Detect and Generate Available Disk Devices Block
+  block:
+  - name: Detect available disk devices to show
+    shell:
+      cmd: "lsblk -d -o name,size,type,mountpoint | grep -v '/'"
+    register: lsblk_devices
+
+  - name: Generate default device list to suggest
+    shell:
+      cmd: "lsblk -ndo name,mountpoint | grep -v '/'"
+    register: lsblk_default
+
+  # If disk devices not specified on command line, then prompt for it.
+  - pause:
+      prompt: |
+        #########################################################################
+        This playbook requires that you define one or more disk devices to use.
+        Each disk device specified will have its partitions erased and rebuilt
+        using ZFS on Root recommendations based on Ubuntu 20.04.
+
+        NOTE: You can specify devices to use as an ansible parameter using the
+              extra-vars parameter, for example:
+          
+              --extra-vars='{disk_devices: [sda,sdb]}'
+        #########################################################################
+
+        Devices Detected:
+        {{lsblk_devices.stdout}}
+
+        Devices Selected: {{lsblk_default.stdout.splitlines()|map('trim')|list}}
+
+        Press [ENTER] to accept the Devices Selected, or enter a comma separated
+        list of devices to use such as: sda,sdb
+        OR press CTRL-C to Abort.
+      echo: yes
+    register: 
+      prompt
+
+  # If user provided input was only pressing ENTER to accept the default then set default value
+  - set_fact:
+      disk_devices: "{{lsblk_default.stdout.splitlines()|map('trim')|list}}"
+    when:
+      - prompt.user_input|default('') == ""
+
+  # If user provided input, then convert comma seperated values into a list.
+  - set_fact:
+      disk_devices: "{{prompt.user_input.split(',')}}"
+  when: 
+    disk_devices is undefined
   tags:
     - always
+###############################################################################
 
-# Turn on encrypotion flags if a passphrase was set.
-- set_fact:
-    root_pool_encryption: true
-  when: passphrase is defined
+###[ Process Remote Host Name ]################################################
+# If host_name not specified on command line, then prompt for it.
+- name: host_name Validation Block
+  block:
+  - name: host_name not specified, prompt for it.
+    pause:
+      prompt: |
+        #########################################################################
+        This playbook requires that you define a hostname to be used for the 
+        new system being created.
+
+        NOTE: You can specify the hostname to use as an ansible parameter using
+              the extra-vars parameter, for example:
+          
+              --extra-vars='{host_name: "mynewpc"}'
+        #########################################################################
+
+        Default Value:
+        {{ansible_host.split(".")[0]|lower}}
+
+        Please enter an alternate hostname or ENTER to accept the default.
+        OR press CTRL-C to Abort:
+      echo: yes
+    register: 
+      prompt
+
+  # If user provided input was only pressing ENTER to accept the default, then set default value
+  - set_fact:
+      host_name: "{{ansible_host.split('.')[0]|lower}}"
+    when:
+      prompt.user_input == ""
+
+  # If user provided input, if FQDN accept only hostname and convert to lower case
+  - set_fact:
+      host_name: "{{prompt.user_input.split('.')[0]|lower}}"
+  when: 
+    host_name is undefined
+  tags:
+  - always
+###############################################################################
+
+###[ ZFS Passphrase Validation ]###############################################
+- name: ZFS Passphrase Validation Block
+  block:
+
+  # ZFS Native Encryption Passphrase must be 8 chars or longer
+  - fail:
+      msg: "ERROR: ZFS passphase must be at least 8 characters."
+    when:
+      - passphrase|length <8
+
+  # Turn on encryption flags if a passphrase was set.
+  - set_fact:
+      root_pool_encryption: true
+
+  - debug:
+      msg: "NOTE: Passphase Supplied -- Root Pool Encryption Enabled"
+    when: root_pool_encryption is true
+
+  when:
+    - passphrase is defined
   tags:
     - always
 
@@ -137,138 +133,128 @@
   when: passphrase is undefined
   tags:
     - always
+###############################################################################
 
-- debug:
-    msg: "NOTE: Passphase Supplied -- Root Pool Encryption Enabled"
-  when: root_pool_encryption is true
-  tags: 
-    - always
+###[ Generate Required Variables for ZFS ]#####################################
+- name: Generate Required Variables Block
+  block:
+  # Generate values used in File System Datasets
+  - name: Generate UUID
+    shell:
+      cmd: "dd if=/dev/urandom of=/dev/stdout bs=1 count=100 2>/dev/null | tr -dc 'a-z0-9' | cut -c-6"
+    register:
+      UUID
 
-# Generate values used in File System Datasets
-- name: Generate UUID
-  shell:
-    cmd: "dd if=/dev/urandom of=/dev/stdout bs=1 count=100 2>/dev/null | tr -dc 'a-z0-9' | cut -c-6"
-  register:
-    UUID
-  tags:
-    - always
+  - name: Generate Epoch value
+    command: "date +%s"
+    register:
+      epoch
 
-- name: Generate Epoch value
-  command:
-    cmd: "date +%s"
-  register:
-    epoch
-  tags:
-    - always
-
-- name: Display Generated Values
-  debug:
-    msg: "UUID Generated: {{UUID.stdout}}  Epoch: {{epoch.stdout}}"
-  when:
-    debug|default(false) == true
-  tags:
-    - always
+  - name: Display Generated Values
+    debug:
+      msg: "UUID Generated: {{UUID.stdout}}  Epoch: {{epoch.stdout}}"
+    when:
+      debug|default(false) == true
 
   # Generate disk by-id for disk_devices
-- set_fact:
-    disk_by_id: "{{ disk_devices | map('extract', hostvars[inventory_hostname]['ansible_devices'], ['links', 'ids', 0]) | list | map('regex_replace', '^(.*)', '/dev/disk/by-id/\\g<1>') | list }}"
+  - set_fact:
+      disk_by_id: "{{ disk_devices | map('extract', hostvars[inventory_hostname]['ansible_devices'], ['links', 'ids', 0]) | list | map('regex_replace', '^(.*)', '/dev/disk/by-id/\\g<1>') | list }}"
+  - name: Display disk by-id for disk_devices
+    debug:
+      msg="{{ item }}"
+    loop: 
+      "{{ disk_by_id }}"
+    when:
+      debug|default(false) == true
+
   tags:
     - always
+###############################################################################
 
-- name: Display disk by-id for disk_devices
-  debug:
-    msg="{{ item }}"
-  loop: 
-    "{{ disk_by_id }}"
-  when:
-    debug|default(false) == true
-  tags:
-    - always
+###[ Perform Single Device Basic Sanity Checks ]###############################
+- name: Single Device Sanity Checks Block
+  block:
+  # If somehow a single device, has been defined as mirror or raidz then fail.
+  - name: Confirm single device boot pool type defined correctly.
+    fail:
+      msg: "ERROR: Boot pool type cannot be type mirror or raidz with one device, fix it in vars/main.yml - correct set_boot_pool_type 1:"
 
-# If somehow a single device, has been defined as mirror or raidz then fail.
-- name: Confirm single device boot pool type defined correctly.
-  fail:
-    msg: "ERROR: Boot pool type cannot be type mirror or raidz with one device, fix it in vars/main.yml - correct set_boot_pool_type 1:"
+  # If somehow a single device, has been defined as mirror or raidz then fail.
+  - name: Confirm single device root pool type defined correctly.
+    fail:
+      msg: "ERROR: Root pool type cannot be type mirror/raidz/raidz2 with one device, fix it in vars/main.yml - set_root_pool_type 1:"
   when:
     - not boot_pool_type == ""
     - disk_by_id|length|int == 1
   tags:
     - always
+###############################################################################
 
-# If somehow a single device, has been defined as mirror or raidz then fail.
-- name: Confirm single device root pool type defined correctly.
-  fail:
-    msg: "ERROR: Root pool type cannot be type mirror/raidz/raidz2 with one device, fix it in vars/main.yml - set_root_pool_type 1:"
-  when:
-    - not root_pool_type == ""
-    - disk_by_id|length|int == 1
-  tags:
-    - always
+###[ Perform Dual Device Basic Sanity Checks ]#################################
+- name: Dual Device Sanity Checks Block
+  block:
+  # If somehow 2 devices are not defined as a mirror then fail.
+  - name: Confirm dual device boot pool type defined correctly.
+    fail:
+      msg: "ERROR: Boot pool must be type mirror with 2 devices, fix it in vars/main.yml - correct set_boot_pool_type 2:"
 
-# If somehow 2 devices are not defined as a mirror then fail.
-- name: Confirm dual device boot pool type defined correctly.
-  fail:
-    msg: "ERROR: Boot pool must be type mirror with 2 devices, fix it in vars/main.yml - correct set_boot_pool_type 2:"
+  # If somehow 2 devices are not defined as a mirror then fail.
+  - name: Confirm dual device boot pool type defined correctly.
+    fail:
+      msg: "ERROR: Root pool must be type mirror with 2 devices, fix it in vars/main.yml - correct set_root_pool_type 2:"
+
   when:
     - not boot_pool_type == "mirror"
     - disk_by_id|length|int == 2
   tags:
     - always
+###############################################################################
 
-# If somehow 2 devices are not defined as a mirror then fail.
-- name: Confirm dual device boot pool type defined correctly.
-  fail:
-    msg: "ERROR: Root pool must be type mirror with 2 devices, fix it in vars/main.yml - correct set_root_pool_type 2:"
-  when:
-    - not root_pool_type == "mirror"
-    - disk_by_id|length|int == 2
-  tags:
-    - always
+###[ Perform RAIDZ2 Basic Sanity Checks ]######################################
+- name: RAIDZ2 Sanity Checks Block
+  block:
+  # If somehow raidz2 was specified and with less than 4 devices then fail
+  - name: Confirm raidz2 device boot pool type has more than 4 devices
+    fail:
+      msg: "ERROR: Boot pool must have more than 4 devices to use raidz2, fix it in vars/main.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
 
-# If somehow raidz2 was specified and with less than 4 devices then fail
-- name: Confirm raidz2 device boot pool type has more than 4 devices
-  fail:
-    msg: "ERROR: Boot pool must have more than 4 devices to use raidz2, fix it in vars/main.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
+  # If somehow raidz2 was specified and with less than 4 devices then fail
+  - name: Confirm raidz2 device root pool type has more than 4 devices
+    fail:
+      msg: "ERROR: Root pool must have more than 4 devices to use raidz2, fix it in vars/main.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
   when:
     - boot_pool_type == "raidz2"
     - disk_by_id|length|int < 4
   tags:
     - always
+###############################################################################
 
-# If somehow raidz2 was specified and with less than 4 devices then fail
-- name: Confirm raidz2 device root pool type has more than 4 devices
-  fail:
-    msg: "ERROR: Root pool must have more than 4 devices to use raidz2, fix it in vars/main.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
+###[ Perform Sanity Check that 3 or more Devices are Mirror, Raidz, Raidz2 ]###
+- name: Three or More Device Sanity Check Block
+  block:
+  # If BOOT Pool is 3 or more devices and not mirror or raidz then fail
+  - name: Confirm multiple device boot type defined correctly.
+    fail:
+      msg: "ERROR: Boot pool must be type mirror or raidz with {{disk_by_id|length|int}} devices, fix it in vars/main.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
+    when:
+      - (boot_pool_type != "mirror") and
+        (boot_pool_type != "raidz") and
+        (boot_pool_type != "raidz2")
+  # If ROOT Pool is 3 or more devices and not mirror or raidz then fail
+  - name: Confirm multiple device root type defined correctly.
+    fail:
+      msg: "ERROR: Root pool must be type mirror or raidz with {{disk_by_id|length|int}} devices, fix it in vars/main.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
+    when:
+      - (root_pool_type != "mirror") and 
+        (root_pool_type != "raidz") and
+        (root_pool_type != "raidz2")
   when:
-    - root_pool_type == "raidz2"
-    - disk_by_id|length|int < 4
-  tags:
-    - always
-
-# If somehow 3 or more devices is not mirror or raidz then fail
-- name: Confirm multiple device boot type defined correctly.
-  fail:
-    msg: "ERROR: Boot pool must be type mirror or raidz with {{disk_by_id|length|int}} devices, fix it in vars/main.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
-  when:
-    - (boot_pool_type != "mirror") and
-      (boot_pool_type != "raidz") and
-      (boot_pool_type != "raidz2")
     - disk_by_id|length|int > 2
   tags:
     - always
+###############################################################################
 
-# If somehow 3 or more devices is not mirror or raidz then fail
-- name: Confirm multiple device root type defined correctly.
-  fail:
-    msg: "ERROR: Root pool must be type mirror or raidz with {{disk_by_id|length|int}} devices, fix it in vars/main.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
-  when:
-    - (root_pool_type != "mirror") and 
-      (root_pool_type != "raidz") and
-      (root_pool_type != "raidz2")
-    - disk_by_id|length|int > 2
-  tags:
-    - always
-
+###[ Mirrored VDEVs Sanity Check ]#############################################
 # If somehow 4 or more devices are defined as a mirror for mirrored vdevs
 # then number of devices must be even number, otherwise fail. 
 # (IE a 5 way mirror not supported, should be a raidz or raidz2 or not used)
@@ -281,7 +267,9 @@
     - disk_by_id|length|int is odd
   tags:
     - always
+###############################################################################
 
+###[ UEFI Sanity Checks ]######################################################
 # If boot using UEFI specifed, then Ubuntu Live CD should have detected this.
 # Path /sys/firmware/efi must exist, otherwise only legacy booting can be used.
 - name: Confirm UEFI environment exists.
@@ -299,3 +287,4 @@
     - use_uefi_booting|default(false)|bool == true
   tags:
     - always
+###############################################################################

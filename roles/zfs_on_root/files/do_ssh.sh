@@ -4,6 +4,8 @@
 # needed to get Live CD ready for ansible.
 ###############################################################
 
+sudo apt-add-repository universe && sudo apt update
+
 # Create ansible account and a home directory to store SSH keys
 sudo useradd -m ansible
 
@@ -16,6 +18,7 @@ echo "Only SSH key based login will be allowed."
 echo
 sudo passwd ansible
 while [ $? -ne 0 ]; do
+    echo
     sleep 1
     sudo passwd ansible
 done

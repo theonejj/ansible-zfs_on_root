@@ -14,6 +14,8 @@ echo "--------------------------------------------------------------------------
 sudo useradd -m $ANSIBLE_USER
 if [[ $? -ne 0 ]]; then 
   echo ERROR: was unable to add $ANSIBLE_USER user, already created?
+else
+  echo Created user: $ANSIBLE_USER
 fi
 
 # Define remote user password
@@ -57,4 +59,6 @@ swapoff -a
 
 # Done
 echo
-echo "Completed.  Now push your ansible key to this instance from the Ansible Control node."
+echo "-----------------------------------------------------------------------------"
+echo "Completed.  Now push your ansible ssh key to this instance from the Ansible"
+echo "Control node."

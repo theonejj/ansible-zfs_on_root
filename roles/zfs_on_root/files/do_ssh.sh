@@ -9,6 +9,8 @@ ANSIBLE_USER=ansible
 sudo apt-add-repository universe && sudo apt update
 
 # Create ansible account and a home directory to store SSH keys
+echo
+echo "-----------------------------------------------------------------------------"
 sudo useradd -m $ANSIBLE_USER
 if [[ $? -ne 0 ]]; then 
   echo ERROR: was unable to add $ANSIBLE_USER user, already created?

@@ -72,15 +72,16 @@
     command: "{{chroot_cmd}} bash -c 'cp -a /boot/efi/EFI /boot/efi{{item}}'"
     loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
     when:
+      - disk_by_id|length|int > 1
 
   - name: Run chrooted command to install grub on additional UEFI boot devices
     command: "{{chroot_cmd}} bash -c 'grub-install --target=x86_64-efi --efi-directory=/boot/efi{{item}} --bootloader-id=ubuntu-{{item}} --recheck --no-floppy'"
     loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
-
+    when:
+      - disk_by_id|length|int > 1
   when:
     - ansible_nodename != "localhost"
     - use_uefi_booting|default(false)|bool == true
-    - disk_by_id|length|int > 1
   tags:
     - install_grub
 ###############################################################################

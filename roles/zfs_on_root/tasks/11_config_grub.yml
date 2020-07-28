@@ -43,16 +43,9 @@
     - config_grub
 ###############################################################################
 
-###[ GRUB Installation for Legacy Devices ]####################################
-- name: GRUB Installation for UEFI Booting Block
-  block:
-  - name: Run chrooted command to install GRUB, Linux and ZFS for UEFI Booting
-    command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes install grub-efi-amd64 grub-efi-amd64-signed linux-image-generic shim-signed zfs-initramfs zsys"
-
-  # os-prober is only needed on dual-boot systems.
-  - name: Removing os-prober
-    command: "{{chroot_cmd}} bash -c 'dpkg --purge os-prober'"
-
+###[ GRUB Installation for UEFI Booting ]######################################
+- name: Run chrooted command to install GRUB, Linux and ZFS for UEFI Booting
+  command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes install grub-efi-amd64 grub-efi-amd64-signed linux-image-generic shim-signed zfs-initramfs zsys"
   when:
     - ansible_nodename != "localhost"
     - use_uefi_booting|default(false)|bool == true
@@ -60,3 +53,7 @@
   tags:
     - config_grub
 ###############################################################################
+
+# os-prober is only needed on dual-boot systems.
+- name: Removing os-prober
+  command: "{{chroot_cmd}} bash -c 'dpkg --purge os-prober'"

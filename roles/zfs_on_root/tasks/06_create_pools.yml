@@ -21,6 +21,8 @@
 ###############################################################################
 
 ###[ Create Standard ZFS Root Pool ]###########################################
+# This block is for single standalone device, dual device mirror, three device
+# mirror or three device raidz, or any odd number of devices.
 - name: Create Standard ZFS Root Pool Block
   block:
   - debug:
@@ -45,9 +47,9 @@
       - root_pool_encryption|default(false) == false
 
   when:
-    - ((root_pool_type == "raidz") or (root_pool_type == "raidz2")) or
-      ((root_pool_type == "mirror") and (disk_by_id|length|int <3 ))
-    - ansible_nodename != "localhost"
+   - disk_by_id|length|int is odd or
+     disk_by_id|length|int == 2
+   - ansible_nodename != "localhost"
   tags:
     - create_pools
 ###############################################################################
@@ -101,7 +103,7 @@
 
   when:
     - root_pool_type == "mirror"
-    - (disk_by_id|length|int > 3)
+    - (disk_by_id|length|int >= 4)
     - ansible_nodename != "localhost"
   tags:
     - create_pools

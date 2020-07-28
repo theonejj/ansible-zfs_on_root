@@ -15,8 +15,8 @@
       "{{ disk_by_id }}"
 
   - name: Create SWAP Partitions
-    command: 
-      "sgdisk {{(disk_by_id|length == 1)|ternary(single_disk_swap_flags,multi_disk_swap_flags)}} {{ item }}"
+    command:
+      "sgdisk {{(boot_pool_type == 'raidz')|ternary(raidz_multi_disk_swap_flags, single_disk_or_mirror_swap_flags)}} {{ item }}"
     loop: 
       "{{ disk_by_id }}"
     when:
@@ -24,11 +24,11 @@
 
   - name: Create Boot Pool Partitions
     command:
-      "sgdisk {{ boot_partition_flags }} {{ item }}"
+      "sgdisk {{(boot_pool_type == 'raidz')|ternary(raidz_multi_disk_boot_partition_flags,single_disk_or_mirror_boot_partition_flags)}} {{ item }}"
     loop: 
       "{{ disk_by_id }}"
 
-  - name: Create Root Pool Partition
+  - name: Create Root Pool Partitions
     command:
       "sgdisk {{ root_partition_flags }} {{ item }}"
     loop: 

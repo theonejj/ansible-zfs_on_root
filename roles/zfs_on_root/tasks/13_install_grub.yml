@@ -1,77 +1,55 @@
 ---
-- name: Run chrooted command to verify ZFS boot filesystem is recognized
-  command:
-    "{{chroot_cmd}} bash -c 'grub-probe /boot'"
-  register:
-    grub_results
+###[ Install GRUB ]############################################################
+- name: Install GRUB Block
+  block:
+  - name: Run chrooted command to verify ZFS boot filesystem is recognized
+    command:
+      "{{chroot_cmd}} bash -c 'grub-probe /boot'"
+    register:
+      grub_results
+
+  # grub_results must be "zfs" of something is not right
+  - fail:
+      msg: "ERROR: grub-probe /boot did not find zfs."
+    when:
+      - grub_results.stdout != "zfs"
+
+  - name: Run chrooted command to refresh initrd files
+    command:
+      "{{chroot_cmd}} bash -c 'update-initramfs -c -k all'"
+
+  - name: Update grub - disable memory zeroing and remove quiet splash
+    replace:
+      path: /mnt/etc/default/grub
+      regexp: '^GRUB_CMDLINE_LINUX_DEFAULT=.*'
+      replace: 'GRUB_CMDLINE_LINUX_DEFAULT="init_on_alloc=0"'
+
+  - name: Update grub - comment out GRUB_TIMEOUT_STYLE=hidden
+    replace:
+      path: /mnt/etc/default/grub
+      regexp: '^GRUB_TIMEOUT_STYLE=hidden'
+      replace: '#GRUB_TIMEOUT_STYLE=hidden'
+
+  - name: Update grub - set GRUB_TIMEOUT=5 and GRUB_RECORDFAIL_TIMEOUT=5
+    replace:
+      path: /mnt/etc/default/grub
+      regexp: '^GRUB_TIMEOUT=0'
+      replace: 'GRUB_TIMEOUT=5\nGRUB_RECORDFAIL_TIMEOUT=5'
+
+  - name: Update grub - uncomment GRUB_TERMINAL=console
+    replace:
+      path: /mnt/etc/default/grub
+      regexp: '^#GRUB_TERMINAL=console'
+      replace: 'GRUB_TERMINAL=console'
+
+  - name: Run chrooted command to update-grub
+    command: "{{chroot_cmd}} bash -c 'update-grub'"
+
   when:
     - ansible_nodename != "localhost"
   tags:
     - install_grub
-
-# grub_results must be "zfs" of something is not right
-- fail:
-    msg: "ERROR: grub-probe /boot did not find zfs."
-  when:
-    - grub_results.stdout != "zfs"
-  tags:
-    - install_grub
-
-- name: Run chrooted command to refresh initrd files
-  command:
-    "{{chroot_cmd}} bash -c 'update-initramfs -c -k all'"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - install_grub
-
-- name:  Update grub - disable memory zeroing and remove quiet splash
-  replace:
-    path: /mnt/etc/default/grub
-    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT=.*'
-    replace: 'GRUB_CMDLINE_LINUX_DEFAULT="init_on_alloc=0"'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - install_grub
-
-- name:  Update grub - comment out GRUB_TIMEOUT_STYLE=hidden
-  replace:
-    path: /mnt/etc/default/grub
-    regexp: '^GRUB_TIMEOUT_STYLE=hidden'
-    replace: '#GRUB_TIMEOUT_STYLE=hidden'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - install_grub
-
-- name:  Update grub - set GRUB_TIMEOUT=5 and GRUB_RECORDFAIL_TIMEOUT=5
-  replace:
-    path: /mnt/etc/default/grub
-    regexp: '^GRUB_TIMEOUT=0'
-    replace: 'GRUB_TIMEOUT=5\nGRUB_RECORDFAIL_TIMEOUT=5'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - install_grub
-
-- name:  Update grub - uncomment GRUB_TERMINAL=console
-  replace:
-    path: /mnt/etc/default/grub
-    regexp: '^#GRUB_TERMINAL=console'
-    replace: 'GRUB_TERMINAL=console'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - install_grub
-
-- name: Run chrooted command to update-grub
-  command:
-    "{{chroot_cmd}} bash -c 'update-grub'"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - install_grub
+###############################################################################
 
 - name: Run chrooted command to install grub on each legacy boot device
   command:
@@ -84,33 +62,28 @@
   tags:
     - install_grub
 
-- name: Run chrooted command to install grub on UEFI boot device
-  command: "{{chroot_cmd}} bash -c 'grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --recheck --no-floppy'"
-  when:
-    - ansible_nodename != "localhost"
-    - use_uefi_booting|default(false)|bool == true
-  tags:
-    - install_grub
+###[ Install GRUB on UEFI Boot ]###############################################
+- name: Install GRUB on UEFI Block
+  block:
+  - name: Run chrooted command to install grub on UEFI boot device
+    command: "{{chroot_cmd}} bash -c 'grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --recheck --no-floppy'"
 
-- name: Run chrooted command to copy /boot/efi/EFI to additional UEFI boot devices
-  command: "{{chroot_cmd}} bash -c 'cp -a /boot/efi/EFI /boot/efi{{item}}'"
-  loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
-  when:
-    - ansible_nodename != "localhost"
-    - disk_by_id|length|int > 1
-    - use_uefi_booting|default(false)|bool == true
-  tags:
-    - install_grub
+  - name: Run chrooted command to copy /boot/efi/EFI to additional UEFI boot devices
+    command: "{{chroot_cmd}} bash -c 'cp -a /boot/efi/EFI /boot/efi{{item}}'"
+    loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
+    when:
 
-- name: Run chrooted command to install grub on additional UEFI boot devices
-  command: "{{chroot_cmd}} bash -c 'grub-install --target=x86_64-efi --efi-directory=/boot/efi{{item}} --bootloader-id=ubuntu-{{item}} --recheck --no-floppy'"
-  loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
+  - name: Run chrooted command to install grub on additional UEFI boot devices
+    command: "{{chroot_cmd}} bash -c 'grub-install --target=x86_64-efi --efi-directory=/boot/efi{{item}} --bootloader-id=ubuntu-{{item}} --recheck --no-floppy'"
+    loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
+
   when:
     - ansible_nodename != "localhost"
-    - disk_by_id|length|int > 1
     - use_uefi_booting|default(false)|bool == true
+    - disk_by_id|length|int > 1
   tags:
     - install_grub
+###############################################################################
 
 # This is the service for /boot/grub/grubenv which does not work on mirrored or raidz topologies. 
 # Disabling this keeps it from blocking subsequent mounts of /boot/grub if that mount ever fails.

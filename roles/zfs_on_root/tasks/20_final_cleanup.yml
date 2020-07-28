@@ -1,78 +1,67 @@
 ---
-- name: Run chrooted command to update timezone setting
-  command:
-    cmd: "timedatectl set-timezone {{timezone_value}}"
+###[ Final Cleanup ]###########################################################
+- name: Final Cleanup Block
+  block:
+
+  - name: Run chrooted command to update timezone setting
+    command: "timedatectl set-timezone {{timezone_value}}"
+
+  - name: Disable root password
+    user:
+      name: 'root'
+      password: '*'
+
+  - name:  Update grub - uncomment GRUB_TIMEOUT_STYLE=hidden
+    replace:
+      path: /etc/default/grub
+      regexp: '^#GRUB_TIMEOUT_STYLE=hidden'
+      replace: 'GRUB_TIMEOUT_STYLE=hidden'
+
+  - name:  Update grub - enable quiet splash screen
+    replace:
+      path: /etc/default/grub
+      regexp: '^GRUB_CMDLINE_LINUX_DEFAULT=.*'
+      replace: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash init_on_alloc=0"'
+
+  - name:  Update grub - Comment out GRUB_TERMINAL=console
+    replace:
+      path: /etc/default/grub
+      regexp: '^GRUB_TERMINAL=console'
+      replace: '#GRUB_TERMINAL=console'
+
+  - name: Running update-grub
+    command: "update-grub"
+
   when:
     - ansible_nodename != "localhost"
   tags:
     - final_cleanup
+###############################################################################
 
-- name: Disable root password
-  user:
-    name: 'root'
-    password: '*'
+###[ Last Reboot of Remote System ]##########################################
+- name: Lastt Reboot of Remote System Block
+  block:
+  - pause:
+      prompt: |
+        ##########################################################
+        # {{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }} is complete.
+        ##########################################################
+
+          Press ENETER to wrap up this installation:
+
+          * Root password is now disabled (must use sudo instead).
+          * Ansible password is now disabled, only SSH key connection allowed.
+          * Graphical Boot Process is be enabled.
+
+          * NOTE: You will likely have to remove (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) from your ~/.ssh/known_hosts
+
+          Press ENTER for last reboot
+
+  - name: Commencing Last Reboot, installation complete....
+    reboot:
+      pre_reboot_delay: 30
+      reboot_timeout: 3600
+
   tags:
     - final_cleanup
-
-- name:  Update grub - uncomment GRUB_TIMEOUT_STYLE=hidden
-  replace:
-    path: /etc/default/grub
-    regexp: '^#GRUB_TIMEOUT_STYLE=hidden'
-    replace: 'GRUB_TIMEOUT_STYLE=hidden'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - final_cleanup
-
-- name:  Update grub - enable quiet splash screen
-  replace:
-    path: /etc/default/grub
-    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT=.*'
-    replace: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash init_on_alloc=0"'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - final_cleanup
-
-- name:  Update grub - Comment out GRUB_TERMINAL=console
-  replace:
-    path: /etc/default/grub
-    regexp: '^GRUB_TERMINAL=console'
-    replace: '#GRUB_TERMINAL=console'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - final_cleanup
-
-- name: Running update-grub
-  command:
-    "update-grub"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - final_cleanup
-
-- pause:
-    prompt: |
-      ##########################################################
-      # {{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }} is complete.
-      ##########################################################
-
-        Press ENETER to wrap up this installation:
-
-        * Root password is now disabled (must use sudo instead).
-        * Ansible password is now disabled, only SSH key connection allowed.
-        * Graphical Boot Process is be enabled.
-
-        * NOTE: You will likely have to remove (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) from your ~/.ssh/known_hosts
-
-        Press ENTER for last reboot
-  tags:
-    - final_cleanup
-
-- name: Commencing Last Reboot, installation complete....
-  reboot:
-    pre_reboot_delay: 30
-    reboot_timeout: 3600
-  tags:
-    - final_cleanup
+###############################################################################

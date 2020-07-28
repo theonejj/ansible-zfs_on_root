@@ -1,159 +1,120 @@
 ---
-- name: Copy hostname template to /mnt/etc/hostname
-  template:
-    src: hostname.j2
-    dest: /mnt/etc/hostname
-    owner: root
-    group: root
-    mode: '0644'
+###[ Start Configuring System ]################################################
+- name: Configure System Block
+  block:
+  - name: Copy hostname template to /mnt/etc/hostname
+    template:
+      src: hostname.j2
+      dest: /mnt/etc/hostname
+      owner: root
+      group: root
+      mode: '0644'
+
+  # Update /etc/hosts to host_name specified on command line
+  - name: Updating /mnt/etc/hosts to "{{host_name}}"
+    replace:
+      path: /mnt/etc/hosts
+      regexp: '\b{{distro_name}}\b'
+      replace: '{{host_name}}'
+
+  # Update Netplan Network file - not tested on multiple adapters, might break
+  - name: Get Network adapter name on Ubuntu
+    shell:
+      cmd: "nmcli device status | grep 'ethernet' | grep 'connected' | cut -d' ' -f1"
+    register:
+      nic_name
+
+  - name: Debug Show Network Adapter Name Detected
+    debug:
+      msg: "{{nic_name.stdout}}"
+    when:
+      - debug|default(false) == true
+
+  - name: Copy netplan template to /mnt/etc/netplan/01-netcfg.yaml
+    template:
+      src: netplan.j2
+      dest: /mnt/etc/netplan/01-netcfg.yaml
+      owner: root
+      group: root
+      mode: '0644'
+
+  # Update sources.list file on Ubuntu
+  - name: Copy sources.list template to /mnt/etc/apt/sources.list
+    template:
+      src: sources.list.j2
+      dest: /mnt/etc/apt/sources.list
+      owner: root
+      group: root
+      mode: '0644'
+    when: 
+      - ansible_distribution == 'Ubuntu'
   when:
     - ansible_nodename != "localhost"
   tags:
     - config_system
+###############################################################################
 
-# Update /etc/hosts to host_name specified on command line
-- name: Updating /mnt/etc/hosts to "{{host_name}}"
-  replace:
-    path: /mnt/etc/hosts
-    regexp: '\b{{distro_name}}\b'
-    replace: '{{host_name}}'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
-# Update Netplan Network file - not tested on multiple adapters, might break
-- name: Get Network adapter name on Ubuntu
-  shell:
-    cmd: "nmcli device status | grep 'ethernet' | grep 'connected' | cut -d' ' -f1"
-  register:
-    nic_name
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
-- name: Debug Show Network Adapter Name Detected
-  debug:
-    msg: "{{nic_name.stdout}}"
-  when:
-    - debug|default(false) == true
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
-- name: Copy netplan template to /mnt/etc/netplan/01-netcfg.yaml
-  template:
-    src: netplan.j2
-    dest: /mnt/etc/netplan/01-netcfg.yaml
-    owner: root
-    group: root
-    mode: '0644'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
-# Update sources.list file on Ubuntu
-- name: Copy sources.list template to /mnt/etc/apt/sources.list
-  template:
-    src: sources.list.j2
-    dest: /mnt/etc/apt/sources.list
-    owner: root
-    group: root
-    mode: '0644'
-  when: 
-    - ansible_distribution == 'Ubuntu'
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
+###[ Start chroot Environment ]################################################
 # Bind Virtual Filesystems from Live CD to New environment
 # NOTE: Not using ansible mount module as we don't want these added to fstab
-- name: Binding virtual file systems
-  command:
-    cmd: "{{item}}"
-    warn: no
-  with_items:
-    - "mount --rbind /dev  /mnt/dev"
-    - "mount --rbind /proc /mnt/proc"
-    - "mount --rbind /sys  /mnt/sys"
+- name: Work in chroot Environment Block
+  block:
+  - name: Binding virtual file systems
+    command:
+      cmd: "{{item}}"
+      warn: no
+    with_items:
+      - "mount --rbind /dev  /mnt/dev"
+      - "mount --rbind /proc /mnt/proc"
+      - "mount --rbind /sys  /mnt/sys"
+
+  - name: Run chrooted command for apt update
+    command:
+      cmd: "{{chroot_cmd}} bash -c 'apt update'"
+
+  # uncomment the specified locale from the default locale.gen file
+  - name:  Enable locale for {{locale_prefix}}
+    replace:
+      path: /mnt/etc/locale.gen
+      regexp: '^#.* {{locale_prefix}}'
+      replace: '{{locale_prefix}}'
+
+  - name: Run chrooted command to update locale
+    command:
+      cmd: "{{chroot_cmd}} bash -c 'locale-gen'"
+
+  - name: Run chrooted command to install dosfstool on Debian based hosts
+    command:
+      cmd: "{{chroot_cmd}} bash -c 'apt install --yes vim dosfstools'"
+    when:
+      - ansible_os_family == "Debian"
+
+  - name: Run chrooted command to set default root password
+    expect:
+      command: "{{chroot_cmd}} passwd"
+      responses:
+        (?i)password: "{{ default_root_password }}"
+
+  - name: Setup /tmp to use tmpfs
+    copy:
+      src: /usr/share/systemd/tmp.mount
+      dest: /mnt/etc/systemd/system/tmp.mount
+      remote_src: yes
+
+  - name: Run chrooted command enable /tmp
+    command:
+      cmd: "{{chroot_cmd}} bash -c 'systemctl enable tmp.mount'"
+
+  - name: Run chrooted commands to add system groups
+    command:
+      cmd: "{{chroot_cmd}} bash -c '{{item}}'"
+    with_items:
+      - "addgroup --system lpadmin"
+      - "addgroup --system lxd"
+      - "addgroup --system sambashare"
+
   when:
     - ansible_nodename != "localhost"
   tags:
     - config_system
-
-# Run chrooted commands
-- name: Run chrooted command for apt update
-  command:
-    cmd: "{{chroot_cmd}} bash -c 'apt update'"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
-# uncomment the specified locale from the default locale.gen file
-- name:  Enable locale for {{locale_prefix}}
-  replace:
-    path: /mnt/etc/locale.gen
-    regexp: '^#.* {{locale_prefix}}'
-    replace: '{{locale_prefix}}'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
-- name: Run chrooted command to update locale
-  command:
-    cmd: "{{chroot_cmd}} bash -c 'locale-gen'"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
-- name: Run chrooted command to install dosfstool on Debian based hosts
-  command:
-    cmd: "{{chroot_cmd}} bash -c 'apt install --yes vim dosfstools'"
-  when:
-    - ansible_nodename != "localhost"
-    - ansible_os_family == "Debian"
-  tags:
-    - config_system
-
-- name: Run chrooted command to set default root password
-  expect:
-    command: "{{chroot_cmd}} passwd"
-    responses:
-      (?i)password: "{{ default_root_password }}"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
-- name: Setup /tmp to use tmpfs
-  copy:
-    src: /usr/share/systemd/tmp.mount
-    dest: /mnt/etc/systemd/system/tmp.mount
-    remote_src: yes
-  tags:
-    - config_system
-
-- name: Run chrooted command enable /tmp
-  command:
-    cmd: "{{chroot_cmd}} bash -c 'systemctl enable tmp.mount'"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
-
-- name: Run chrooted commands to add system groups
-  command:
-    cmd: "{{chroot_cmd}} bash -c '{{item}}'"
-  with_items:
-    - "addgroup --system lpadmin"
-    - "addgroup --system lxd"
-    - "addgroup --system sambashare"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - config_system
+###############################################################################

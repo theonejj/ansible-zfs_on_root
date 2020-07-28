@@ -1,24 +1,27 @@
 ---
-# Boot Pools can be standalone, mirror or raidz and if enabled swap partitions follow this as well.
-# Since boot pools are small and swap follows this, for simplicity multiple mirrored vdevs are not supported.
+###[ Create ZFS Boot Pool ]####################################################
+- name: Create ZFS Pools Block
+  block:
+    # Boot Pools can be standalone, mirror or raidz and if enabled swap partitions follow this as well.
+    # Since boot pools are small and swap follows this, for simplicity multiple mirrored vdevs are not supported.
 
-- name: Debug Create ZFS Boot Pool
-  debug:
-    msg: "zpool create {{ boot_pool_options|join(' ') }} {{boot_pool_type}} {{ disk_by_id|join(boot_partition_name_suffix+' ')+boot_partition_name_suffix+' ' }}"
-  when:
-    - debug|default(false) == true
-  tags:
-    - create_pools
+    - name: Debug Create ZFS Boot Pool
+      debug:
+        msg: "zpool create {{ boot_pool_options|join(' ') }} {{boot_pool_type}} {{ disk_by_id|join(boot_partition_name_suffix+' ')+boot_partition_name_suffix+' ' }}"
+      when:
+        - debug|default(false) == true
 
-- name: Create ZFS Boot Pool
-  command:
-    cmd: "zpool create -f {{ boot_pool_options|join(' ') }} {{boot_pool_type}} {{ disk_by_id|join(boot_partition_name_suffix+' ')+boot_partition_name_suffix+' ' }}"
+    - name: Create ZFS Boot Pool
+      command:
+        "zpool create -f {{ boot_pool_options|join(' ') }} {{boot_pool_type}} {{ disk_by_id|join(boot_partition_name_suffix+' ')+boot_partition_name_suffix+' ' }}"
   when:
     - ansible_nodename != "localhost"
   tags:
     - create_pools
+###############################################################################
 
-- name: Create Standard ZFS Root Pool
+###[ Create Standard ZFS Root Pool ]###########################################
+- name: Create Standard ZFS Root Pool Block
   block:
   - debug:
       msg: "zpool create {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
@@ -37,7 +40,7 @@
 
   - name: Create Standard ZFS Root Pool without Encrytpion
     command:
-      cmd: "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
+      "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
     when:
       - root_pool_encryption|default(false) == false
 
@@ -47,12 +50,13 @@
     - ansible_nodename != "localhost"
   tags:
     - create_pools
+###############################################################################
 
-
+###[ Create Mirror VDEVs ZFS Root Pool ]#######################################
 ##### High Performance ZFS Root Pool, add mirrored pairs of VDEVS to pools ####
 ##### Requires 4 or more devices and root_pool_type must be "mirror"       ####
 
-- name: Create mirrored vdevs based Root Pool
+- name: Create Mirrored vdevs Based Root Pool Block
   block:
   - set_fact:
       two_root_pool_devices: "{{ two_root_pool_devices|default([]) + [ disk_by_id[item|int] ] }}"
@@ -77,26 +81,22 @@
 
   - name: Create Mirrored vdev ZFS Root Pool without Encrytpion
     command:
-      cmd: "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ two_root_pool_devices|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' '}}"
+      "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ two_root_pool_devices|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' '}}"
     when:
       - root_pool_encryption|default(false) == false
 
+  # If number of devices-1, could be less than 2, then set to 2.
+  - set_fact:
+      device_count: "{{(disk_by_id|length|int > 3)|ternary(disk_by_id|length|int - 1, 2)}}"
+
   - debug:
-      msg: "Num Devices: {{disk_by_id|length|int}}"
+      msg: "Num Devices: {{disk_by_id|length|int}}, VDEV device_count set to: {{device_count}}"
     when:
       - debug|default(false) == true
 
-  - set_fact:
-      device_count: 2
-
-  - set_fact:
-      device_count: "{{disk_by_id|length|int - 1}}"
-    when:
-      - disk_by_id|length|int > 3
-
   - name:  Attaching remaining vdev mirrors to Root Pool
     command:
-      "zpool add {{root_pool_name}} {{root_pool_type}} {{disk_by_id[item|int]}}{{root_partition_name_suffix}} {{disk_by_id[item|int +1]}}{{root_partition_name_suffix}}"
+      "zpool add -f {{root_pool_name}} {{root_pool_type}} {{disk_by_id[item|int]}}{{root_partition_name_suffix}} {{disk_by_id[item|int +1]}}{{root_partition_name_suffix}}"
     with_sequence: start=2 stride=2 end="{{device_count}}"
 
   when:
@@ -105,3 +105,4 @@
     - ansible_nodename != "localhost"
   tags:
     - create_pools
+###############################################################################

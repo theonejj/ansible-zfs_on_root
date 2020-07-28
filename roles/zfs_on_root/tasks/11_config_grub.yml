@@ -1,68 +1,62 @@
 ---
-# Some tasks that are only performed on single disk configurations
-- name: Run chrooted command to create Grub directories (single disk only)
-  command: "{{chroot_cmd}} bash -c 'mkdir -p /boot/efi/grub /boot/grub'"
+###[ Add GRUB to fstab File for Single Device Configuration ]##################
+- name: Add GRUB to fstab for Single Device Config Block
+  block:
+  # Some tasks that are only performed on single disk configurations
+  - name: Run chrooted command to create Grub directories (single disk only)
+    command: "{{chroot_cmd}} bash -c 'mkdir -p /boot/efi/grub /boot/grub'"
+
+  - name: Run chrooted command to add Grub to /etc/fstab (single disk only)
+    shell: 
+      cmd: "{{chroot_cmd}} bash -c 'echo /boot/efi/grub /boot/grub none defaults,bind 0 0 >> /etc/fstab'"
+
+  - name: Run chrooted command to mount Grub in /etc/fstab (single disk only)
+    command: "{{chroot_cmd}} bash -c 'mount /boot/grub'"
+
   when:
     - ansible_nodename != "localhost"
     - disk_by_id|length == 1
   tags:
     - config_grub
+###############################################################################
 
-- name: Run chrooted command to add Grub to /etc/fstab (single disk only)
-  shell: 
-    cmd: "{{chroot_cmd}} bash -c 'echo /boot/efi/grub /boot/grub none defaults,bind 0 0 >> /etc/fstab'"
-  when:
-    - ansible_nodename != "localhost"
-    - disk_by_id|length == 1
-  tags:
-    - config_grub
-
-- name: Run chrooted command to mount Grub in /etc/fstab (single disk only)
-  command: "{{chroot_cmd}} bash -c 'mount /boot/grub'"
-  when:
-    - ansible_nodename != "localhost"
-    - disk_by_id|length == 1
-  tags:
-    - config_grub
-
-# Parameters added to prevent grub menu selection for legacy devices
-- name: Run chrooted command to install GRUB, Linux and ZFS for Legacy BIOS Booting
-  command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' install grub-pc linux-image-generic zfs-initramfs zsys"
-  when:
-    - ansible_nodename != "localhost"
-    - use_uefi_booting|default(false)|bool == false
+###[ GRUB Installation for Legacy Devices ]####################################
+- name: GRUB Installation for Legacy Devices Block
+  block:
+  # Parameters added to prevent grub menu selection for legacy devices
+  - name: Run chrooted command to install GRUB, Linux and ZFS for Legacy BIOS Booting
+    command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' install grub-pc linux-image-generic zfs-initramfs zsys"
+    when:
     - ansible_os_family == "Debian"
-  tags:
-    - config_grub
 
-# Run grub-install per legacy disk device
-- name: Run chrooted command to run grub-install per legacy disk device
-  command:
-    cmd: "{{chroot_cmd}} grub-install {{ item }}"
-  loop: 
-    "{{ disk_by_id }}"
+  # Run grub-install per legacy disk device
+  - name: Run chrooted command to run grub-install per legacy disk device
+    command:
+      cmd: "{{chroot_cmd}} grub-install {{ item }}"
+    loop: 
+      "{{ disk_by_id }}"
+
   when:
     - ansible_nodename != "localhost"
     - use_uefi_booting|default(false)|bool == false
   tags:
     - config_grub
+###############################################################################
 
-- name: Run chrooted command to install GRUB, Linux and ZFS for UEFI Booting
-  command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes install grub-efi-amd64 grub-efi-amd64-signed linux-image-generic shim-signed zfs-initramfs zsys"
+###[ GRUB Installation for Legacy Devices ]####################################
+- name: GRUB Installation for UEFI Booting Block
+  block:
+  - name: Run chrooted command to install GRUB, Linux and ZFS for UEFI Booting
+    command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes install grub-efi-amd64 grub-efi-amd64-signed linux-image-generic shim-signed zfs-initramfs zsys"
+
+  # os-prober is only needed on dual-boot systems.
+  - name: Removing os-prober
+    command: "{{chroot_cmd}} bash -c 'dpkg --purge os-prober'"
+
   when:
     - ansible_nodename != "localhost"
     - use_uefi_booting|default(false)|bool == true
     - ansible_os_family == "Debian"
   tags:
     - config_grub
-
-# os-prober is only needed on dual-boot systems.
-- name: Removing os-prober
-  command: "{{chroot_cmd}} bash -c 'dpkg --purge os-prober'"
-  when:
-    - ansible_nodename != "localhost"
-    - remove_os_prober|default(true)|bool == true
-    - ansible_os_family == "Debian"
-  tags:
-    - config_grub
-
+###############################################################################

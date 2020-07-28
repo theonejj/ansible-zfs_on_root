@@ -7,7 +7,6 @@
   tags:
     - always
 
-
 ###[ Process Devices to use ZFS ]##############################################
 # If disk devices not specified on command line, detect available devices
 - name: Detect and Generate Available Disk Devices Block

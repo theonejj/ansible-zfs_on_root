@@ -12,8 +12,8 @@ uefi_partition_flags: "-n1:1M:+512M     -t1:EF00"
 bios_partition_flags: "-a1 -n5:24K:2047 -t5:EF02"
 
 # Possible SWAP Partition Flags based on one device or more
-single_disk_swap_flags: "-n2:0:+{{ single_swap_partition_size_MB }}MB -t2:8200"
-multi_disk_swap_flags:  "-n2:0:+{{ multiple_swap_partition_size_MB }}MB -t2:FD00"
+single_disk_swap_flags: "-n2:0:+{{ single_swap_partition_size_MB }}M -t2:8200"
+multi_disk_swap_flags:  "-n2:0:+{{ multiple_swap_partition_size_MB }}M -t2:FD00"
 
 # Define Boot Pool Partition Flags
 boot_partition_flags: "-n3:0:+2G        -t3:BE00"

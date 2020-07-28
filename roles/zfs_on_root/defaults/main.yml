@@ -21,13 +21,16 @@ regular_user_shell: "/bin/bash"
 # Create Swap Paritions
 enable_swap_partitions: true
 
+# NOTE: For hibernation you need at least as much swap as the system RAM
+#       Hibernation does not work with encrypted swap.
+
 # Swap partition size when a single device is used
 single_swap_partition_size_MB: "4096"
 
 # Swap partition size, per device, when multiple devices are used
 # If set_boot_pool_type is mirror, then it will be a mdm mirror of this size in MB
 # If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in MB (#devices-1*size_MB)
-multiple_swap_partition_size_MB: "2048"
+multiple_swap_partition_size_MB: "1024"
 
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
 use_uefi_booting: true

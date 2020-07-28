@@ -1,88 +1,83 @@
 ---
-- name: Update minimal linux system
-  apt:
-    upgrade: dist
-    install_recommends: yes
+###[ Full Software Installtion ]###############################################
+- name: Full Software Installation Block
+  block:
+  - name: Update minimal linux system
+    apt:
+      upgrade: dist
+      install_recommends: yes
+
+  - name: Installing command-line only environment
+    apt:
+      name: ubuntu-standard
+      install_recommends: yes
+    when:
+      - command_line_only|default(false)|bool == true
+
+  - name: Installing full GUI environment
+    apt:
+      name: ubuntu-desktop
+      install_recommends: yes
+    when:
+      - command_line_only|default(false)|bool == false
+
+  - name: Disable initial setup dialog screen
+    ini_file:
+      path: /etc/gdm3/custom.conf
+      section: daemon
+      option: InitialSetupEnable
+      value: "false"
+      create: no
+    when:
+      - command_line_only|default(false)|bool == false
+
   when:
     - ansible_nodename != "localhost"
     - ansible_os_family == "Debian"
   tags:
     - full_install
+###############################################################################
 
-- name: Installing command-line only environment
-  apt:
-    name: ubuntu-standard
-    install_recommends: yes
-  when:
-    - command_line_only|default(false)|bool == true
-    - ansible_nodename != "localhost"
-    - ansible_os_family == "Debian"
-  tags:
-    - full_install
+###[ Replace Netplan Configuration for Full GUI Installation ]#################
+- name: Replace Netplan Configuration File Block
+  block:
+  - name: Removing original netplan configuration
+    file:
+      path: /etc/netplan/01-netcfg.yaml
+      state: absent
 
-- name: Installing full GUI environment
-  apt:
-    name: ubuntu-desktop
-    install_recommends: yes
-  when:
-    - command_line_only|default(false)|bool == false
-    - ansible_nodename != "localhost"
-    - ansible_os_family == "Debian"
-  tags:
-    - full_install
-
-- name: Disable initial setup dialog screen
-  ini_file:
-    path: /etc/gdm3/custom.conf
-    section: daemon
-    option: InitialSetupEnable
-    value: "false"
-    create: no
+  - name: Copy netplan with Network Manager template to /etc/netplan/01-network-manager-all.yaml
+    template:
+      src: netplan-network-manager.j2
+      dest: /etc/netplan/01-network-manager-all.yaml
+      owner: root
+      group: root
+      mode: '0644'
   when:
     - command_line_only|default(false)|bool == false
     - ansible_nodename != "localhost"
   tags:
     - full_install
+###############################################################################
 
-- name: Removing original netplan configuration
-  file:
-    path: /etc/netplan/01-netcfg.yaml
-    state: absent
-  when:
-    - command_line_only|default(false)|bool == false
-    - ansible_nodename != "localhost"
-  tags:
-    - full_install
+###[ Switch Log Compression to ZFS Compression ]#################
+- name: Switch Log Compression to ZFS Compression Block
+  block:
 
-- name: Copy netplan with Network Manager template to /etc/netplan/01-network-manager-all.yaml
-  template:
-    src: netplan-network-manager.j2
-    dest: /etc/netplan/01-network-manager-all.yaml
-    owner: root
-    group: root
-    mode: '0644'
-  when:
-    - command_line_only|default(false)|bool == false
-    - ansible_nodename != "localhost"
-  tags:
-    - full_install
+  - name: Locate Existing Log Files
+    find:
+      paths: /etc/logrotate.d
+      patterns: "*"
+    register: files_matched
 
-- name: Locate Existing Log Files
-  find:
-    paths: /etc/logrotate.d
-    patterns: "*"
-  register: files_matched
+  - name: Switch to ZFS Log Compression
+    shell: 
+      cmd: "if grep -Eq '(^|[^#y])compress' {{item.path}} ; then sed -i -r 's/(^|[^#y])(compress)/\\1#\\2/' {{item.path}}; fi"
+    with_items: "{{ files_matched.files }}"
+    ignore_errors: yes
+
   when:
     - ansible_nodename != "localhost"
   tags:
     - full_install
-
-- name: Switch to ZFS Log Compression
-  shell: 
-    cmd: "if grep -Eq '(^|[^#y])compress' {{item.path}} ; then sed -i -r 's/(^|[^#y])(compress)/\\1#\\2/' {{item.path}}; fi"
-  with_items: "{{ files_matched.files }}"
-  ignore_errors: yes
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - full_install
+###############################################################################

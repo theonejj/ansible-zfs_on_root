@@ -1,113 +1,41 @@
 ---
-# UEFI Partition work ---------------------------------------------------------
-- name: Create UEFI Boot Loader Partitions
-  command:
-    cmd: "sgdisk {{ uefi_partition_flags }} {{ item }}"
-  loop: 
-    "{{ disk_by_id }}"
+###[ Create Disk Partitions ]##################################################
+- name: Create Disk Partitions Block
+  block:
+  - name: Create UEFI Boot Loader Partitions
+    command: 
+      "sgdisk {{ uefi_partition_flags }} {{ item }}"
+    loop: 
+      "{{ disk_by_id }}"
+  
+  - name: Create BIOS Boot Loader Partitions
+    command: 
+      "sgdisk {{ bios_partition_flags }} {{ item }}"
+    loop: 
+      "{{ disk_by_id }}"
+
+  - name: Create SWAP Partitions
+    command: 
+      "sgdisk {{(disk_by_id|length == 1)|ternary(single_disk_swap_flags,multi_disk_swap_flags)}} {{ item }}"
+    loop: 
+      "{{ disk_by_id }}"
+    when:
+      - enable_swap_partitions|default(true)|bool == true 
+
+  - name: Create Boot Pool Partitions
+    command:
+      "sgdisk {{ boot_partition_flags }} {{ item }}"
+    loop: 
+      "{{ disk_by_id }}"
+
+  - name: Create Root Pool Partition
+    command:
+      "sgdisk {{ root_partition_flags }} {{ item }}"
+    loop: 
+      "{{ disk_by_id }}"
+
   when:
     ansible_nodename != "localhost"
-  register:
-     sgdisk_ouput
   tags:
     - create_partitions
-
-# Fail if return code is not 0      
-- name: Create UEFI Boot Loader Partitions Result Check 
-  fail:
-    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
-  when: item.rc != 0
-  loop: "{{ sgdisk_ouput.results }}"
-  tags:
-    - create_partitions
-
-# BIOS Partition work ---------------------------------------------------------
-- name: Create BIOS Boot Loader Partitions
-  command:
-    cmd: "sgdisk {{ bios_partition_flags }} {{ item }}"
-  loop: 
-    "{{ disk_by_id }}"
-  when:
-    ansible_nodename != "localhost"
-  register:
-     sgdisk_ouput
-  tags:
-    - create_partitions
-
-# Fail if return code is not 0      
-- name: Create BIOS Boot Loader Partitions Result Check 
-  fail:
-    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
-  when: item.rc != 0
-  loop: "{{ sgdisk_ouput.results }}"
-  tags:
-    - create_partitions
-
-# Create SWAP Partition work --------------------------------------------------
-- name: Create SWAP Partition
-  command:
-    "sgdisk {{(disk_by_id|length == 1)|ternary(single_disk_swap_flags,multi_disk_swap_flags)}} {{ item }}"
-  loop: 
-    "{{ disk_by_id }}"
-  when:
-    - ansible_nodename != "localhost"
-    - enable_swap_partitions|default(true)|bool == true 
-  register:
-     sgdisk_ouput
-  tags:
-    - create_partitions
-
-# Fail if return code is not 0      
-- name: Create SWAP Partitions Result Check 
-  fail:
-    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
-  when: 
-    - enable_swap_partitions|default(true)|bool == true
-    - item.rc != 0
-  loop: "{{ sgdisk_ouput.results }}"
-  tags:
-    - create_partitions
-
-# Boot Pool Partition work ----------------------------------------------------
-- name: Create Boot Pool Partition
-  command:
-    cmd: "sgdisk {{ boot_partition_flags }} {{ item }}"
-  loop: 
-    "{{ disk_by_id }}"
-  when:
-    - ansible_nodename != "localhost"
-  register:
-     sgdisk_ouput
-  tags:
-    - create_partitions
-
-# Fail if return code is not 0      
-- name: Create Boot Pool Partitions Result Check 
-  fail:
-    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
-  when: item.rc != 0
-  loop: "{{ sgdisk_ouput.results }}"
-  tags:
-    - create_partitions
-
-# Root Pool Partition work ----------------------------------------------------
-- name: Create Root Pool Partition
-  command:
-    cmd: "sgdisk {{ root_partition_flags }} {{ item }}"
-  loop: 
-    "{{ disk_by_id }}"
-  when:
-    - ansible_nodename != "localhost"
-  register:
-     sgdisk_ouput
-  tags:
-    - create_partitions
-
-# Fail if return code is not 0      
-- name: Create Boot Pool Partitions Result Check 
-  fail:
-    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
-  when: item.rc != 0
-  loop: "{{ sgdisk_ouput.results }}"
-  tags:
-    - create_partitions
+###############################################################################

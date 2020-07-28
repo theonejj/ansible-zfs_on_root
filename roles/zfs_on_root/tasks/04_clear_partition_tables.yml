@@ -1,21 +1,34 @@
 ---
-- name: Clear Partition Table from Devices
-  command:
-    cmd: "sgdisk --zap-all {{ item }}"
-  loop: 
-    "{{ disk_by_id }}"
+###[ Wipe Partitions of Selected Device ]######################################
+- name: Wipe Partitions of Selected Devices Block
+  block:
+  - name: Clear any mdadm superblocks for whole disk
+    command: "mdadm --zero-superblock --force {{ item }}"
+    loop: 
+      "{{ disk_by_id }}"
+
+  # See if partition ending in "-part2" exists, if so try to remove it.
+  # Sign a guide like this has been followed before.
+  # Assumption that ine one exist, it will exist on all of them.
+  - stat:
+      path: "{{disk_by_id[0]}}-part2"
+    register: part2
+
+  - name: Clear any mdadm superblocks for partitions
+    command: "mdadm --zero-superblock --force {{ item }}-part2"
+    ignore_errors: yes
+    loop: 
+      "{{ disk_by_id }}"
+    when:
+      - part2.stat.exists
+
+  - name: Clear Partition Table from Devices
+    command: "sgdisk --zap-all {{ item }}"
+    loop: 
+      "{{ disk_by_id }}"
+
   when:
     ansible_nodename != "localhost"
-  register:
-     sgdisk_ouput
   tags:
     - clear_partition_tables_from_devices
-
-# Fail if return code is not 0      
-- name: Clear Partition Table Result Check 
-  fail:
-    msg: "The command ({{ item.cmd }}) did not have a 0 return code"
-  when: item.rc != 0
-  loop: "{{ sgdisk_ouput.results }}"
-  tags:
-    - clear_partition_tables_from_devices
+###############################################################################

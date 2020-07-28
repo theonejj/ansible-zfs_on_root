@@ -1,21 +1,37 @@
 ---
-# ZFS package installs have failed due to "not yet valid" message. This ususally happens
-# when time is not set correctly on the new system.  This happened often when virtualbox
-# snapshot images were used.  Restarting timesyncd service forces time to be updated.
+###[ Restart timesyncd under Virtualbox ]######################################
+- name: Restart timesyncd under Virtualbox Block
+  block:
+  # ZFS package installs have failed due to "not yet valid" message. This ususally happens
+  # when time is not set correctly on the new system.  This happened often when virtualbox
+  # snapshot images were used.  Restarting timesyncd service forces time to be updated.
+  - name: Restarting timesync service under Virtualbox
+    command: "systemctl restart systemd-timesyncd"
 
-- name: Restarting timesync service under Virtualbox
-  command: "systemctl restart systemd-timesyncd"
+  - name: Pause 10 seconds for time service to settle
+    pause:
+      seconds: 10
+
   when: 
     - ansible_os_family == "Debian"
     - virutal_box|default(false)|bool == true
   tags:
     - install-zfs-packages
+###############################################################################
 
-- name: Install ZFS packages (assumes Live CD Environment)
-  apt: 
-    name: ['debootstrap','gdisk','python-pexpect','zfs-initramfs']
-    state: present 
-    update_cache: yes
+###[ Install Packages Need to get Started ]####################################
+- name: Restart timesyncd under Virtualbox Block
+  block:
+  - name: Install ZFS packages (assumes Live CD Environment)
+    apt: 
+      name: ['debootstrap','gdisk','python-pexpect','zfs-initramfs','mdadm']
+      state: present 
+      update_cache: yes
+
+  - name: Stop ZED Service
+    service: name=zed enabled=yes state=stopped
+
   when: ansible_os_family == "Debian"
   tags:
     - install-zfs-packages
+###############################################################################

@@ -1,72 +1,52 @@
 ---
-- name: Run chrooted command to install SSH Server and python
-  command: 
-    "{{chroot_cmd}} bash -c 'apt install --yes openssh-server python python-apt'"
-  when:
-    - ansible_nodename != "localhost"
-    - ansible_os_family == "Debian"
-  tags:
-    - first_boot_prep
+###[ Prepare for First Reboot ]##############################################
+- name: Prepare for First Reboot Block
+  block:
+  - name: Run chrooted command to install SSH Server and python
+    command: 
+      "{{chroot_cmd}} bash -c 'apt install --yes openssh-server python python-apt'"
+    when:
+      - ansible_os_family == "Debian"
 
-- name: Run chrooted command add ansible user account (password disabled)
-  command: 
-    "{{chroot_cmd}} bash -c 'adduser {{ ansible_user }} --disabled-password --gecos Ansible_User'"
-  args:
-    creates: "/mnt/home/{{ ansible_user }}"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - first_boot_prep
+  - name: Run chrooted command add ansible user account (password disabled)
+    command: 
+      "{{chroot_cmd}} bash -c 'adduser {{ ansible_user }} --disabled-password --gecos Ansible_User'"
+    args:
+      creates: "/mnt/home/{{ ansible_user }}"
 
-- name: Copy over ansible sudoers include file to chrooted environment
-  copy:
-    src: "{{sudoers_include_file}}"
-    dest: "/mnt/{{sudoers_include_file}}"
-    remote_src: yes
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - first_boot_prep
+  - name: Copy over ansible sudoers include file to chrooted environment
+    copy:
+      src: "{{sudoers_include_file}}"
+      dest: "/mnt/{{sudoers_include_file}}"
+      remote_src: yes
 
-- name: Copy over ansible ssh key to chrooted environment
-  copy:
-    src: /home/{{ ansible_user }}/.ssh
-    dest: /mnt/home/{{ ansible_user }}/
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    remote_src: yes
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - first_boot_prep
+  - name: Copy over ansible ssh key to chrooted environment
+    copy:
+      src: /home/{{ ansible_user }}/.ssh
+      dest: /mnt/home/{{ ansible_user }}/
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      remote_src: yes
 
-- name: Copy create user script to /root
-  template:
-    src: add_user.j2
-    dest: /mnt/root/add_user.sh
-    owner: root
-    group: root
-    mode: '0700'
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - first_boot_prep
+  - name: Copy create user script to /root
+    template:
+      src: add_user.j2
+      dest: /mnt/root/add_user.sh
+      owner: root
+      group: root
+      mode: '0700'
 
-- name: Unmount chrooted filesystems
-  shell: 
-    cmd: "mount | grep -v zfs | tac | awk '/\\/mnt/ {print $3}' | xargs -i{} umount -lf {}"
-    warn: false
-  register:
-    mount_output
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - first_boot_prep
+  - name: Unmount chrooted filesystems
+    shell: 
+      cmd: "mount | grep -v zfs | tac | awk '/\\/mnt/ {print $3}' | xargs -i{} umount -lf {}"
+      warn: false
 
-- name: Export all ZFS Pools
-  command: 
-    "zpool export -a"
+  - name: Export all ZFS Pools
+    command: 
+      "zpool export -a"
+
   when:
     - ansible_nodename != "localhost"
   tags:
     - first_boot_prep
+###############################################################################

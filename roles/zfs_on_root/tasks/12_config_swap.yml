@@ -1,12 +1,19 @@
 ---
-#########################################
-# Work for Single Disk Unencrypted Swap
-#########################################
-- name: Run chrooted command to create swap filesystem
-  command:
-    "{{chroot_cmd}} bash -c 'mkswap -f {{ item }}-part2'"
-  loop: 
-    "{{ disk_by_id }}"
+###[ Single Disk Unencrypted Swap Configuration ]##############################
+- name: Single Disk Unencrypted Swap Block
+  block:
+  - name: Run chrooted command to create swap filesystem
+    command:
+      "{{chroot_cmd}} bash -c 'mkswap -f {{ item }}-part2'"
+    loop: 
+      "{{ disk_by_id }}"
+
+  - name: Run chrooted command to add single disk unencrypted swap partition to /etc/fstab
+    shell:
+      cmd: "{{chroot_cmd}} bash -c 'echo UUID=$(blkid -s UUID -o value {{item}}-part2) none swap discard 0 0 >> /etc/fstab'"
+    loop: 
+      "{{ disk_by_id }}"
+
   when:
     - ansible_nodename != "localhost"
     - enable_swap_partitions|default(true)|bool == true
@@ -14,83 +21,59 @@
     - disk_by_id|length == 1
   tags:
     - config_swap
+###############################################################################
 
-- name: Run chrooted command to add single disk unencrypted swap partition to /etc/fstab
-  shell:
-    cmd: "{{chroot_cmd}} bash -c 'echo UUID=$(blkid -s UUID -o value {{item}}-part2) none swap discard 0 0 >> /etc/fstab'"
-  loop: 
-    "{{ disk_by_id }}"
-  when:
-    - ansible_nodename != "localhost"
-    - enable_swap_partitions|default(true)|bool == true
-    - root_pool_encryption|default(false)|bool == false
-    - disk_by_id|length == 1
-  tags:
-    - config_swap
+###[ Multi Disk Swap Configuration ]###########################################
+- name: Multi Disk Swap Block
+  block:
+  - name: Run chrooted command to install mdadm for multi-disk swap
+    command: 
+      "{{chroot_cmd}} bash -c 'apt install --yes mdadm'"
+    when:
+      - ansible_os_family == "Debian"
 
-#########################################
-# Work for Multi Disk SWAP
-#########################################
-- name: Run chrooted command to install mdadm for multi-disk swap
-  command: 
-    "{{chroot_cmd}} bash -c 'apt install --yes mdadm'"
-  when:
-    - ansible_nodename != "localhost"
-    - enable_swap_partitions|default(true)|bool == true
-    - disk_by_id|length|int > 1
-    - ansible_os_family == "Debian"
-  tags:
-    - config_swap
+  # if more than 1 device, and boot pool is a mirror then use a mirror
+  - set_fact:
+      mdadm_type: "mirror"
+    when:
+      - boot_pool_type == "mirror"
 
-# if more than 1 device, and boot pool is a mirror then use a mirror
-- set_fact:
-    mdadm_type: "mirror"
-  when:
-    - enable_swap_partitions|default(true)|bool == true
-    - boot_pool_type == "mirror"
-    - disk_by_id|length|int > 1
-  tags:
-    - config_swap
+  # If more than 1 device, and boot bool is not a mirror, then must be raidz or raidz2
+  - set_fact:
+      mdadm_type: "{{(boot_pool_type == 'raidz')|ternary('raid5','raid6') }}"
+    when:
+      - boot_pool_type != "mirror"
 
-# If more than 1 device, and boot bool is not a mirror, then must be raidz or raidz2
-- set_fact:
-    mdadm_type: "{{(boot_pool_type == 'raidz')|ternary('raid5','raid6') }}"
-  when:
-    - enable_swap_partitions|default(true)|bool == true
-    - boot_pool_type != "mirror"
-    - disk_by_id|length|int > 1
-  tags:
-    - config_swap
+  # Cretae a list of swap device partitions to use
+  - set_fact:
+      mdadm_device_list: "{{mdadm_device_list|default('')}} {{item}}-part2"
+    loop: 
+      "{{ disk_by_id }}"
 
-# Cretae a list of swap device partitions to use
-- set_fact:
-    mdadm_device_list: "{{mdadm_device_list|default('')}} {{item}}-part2"
-  loop: 
-    "{{ disk_by_id }}"
-  when:
-    - enable_swap_partitions|default(true)|bool == true
-    - disk_by_id|length|int > 1
-  tags:
-    - config_swap
+  - name: Run chrooted command to create mdadm device for multi-disk swap
+    command: 
+      "{{chroot_cmd}} bash -c 'mdadm --create /dev/md0 --metadata=1.2 --level={{mdadm_type}} --raid-devices={{disk_by_id|length|int}} {{mdadm_device_list}}'"
 
-- name: Run chrooted command to create mdadm device for multi-disk swap
-  command: 
-    "{{chroot_cmd}} bash -c 'mdadm --create /dev/md0 --metadata=1.2 --level={{mdadm_type}} --raid-devices={{disk_by_id|length|int}} {{mdadm_device_list}}'"
   when:
     - ansible_nodename != "localhost"
     - enable_swap_partitions|default(true)|bool == true
     - disk_by_id|length|int > 1
   tags:
     - config_swap
+###############################################################################
 
-#########################################
-# Work for Multi Disk Unencrypted SWAP
-#########################################
-- name: Run chrooted command to create swap filesystem for multi-disk mdadm device
-  command:
-    "{{chroot_cmd}} bash -c 'mkswap -f /dev/md0'"
-  loop: 
-    "{{ disk_by_id }}"
+###[ Multi Disk Unencrypted Swap Configuration ]###############################
+- name: Multi Disk Unencrypted Swap Block
+  block:
+  - name: Run chrooted command to create swap filesystem for multi-disk mdadm device
+    command: "{{chroot_cmd}} bash -c 'mkswap -f /dev/md0'"
+    loop: 
+      "{{ disk_by_id }}"
+
+  - name: Run chrooted command to add multi-disk mdadm device to /etc/fstab
+    shell:
+      cmd: "{{chroot_cmd}} bash -c 'echo UUID=$(blkid -s UUID -o value /dev/md0) none swap discard 0 0 >> /etc/fstab'"
+
   when:
     - ansible_nodename != "localhost"
     - enable_swap_partitions|default(true)|bool == true
@@ -98,21 +81,10 @@
     - disk_by_id|length|int > 1
   tags:
     - config_swap
+###############################################################################
 
-- name: Run chrooted command to add multi-disk mdadm device to /etc/fstab
-  shell:
-    cmd: "{{chroot_cmd}} bash -c 'echo UUID=$(blkid -s UUID -o value /dev/md0) none swap discard 0 0 >> /etc/fstab'"
-  when:
-    - ansible_nodename != "localhost"
-    - enable_swap_partitions|default(true)|bool == true
-    - root_pool_encryption|default(false)|bool == false
-    - disk_by_id|length|int > 1
-  tags:
-    - config_swap
-
-- name: Run chrooted command to enable swap device
-  command:
-    "{{chroot_cmd}} bash -c 'swapon -a'"
+- name: Run chrooted command to enable Unencrypted swap 
+  command: "{{chroot_cmd}} bash -c 'swapon -a'"
   when:
     - ansible_nodename != "localhost"
     - enable_swap_partitions|default(true)|bool == true
@@ -120,81 +92,51 @@
   tags:
     - config_swap
 
-#########################################
-# Work for Encrypted SWAP
-#########################################
-- name: Run chrooted command to install cryptsetup on Debian based systems
-  command: 
-    "{{chroot_cmd}} bash -c 'apt install --yes cryptsetup'"
-  when:
-    - ansible_nodename != "localhost"
-    - enable_swap_partitions|default(true)|bool == true
-    - root_pool_encryption|default(false)|bool == true
-    - ansible_os_family == "Debian"
-  tags:
-    - config_swap
+###[ Multi Disk Encrypted Swap Configuration ]#################################
+- name: Multi Disk Encrypted Swap Block
+  block:
+  - name: Run chrooted command to install cryptsetup on Debian based systems
+    command: 
+      "{{chroot_cmd}} bash -c 'apt install --yes cryptsetup'"
+    when: 
+      - ansible_os_family == "Debian"
 
-#########################################
-# Work for Encrypted Single Disk SWAP
-#########################################
-- name: Run chrooted command to add single disk encrypted swap partitions to /etc/crypttab
-  shell:
-    cmd: "{{chroot_cmd}} bash -c 'echo swap {{item}}-part2 /dev/urandom swap,cipher=aes-xts-plain64:sha256,size=512 >> /etc/crypttab'"
-  loop: 
-    "{{ disk_by_id }}"
-  when:
-    - ansible_nodename != "localhost"
-    - enable_swap_partitions|default(true)|bool == true
-    - root_pool_encryption|default(false)|bool == true
-    - disk_by_id|length == 1
-  tags:
-    - config_swap
+  # Work for Encrypted Single Disk SWAP
+  - name: Run chrooted command to add single disk encrypted swap partitions to /etc/crypttab
+    shell:
+      cmd: "{{chroot_cmd}} bash -c 'echo swap {{item}}-part2 /dev/urandom swap,cipher=aes-xts-plain64:sha256,size=512 >> /etc/crypttab'"
+    loop: 
+      "{{ disk_by_id }}"
+    when:
+      - disk_by_id|length == 1
 
-#########################################
-# Work for Multi Disk Unencrypted SWAP
-#########################################
-- name: Run chrooted command to add multi-disk encrypted swap partitions to /etc/crypttab
-  shell:
-    cmd: "{{chroot_cmd}} bash -c 'echo swap /dev/md0 /dev/urandom swap,cipher=aes-xts-plain64:sha256,size=512 >> /etc/crypttab'"
-  when:
-    - ansible_nodename != "localhost"
-    - enable_swap_partitions|default(true)|bool == true
-    - root_pool_encryption|default(false)|bool == true
-    - disk_by_id|length > 1
-  tags:
-    - config_swap
+  # Work for Multi Disk Unencrypted SWAP
+  - name: Run chrooted command to add multi-disk encrypted swap partitions to /etc/crypttab
+    shell:
+      cmd: "{{chroot_cmd}} bash -c 'echo swap /dev/md0 /dev/urandom swap,cipher=aes-xts-plain64:sha256,size=512 >> /etc/crypttab'"
+    when:
+      - disk_by_id|length > 1
 
-#########################################
-# Work for Encrypted SWAP
-#########################################
-- name: Run chrooted command to add swap device map to /etc/fstab
-  shell:
-    cmd: "{{chroot_cmd}} bash -c 'echo /dev/mapper/swap none swap defaults 0 0 >> /etc/fstab'"
-  when:
-    - ansible_nodename != "localhost"
-    - enable_swap_partitions|default(true)|bool == true
-    - root_pool_encryption|default(false)|bool == true
-  tags:
-    - config_swap
+  - name: Run chrooted command to add swap device map to /etc/fstab
+    shell:
+      cmd: "{{chroot_cmd}} bash -c 'echo /dev/mapper/swap none swap defaults 0 0 >> /etc/fstab'"
 
-- name: Run chrooted command to install curl and patch for Bug#1875577 Encrypted Swap with ZFS
-  command: 
-    "{{chroot_cmd}} bash -c 'apt install --yes curl patch'"
+  - name: Run chrooted command to install curl and patch for Bug#1875577 Encrypted Swap with ZFS
+    command: 
+      "{{chroot_cmd}} bash -c 'apt install --yes curl patch'"
+    when:
+      - ansible_os_family == "Debian"
+
+  - name: Run chrooted command to curl and apply patch for Bug#1875577 Encrypted Swap with ZFS
+    shell:
+      cmd: "{{chroot_cmd}} bash -c 'curl https://launchpadlibrarian.net/478315221/2150-fix-systemd-dependency-loops.patch | sed \"s|/etc|/lib|;s|\\.in$||\" | (cd / ; patch -p1)'"
+    when:
+      - ansible_os_family == "Debian"
+
   when:
     - ansible_nodename != "localhost"
     - enable_swap_partitions|default(true)|bool == true
     - root_pool_encryption|default(false)|bool == true
-    - ansible_os_family == "Debian"
   tags:
     - config_swap
-  
-- name: Run chrooted command to curl and apply patch for Bug#1875577 Encrypted Swap with ZFS
-  shell:
-    cmd: "{{chroot_cmd}} bash -c 'curl https://launchpadlibrarian.net/478315221/2150-fix-systemd-dependency-loops.patch | sed \"s|/etc|/lib|;s|\\.in$||\" | (cd / ; patch -p1)'"
-  when:
-    - ansible_nodename != "localhost"
-    - enable_swap_partitions|default(true)|bool == true
-    - root_pool_encryption|default(false)|bool == true
-    - ansible_os_family == "Debian"
-  tags:
-    - config_swap
+###############################################################################

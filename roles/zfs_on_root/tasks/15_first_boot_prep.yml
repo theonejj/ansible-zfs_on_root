@@ -36,6 +36,16 @@
       group: root
       mode: '0700'
 
+  # This script documents all the partition flags and sizes used in case needed for drive
+  # replacement in the future.
+  - name: Generate Partition Helper Script in  /root/partition_drive_helper.sh
+    template:
+      src: partition_drive_helper.j2
+      dest: /mnt/root/partition_drive_helper.sh
+      owner: root
+      group: root
+      mode: '0700'
+
   - name: Unmount chrooted filesystems
     shell: 
       cmd: "mount | grep -v zfs | tac | awk '/\\/mnt/ {print $3}' | xargs -i{} umount -lf {}"

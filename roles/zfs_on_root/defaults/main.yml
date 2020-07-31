@@ -17,7 +17,7 @@ regular_user_shell: "/bin/bash"
 ###############################################################################
 # Computer Configuration Settings
 ###############################################################################
-# Create Swap Paritions
+# Create Swap Partitions
 enable_swap_partitions: true
 
 # NOTE: For hibernation you need at least as much swap as the system RAM
@@ -47,7 +47,7 @@ raidz_boot_partition_size_MB: "512"
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
 use_uefi_booting: true
 
-# Full GUI installtion or command-line only environment
+# Full GUI installation or command-line only environment
 command_line_only: false
 
 # Define the local pre-fix to enable in /etc/locale.gen

@@ -57,3 +57,7 @@
 # os-prober is only needed on dual-boot systems.
 - name: Removing os-prober
   command: "{{chroot_cmd}} bash -c 'dpkg --purge os-prober'"
+  when:
+    - remove_os_prober|default(false)|bool == true
+  tags:
+    - config_grub

@@ -13,12 +13,12 @@
   block:
   - name: Detect available disk devices to show
     shell:
-      cmd: "lsblk -d -o name,size,type,mountpoint | grep -v '/'"
+      cmd: "lsblk -ndo name,mountpoint --include {{lsblk_device_types}} | grep -v '/' | cat"
     register: lsblk_devices
 
   - name: Generate default device list to suggest
     shell:
-      cmd: "lsblk -ndo name,mountpoint | grep -v '/'"
+      cmd: "lsblk -ndo name,mountpoint --include {{lsblk_device_types}} | grep -v '/' | cat"
     register: lsblk_default
 
   # If disk devices not specified on command line, then prompt for it.
@@ -104,14 +104,36 @@
 ###############################################################################
 
 ###[ ZFS Passphrase Validation ]###############################################
+- name: Prompt for ZFS Passphrase if required and not provifed Block
+  block:
+  - name: Prompt for ZFS Passphrase if required and not provided
+    pause:
+      prompt: |
+        #########################################################################
+                    A ZFS Passphrase has been configured as required
+        #########################################################################
+
+        You are required to enter a Passphrase to enable ZFS Native Encryption.
+        The passphrase must be at least 8 characters.
+
+      echo: yes
+    register: 
+      passphrase_prompt
+
+  - set_fact:
+      passphrase: "{{passphrase_prompt.user_input}}"
+
+  when:
+    - prompt_for_zfs_passphrase|default(true)|bool == true
+    - passphrase is undefined
+   
 - name: ZFS Passphrase Validation Block
   block:
-
   # ZFS Native Encryption Passphrase must be 8 chars or longer
   - fail:
       msg: "ERROR: ZFS passphase must be at least 8 characters."
     when:
-      - passphrase|length <8
+      - passphrase|length|int <8
 
   # Turn on encryption flags if a passphrase was set.
   - set_fact:

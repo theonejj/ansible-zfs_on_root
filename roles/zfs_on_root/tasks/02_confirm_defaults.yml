@@ -6,27 +6,27 @@
       # Please review the following defaults for: {{host_name}}
       ####################################################################
 
-        Default Root Password: {{default_root_password}}
+         Default Root Password: {{default_root_password}}
       
-             Non-root Account: {{regular_user_account}}       
-                     Password: {{regular_user_password}}
-                    Full Name: {{regular_user_fullname}}
-                Add to Groups: {{regular_user_groups}}
+              Non-root Account: {{regular_user_account}}       
+                      Password: {{regular_user_password}}
+                     Full Name: {{regular_user_fullname}}
+                 Add to Groups: {{regular_user_groups}}
 
       Environment Installation: {% if command_line_only|default(false)|bool == true%}Command-line only{%else%}Full GUI Environment{% endif %}
 
-        Create Swap Partitions: {{enable_swap_partitions}}
-      {% if enable_swap_partitions|default(true)|bool == true %}
-      {% if disk_by_id|length|int > 1 %}
+
+        Create Swap Partitions: {{enable_swap_partitions}}{% if enable_swap_partitions|default(true)|bool == true %}  {% if disk_by_id|length|int > 1 %}Type: {{boot_pool_type}}
       {% if boot_pool_type == "mirror" %}
-             Mirror Swap Size: {{single_or_mirror_swap_partition_size_MB}} MB
+                     Swap Size: {{single_or_mirror_swap_partition_size_MB}} MB
       {%else%}
-             RAID Swap Size: {{raidz_swap_partition_size_MB|int*(disk_by_id|length|int-1)}} MB
+                     Swap Size: {{raidz_swap_partition_size_MB|int*(disk_by_id|length|int-1)}} MB
       {% endif %}
       {%else%}
-             Default Swap Size: {{single_or_mirror_swap_partition_size_MB}} MB
+                     Swap Size: {{single_or_mirror_swap_partition_size_MB}} MB
       {% endif %}
       {% endif %}
+
               Use UEFI Booting: {{use_uefi_booting}}{% if use_uefi_booting|default(false)|bool == true %}
       {% if efi_firmware_directory is defined %}
         (Confirmed UEFI Firmware found)
@@ -34,20 +34,26 @@
       {% endif %}
                   Local Prefix: {{locale_prefix}}
 
-          Disk Devices Specified: {{disk_by_id|length}}
-      Default ZFS Boot Pool Name: {{boot_pool_name}}  {% if disk_by_id|length|int > 1 %}Type: {{boot_pool_type}}
+        Disk Devices Specified: {{disk_by_id|length}}
+            ZFS Boot Pool Name: {{boot_pool_name}}  {% if disk_by_id|length|int > 1 %}Type: {{boot_pool_type}}
+      {% if boot_pool_type == "mirror" %}
+                Boot Pool Size: {{single_or_mirror_boot_partition_size_MB}} MB
       {%else%}
-
+                Boot Pool Size: {{raidz_boot_partition_size_MB|int*(disk_by_id|length|int-1)}} MB
       {% endif %}
-      Default ZFS Root Pool Name: {{root_pool_name}}  {% if disk_by_id|length|int > 1 %}Type: {{root_pool_type}}{% if (root_pool_type == "mirror") and (disk_by_id|length|int > 3) %} of {{(disk_by_id|length|int / 2)|int}} mirrored vdevs{% endif %}{% endif %}
-
-
-        Use ZFS Native Encyption: {{root_pool_encryption}}
-      {% if root_pool_encryption|default(false)|bool == true %}
-           Encryption Passphrase: {{passphrase}}
       {%else%}
-        To enable ZFS Native Encryption:
-        Add passphrase: "<your_passphrase>" to --extra-vars='{disk_devices: {{disk_devices}},host_name: "{{host_name}}",passphrase: "mys3cret"}'
+                Boot Pool Size: {{single_or_mirror_boot_partition_size_MB}} MB
+      {% endif %}
+
+            ZFS Root Pool Name: {{root_pool_name}}  {% if disk_by_id|length|int > 1 %}Type: {{root_pool_type}}{% if (root_pool_type == "mirror") and (disk_by_id|length|int > 3) %} of {{(disk_by_id|length|int / 2)|int}} mirrored vdevs{% endif %}{% endif %}
+
+
+      Use ZFS Native Encyption: {{root_pool_encryption}}
+      {% if root_pool_encryption|default(false)|bool == true %}
+         Encryption Passphrase: {{passphrase}}
+      {%else%}
+       To enable ZFS Native Encryption:
+       Add passphrase: "<your_passphrase>" to --extra-vars='{disk_devices: {{disk_devices}},host_name: "{{host_name}}",passphrase: "mys3cret"}'
       {% endif %}
 
       ############ Press Ctrl-C to abort or ENTER to continue ############

@@ -38,7 +38,9 @@
       regexp: "^(#? ?)?{{item.key}} +(yes|no|none|any|prohibit-password|[0-9]+|[0-9]+m)"
       replace: "{{ item.key }} {{ item.value }}"
       validate: "/usr/sbin/sshd -t -f %s"
-    loop: "{{ apply_sshd_settings|dict2items }}"
+    loop: "{{ apply_sshd_these_settings|dict2items }}"
+    when:
+      - apply_sshd_settings|default(false)|bool == true
 
   - name: Restart SSHD Server
     service:

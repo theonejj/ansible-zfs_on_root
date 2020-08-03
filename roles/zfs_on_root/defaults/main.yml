@@ -98,7 +98,8 @@ root_pool_name: "rpool"
 #            "none", "any", "prohibit-password", digits (such as 10 or 22),
 #            (and something like 2m). Does not match fancy items like IP Address or
 #            Directory and File Paths.
-apply_sshd_settings:
+apply_sshd_settings: true
+apply_sshd_these_settings:
   PasswordAuthentication: "no"
   PermitRootLogin: "no"
   PubkeyAuthentication: "yes"

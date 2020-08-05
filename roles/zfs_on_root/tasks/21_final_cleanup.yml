@@ -31,23 +31,6 @@
 
   - name: Running update-grub
     command: "update-grub"
-
-  - name: Update SSHD Settings
-    replace:
-      path: /etc/ssh/sshd_config
-      regexp: "{{apply_sshd_grep_mask}}"
-      replace: "{{ item.key }} {{ item.value }}"
-      validate: "/usr/sbin/sshd -t -f %s"
-    loop: "{{ apply_sshd_settings|dict2items }}"
-    when:
-      - update_sshd_settings|default(false)|bool == true
-
-  - name: Restart SSHD Server
-    service:
-      name: sshd
-      state: restarted
-    when:
-      - update_sshd_settings|default(false)|bool == true
       
   when:
     - ansible_nodename != "localhost"
@@ -56,7 +39,7 @@
 ###############################################################################
 
 ###[ Last Reboot of Remote System ]##########################################
-- name: Lastt Reboot of Remote System Block
+- name: Last Reboot of Remote System Block
   block:
   - pause:
       prompt: |

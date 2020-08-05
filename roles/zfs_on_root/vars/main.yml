@@ -119,7 +119,3 @@ ssh_installation_helper_script: "do_ssh.sh"
 # Commma Seperated Device Number to include as possible "disk" devices
 # 8=[SATA, SCSI], 179=[MMC], 259=[NVMe]
 lsblk_device_types: "8,179,259"
-
-# This is the list of values that can be search for and replaced when updating sshd_conf
-# The item.key are the values defined under "apply_sshd_settings" in the defaults/main.yml 
-apply_sshd_grep_mask: "^(#? ?)?{{item.key}} +(yes|no|none|any|prohibit-password|[0-9]+|[0-9]+m)"

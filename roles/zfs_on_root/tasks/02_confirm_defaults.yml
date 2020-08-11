@@ -27,12 +27,11 @@
       {% endif %}
       {% endif %}
 
-              Use UEFI Booting: {{use_uefi_booting}}{% if use_uefi_booting|default(false)|bool == true %}
-      {% if efi_firmware_directory is defined %}
-        (Confirmed UEFI Firmware found)
-      {% endif %}
-      {% endif %}
+              Use UEFI Booting: {{use_uefi_booting}}
+              {{use_uefi_booting_msg|default('')}}
+
                   Local Prefix: {{locale_prefix}}
+                     Time Zone: {{timezone_value}}
 
         Disk Devices Specified: {{disk_by_id|length}}
             ZFS Boot Pool Name: {{boot_pool_name}}  {% if disk_by_id|length|int > 1 %}Type: {{boot_pool_type}}

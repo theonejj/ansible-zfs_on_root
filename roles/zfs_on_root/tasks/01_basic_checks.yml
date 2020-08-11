@@ -295,20 +295,27 @@
 # Path /sys/firmware/efi must exist, otherwise only legacy booting can be used.
 - name: Confirm UEFI Environment Exists Block
   block:
-  - name: Confirm UEFI environment exists
+  - name: Check if UEFI environment is detected
     stat:
       path: "{{efi_firmware_path}}"
     register: efi_firmware_directory
 
-  # if {{efi_firmware_path}} is a vaild path, then this would be defined. 
+  - name: Confirmed UEFI Firmware detected
+    set_fact:
+      use_uefi_booting_msg: "Confirmed UEFI Firmware found"
+    when:
+      - efi_firmware_directory.stat.isdir is defined and efi_firmware_directory.stat.isdir
+
+  # Give Notice of UEFI switch to Legacy BIOS if no UEFI detected
   - debug:
-      msg: "WARNING: UEFI Booting Enabled but UEFI was not detected by {{distro_name}}, switching to Legacy BIOS."
+      msg: "WARNING: UEFI Booting Enabled but UEFI was not detected by {{distro_name}}, switching to Legacy BIOS"
     when:
       - efi_firmware_directory.stat.isdir is undefined
   
-  # Since UEFI Not Detected, Drop Back to Legacy BIOS Install
+  # If UEFI Not Detected, Drop Back to Legacy BIOS Install
   - set_fact:
       use_uefi_booting: false
+      use_uefi_booting_msg: "UEFI Firmware Not Detected: using Legacy BIOS Instead"
     when:
       - efi_firmware_directory.stat.isdir is undefined
 

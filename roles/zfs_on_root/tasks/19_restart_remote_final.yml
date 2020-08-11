@@ -9,9 +9,10 @@
         ##########################################################
 
         {% if root_pool_encryption|default(false)|bool == true %}
-            When prompted for passphrase for {{root_pool_name}}:
-            Encryption Passphrase: {{passphrase}}
+        When prompted for passphrase for {{root_pool_name}}:
+        Enter Passphrase: {{passphrase}}
         {% endif %}
+
         After the reboot has completed, please try out the system.
         
         Login as the non-root account:

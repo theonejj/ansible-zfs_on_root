@@ -91,7 +91,7 @@
 
   when:
     - enable_dropbear_with_busybox_support|default(false)|bool == true
-    - if root_pool_encryption|default(false)|bool == true
+    - root_pool_encryption|default(false)|bool == true
   tags:
     - install_drop_bear
 

@@ -9,7 +9,7 @@
 
   - name: Installing command-line only environment
     apt:
-      name: ubuntu-standard
+      name: ['ubuntu-standard','update-notifier-common']
       install_recommends: yes
     when:
       - command_line_only|default(false)|bool == true

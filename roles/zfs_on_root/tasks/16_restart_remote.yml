@@ -15,6 +15,9 @@
           No need to login at this point, but if you need it:
           Root Password: {{default_root_password}}
 
+          NOTE: If system boots back into LiveCD Environment, you may
+                have to manually eject CD, it is not needed anymore.
+
         Press ENTER to reboot {{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}
     when:
     - root_pool_encryption|default(false)|bool == true

@@ -13,12 +13,12 @@
   block:
   - name: Detect available disk devices to show
     shell:
-      cmd: "lsblk -ndo name,mountpoint --include {{lsblk_device_types}} | grep -v '/' | cat"
+      cmd: "{{lsblk_device_command}}"
     register: lsblk_devices
 
   - name: Generate default device list to suggest
     shell:
-      cmd: "lsblk -ndo name,mountpoint --include {{lsblk_device_types}} | grep -v '/' | cat"
+      cmd: "{{lsblk_device_command}}"
     register: lsblk_default
 
   # If disk devices not specified on command line, then prompt for it.
@@ -293,17 +293,25 @@
 ###[ UEFI Sanity Checks ]######################################################
 # If boot using UEFI specifed, then Ubuntu Live CD should have detected this.
 # Path /sys/firmware/efi must exist, otherwise only legacy booting can be used.
-- name: Confirm UEFI environment exists.
+- name: Confirm UEFI Environment Exists Block
   block:
-  - stat:
+  - name: Confirm UEFI environment exists
+    stat:
       path: "{{efi_firmware_path}}"
     register: efi_firmware_directory
 
-  # if {{efi_firmware_path}} is a vaild path, then this would be defined. If not, fail.
-  - fail:
-      msg: "UEFI Booting Enabled but UEFI was not detected by {{distro_name}}"
+  # if {{efi_firmware_path}} is a vaild path, then this would be defined. 
+  - debug:
+      msg: "WARNING: UEFI Booting Enabled but UEFI was not detected by {{distro_name}}, switching to Legacy BIOS."
     when:
-      - efi_firmware_directory is not defined
+      - efi_firmware_directory.stat.isdir is undefined
+  
+  # Since UEFI Not Detected, Drop Back to Legacy BIOS Install
+  - set_fact:
+      use_uefi_booting: false
+    when:
+      - efi_firmware_directory.stat.isdir is undefined
+
   when:
     - use_uefi_booting|default(false)|bool == true
   tags:

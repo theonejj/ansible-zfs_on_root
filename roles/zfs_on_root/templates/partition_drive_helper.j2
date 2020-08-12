@@ -32,7 +32,6 @@ DISK_DEVICE=/dev/disk/by-id/PUT_YOUR_DEVICE_NAME_HERE
 #          the value below and set it to TRUE.
 
 # ENABLE_FSTAB_FILE_UPDATES=FALSE
-ENABLE_FSTAB_FILE_UPDATES=TRUE
 # ---------------------------------------------------------------------------
 
 # ---[ Usage Statement ]-----------------------------------------------------
@@ -78,18 +77,16 @@ __check_block_device() {
 
 # ---[ Check for Existing Partitions ]---------------------------------------
 __check_device_for_partitions() {
-  if __check_block_device; then
-    if ls ${DISK_DEVICE}-part? &> /dev/null; then
-        echo Partitions detected:
-        echo
-        ls -l ${DISK_DEVICE}-part? | awk '/-part?/{print $9}'
-        echo
-        return 1
-    else
-        echo No partitions detected.
-        return 0
-      fi
-  fi
+  if ls ${DISK_DEVICE}-part? &> /dev/null; then
+      echo Partitions detected:
+      echo
+      ls -l ${DISK_DEVICE}-part? | awk '/-part?/{print $9}'
+      echo
+      return 1
+  else
+      echo No partitions detected.
+      return 0
+    fi
 }
 # ---------------------------------------------------------------------------
 
@@ -298,34 +295,38 @@ if [ $# -gt 0 ]; then
         fi
       ;;
       p|P)
-        if __create_disk_partitions; then
-          if __create_efi_filesystem; then
-            echo
-            echo "Completed Successfully"
+        if __check_block_device; then
+          if __create_disk_partitions; then
+            if __create_efi_filesystem; then
+              echo
+              echo "Completed Successfully"
+            else
+              echo
+              echo "ERROR: Create EFI Filesystem Failed"
+              exit 3
+            fi
           else
             echo
-            echo "ERROR: Create EFI Filesystem Failed"
+            echo "ERROR: Create Partitions Failed"
             exit 3
           fi
-        else
-          echo
-          echo "ERROR: Create Partitions Failed"
-          exit 3
         fi
       ;;
       f|F)
-        if __check_fstab_file; then
-           # If automated updated was successful, set as in-progress
-           # and run one more time to validate.
-           if [ "$ENABLE_FSTAB_FILE_UPDATES" == "TRUE" ]; then
-             ENABLE_FSTAB_FILE_UPDATES=INPROC
-             echo "Update Completed, running again to validate:
-             __check_fstab_file
+        if __check_block_device; then
+          if __check_fstab_file; then
+            # If automated updated was successful, set as in-progress
+            # and run one more time to validate.
+            if [ "$ENABLE_FSTAB_FILE_UPDATES" == "TRUE" ]; then
+              ENABLE_FSTAB_FILE_UPDATES=INPROC
+              echo "Update Completed, running again to validate:"
+              __check_fstab_file
+            fi
+          else
+            echo
+            echo "ERROR: Unexpected error detected."
+            exit 3
           fi
-        else
-          echo
-          echo "ERROR: Unexpected error detected."
-          exit 3
         fi
       ;;
       \?) # Invalid option passed.

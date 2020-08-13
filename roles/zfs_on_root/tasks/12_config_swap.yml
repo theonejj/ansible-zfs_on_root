@@ -2,7 +2,7 @@
 ###[ Single Disk Unencrypted Swap Configuration ]##############################
 - name: Single Disk Unencrypted Swap Block
   block:
-  - name: Run chrooted command to create swap filesystem
+  - name: Run chrooted command to create swap filesystem for Single Disk Unencrypted
     command:
       "{{chroot_cmd}} bash -c 'mkswap -f {{ item }}-part2'"
     loop: 

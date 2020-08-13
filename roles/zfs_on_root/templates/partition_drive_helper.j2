@@ -8,8 +8,8 @@
 #           likely want to partition them in the same way as your existing 
 #           drives.
 # AUTHOR     : Richard J. Durso
-# DATE       : 08/11/2020
-# VERSION    : 0.10
+# DATE       : 08/12/2020
+# VERSION    : 0.20
 #############################################################################
 
 # ---------------------------------------------------------------------------
@@ -34,6 +34,18 @@ DISK_DEVICE=/dev/disk/by-id/PUT_YOUR_DEVICE_NAME_HERE
 # ENABLE_FSTAB_FILE_UPDATES=FALSE
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+ZFS_BPOOL_NAME={{boot_pool_name}}
+ZFS_RPOOL_NAME={{root_pool_name}}
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+BIOS_PARTITION="-part1"
+UEFI_PARTITION="-part2"
+BOOT_PARTITION="{{boot_partition_name_suffix}}"
+ROOT_PARTITION="{{root_partition_name_suffix}}"
+# ---------------------------------------------------------------------------
+
 # ---[ Usage Statement ]-----------------------------------------------------
 __usage() {
   echo "
@@ -54,21 +66,30 @@ __usage() {
   To CREATE partitions on an empty device:
   ${0##*/} -p
 
-  To CHECK /etc/fstab entry
+  To CHECK UPDATED /etc/fstab entry
   ${0##*/} -f
+
+  To REPLACE devices in ZFS Pools (replace old partitions with new ones):
+  ${0##*/} -r
   "
 }
 
 # ---[ Check Block Device is Valid ]-----------------------------------------
 __check_block_device() {
   if [[ -b ${DISK_DEVICE} ]]; then
-    echo ${DISK_DEVICE} is a valid block device.
-    echo
-    return 0
+    # Make sure a partition was not specified
+    if (echo ${DISK_DEVICE} | grep -q "\-part[0-9]"); then
+      echo "DISK_DEVICE cannot be set to a partition."
+      echo "${DISK_DEVICE} is not a valid block device."  
+    else
+      echo "${DISK_DEVICE} is a valid block device."
+      echo
+      return 0
+    fi
   else
-    echo ${DISK_DEVICE} is not a valid block device.
+    echo "${DISK_DEVICE} is not a valid block device."
     echo
-    echo You must update the script and to use a valid device located in:
+    echo "You must update the script and to use a valid device located in:"
     echo "/dev/disk/by-id"
     return 1
   fi
@@ -78,13 +99,13 @@ __check_block_device() {
 # ---[ Check for Existing Partitions ]---------------------------------------
 __check_device_for_partitions() {
   if ls ${DISK_DEVICE}-part? &> /dev/null; then
-      echo Partitions detected:
+      echo "Partitions detected:"
       echo
       ls -l ${DISK_DEVICE}-part? | awk '/-part?/{print $9}'
       echo
       return 1
   else
-      echo No partitions detected.
+      echo "No partitions detected."
       return 0
     fi
 }
@@ -102,11 +123,11 @@ __partition_wipe()
         echo "PASSED: mdadm --zero-superblock --force ${DISK_DEVICE}"
       fi
       echo
-      mdadm --zero-superblock --force ${DISK_DEVICE}-part2
+      mdadm --zero-superblock --force ${DISK_DEVICE}${UEFI_PARTITION}
       if [ $? -ne 0 ]; then 
-        echo "FAILED: mdadm --zero-superblock --force ${DISK_DEVICE}-part2"
+        echo "FAILED: mdadm --zero-superblock --force ${DISK_DEVICE}${UEFI_PARTITION}"
       else
-        echo "PASSED: mdadm --zero-superblock --force ${DISK_DEVICE}-part2"
+        echo "PASSED: mdadm --zero-superblock --force ${DISK_DEVICE}${UEFI_PARTITION}"
       fi
       echo
       sgdisk --zap-all ${DISK_DEVICE}
@@ -171,8 +192,8 @@ __create_disk_partitions() {
 
 # ---[ Create EFI Filesystem on Partition 1 ]--------------------------------
 __create_efi_filesystem() {
-  echo "Creating EFI filesystems on "-part1" partition"
-  mkdosfs -F 32 -s 1 -n EFI ${DISK_DEVICE}-part1
+  echo "Creating EFI filesystems on "${BIOS_PARTITION}" partition"
+  mkdosfs -F 32 -s 1 -n EFI ${DISK_DEVICE}${BIOS_PARTITION}
   return $?
 }
 # ---------------------------------------------------------------------------
@@ -180,10 +201,11 @@ __create_efi_filesystem() {
 # ---[ Check if /etc/fstab is clean or needs to be updated ]-----------------
 __check_fstab_file() {
   # UUID of new device
-  UUID=$(blkid -s UUID -o value ${DISK_DEVICE}-part1)
+  local UUID=$(blkid -s UUID -o value ${DISK_DEVICE}${BIOS_PARTITION})
+
   if [[ -z $UUID ]]; then
     # No UUID partition partition 1 no created??
-    echo ERROR: Unable to detect UUID for ${DISK_DEVICE}-part1
+    echo ERROR: Unable to detect UUID for ${DISK_DEVICE}${BIOS_PARTITION}
     echo 
     echo Check that partitions have been created before attempting to update /etc/fstab file.
     echo
@@ -202,13 +224,13 @@ __check_fstab_file() {
       echo Device ${DISK_DEVICE} 
       echo With UUID: ${UUID} is not found in /etc/fstab
       
-      TMP_UUID_FILE=/tmp/fstab_uuids.txt
+      local TMP_UUID_FILE=/tmp/fstab_uuids.txt
 
       # Create a temp copy all existing UUID entries within /etc/fstab
       cat /etc/fstab | grep "^UUID=.*/boot/efi.*" > $TMP_UUID_FILE
 
       # Loop through devices with a "-part1"
-      for device in $(ls -l /dev/disk/by-id | awk '/-part1/{print $9}')
+      for device in $(ls -l /dev/disk/by-id | awk "/${BIOS_PARTITION}/{print \$9}")
       do
         DEVICE_UUID=$(blkid -s UUID -o value /dev/disk/by-id/${device})
         
@@ -223,7 +245,7 @@ __check_fstab_file() {
       if [ -s $TMP_UUID_FILE ]; then
 
         # Make sure only one line left in temp check file
-        LINES_LEFT=$(cat $TMP_UUID_FILE | wc -l)
+        local LINES_LEFT=$(cat $TMP_UUID_FILE | wc -l)
 
         if [ "$ENABLE_FSTAB_FILE_UPDATES" == "TRUE" ]; then
           if [ $LINES_LEFT -ne 1 ]; then
@@ -278,14 +300,86 @@ __check_fstab_file() {
 }
 # ---------------------------------------------------------------------------
 
+# ---[ Replace Pool Device ]-------------------------------------------------
+__replace_pool_device() {
+  local POOL_STATUS=$(zpool status $1 | awk '/state:/{print $2}')
+  local OLD_DEV=$(zpool status $1 | awk '/ UNAVAIL /{print $1'})
+  local OLD_NAME=$(zpool status $1 | awk '/ UNAVAIL /{print $7'})
+
+  # Make sure Pool is in DEGRADED state
+  if [ "$POOL_STATUS" == "DEGRADED" ]; then
+    echo 
+    echo "Pool: \"$1\" shows ${POOL_STATUS} state"
+    
+    if [ ! -z $OLD_DEV ]; then
+      echo "Old Device Placeholder: ${OLD_DEV}"
+      echo "Old Device Name: ${OLD_NAME}"
+      echo "New Device Name: ${DISK_DEVICE}$2"
+
+      zpool replace $1 ${OLD_DEV} ${DISK_DEVICE}$2
+      if [ $? -eq 0 ]; then
+        echo
+        echo "Rebuild of \"$1\" Started:"
+        POOL_STATUS=$(zpool status $1 | awk '/state:/{print $2}')
+        while [ "$POOL_STATUS" == "DEGRADED" ]
+        do
+          ACTION=$(zpool status $1 | grep "action:")
+          PROGRESS=$(zpool status $1 | grep "resilvered,")
+          POOL_STATUS=$(zpool status $1 | awk '/state:/{print $2}')
+          echo ${ACTION} ${PROGRESS}
+          sleep 30
+        done
+
+        zpool status $1 | grep "scan: resilvered"
+
+        return 0
+      else
+        echo
+        echo "ERROR: zpool replace returned unexpected value."
+        return 1
+      fi
+
+    else
+      echo
+      echo "ERROR: Unable to detect old device to replace. It should have UNAVAIL status".
+      return 1
+    fi
+  else
+    echo "NOTE Pool \"$1\" is not DEGRADED, nothing to do."
+    return 0
+  fi
+
+}
+# ---------------------------------------------------------------------------
+
+# ---[ Replace ZFS Devices ]-------------------------------------------------
+__replace_zfs_devices() {
+  # Attempt work on BOOT Pool
+  if (__replace_pool_device ${ZFS_BPOOL_NAME} ${BOOT_PARTITION}); then
+    echo DONE: ${ZFS_BPOOL_NAME}
+  else
+    echo FAIL: ${ZFS_BPOOL_NAME}
+  fi
+  echo
+  # Attempt work on ROOT Pool
+  if (__replace_pool_device $ZFS_RPOOL_NAME ${ROOT_PARTITION}); then
+      echo DONE: $ZFS_RPOOL_NAME
+   else
+     echo FAIL: $ZFS_RPOOL_NAME
+  fi
+}
+# ---------------------------------------------------------------------------
+
 # ---[ Process Parameters ]--------------------------------------------------
 if [ $# -gt 0 ]; then
-  while getopts "cwpf" opt; do
+  while getopts "cwpfr" opt; do
     case "$opt" in
       c|C)
-        if ! __check_device_for_partitions; then  # show message if detected
-          echo "You must remove partitions from this device to use this script."
-          echo "If this was not expected did you specify the wrong device?"
+        if __check_block_device; then
+          if ! __check_device_for_partitions; then  # show message if detected
+            echo "You must remove partitions from this device to use this script."
+            echo "If this was not expected did you specify the wrong device?"
+          fi
         fi
       ;;
       w|W)
@@ -326,6 +420,15 @@ if [ $# -gt 0 ]; then
             echo
             echo "ERROR: Unexpected error detected."
             exit 3
+          fi
+        fi
+      ;;
+      r|R)
+        if __check_block_device; then
+          if __replace_zfs_devices; then
+            echo Completed
+          else
+            echo Failed.
           fi
         fi
       ;;

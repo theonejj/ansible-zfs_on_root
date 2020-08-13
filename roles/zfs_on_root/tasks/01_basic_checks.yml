@@ -116,6 +116,12 @@
         You are required to enter a Passphrase to enable ZFS Native Encryption.
         The passphrase must be at least 8 characters.
 
+        NOTE: You can specify the passphrase to use as an ansible parameter using
+              the extra-vars parameter, for example:
+          
+              --extra-vars='{passphrase: "mySecr3tPa55"}'
+        #########################################################################
+        
       echo: yes
     register: 
       passphrase_prompt

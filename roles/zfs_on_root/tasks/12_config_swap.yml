@@ -52,7 +52,11 @@
 
   - name: Run chrooted command to create mdadm device for multi-disk swap
     command: 
-      "{{chroot_cmd}} bash -c 'mdadm --create /dev/md0 --metadata=1.2 --level={{mdadm_type}} --raid-devices={{disk_by_id|length|int}} {{mdadm_device_list}}'"
+      "{{chroot_cmd}} bash -c 'mdadm --create /dev/md0 --metadata=1.2 --level={{mdadm_type}} --raid-devices={{disk_by_id|length|int}} {{mdadm_device_list}} --homehost={{inventory_hostname_short}}'"
+
+  - name: Run chrooted command to create mdadm.conf file for multi-disk swap
+    command:
+      "{{chroot_cmd}} bash -c 'mdadm --examine --scan >> /etc/mdadm/mdadm.conf'"
 
   when:
     - ansible_nodename != "localhost"
@@ -108,14 +112,14 @@
     loop: 
       "{{ disk_by_id }}"
     when:
-      - disk_by_id|length == 1
+      - disk_by_id|length|int == 1
 
   # Work for Multi Disk Unencrypted SWAP
   - name: Run chrooted command to add multi-disk encrypted swap partitions to /etc/crypttab
     shell:
       cmd: "{{chroot_cmd}} bash -c 'echo swap /dev/md0 /dev/urandom swap,cipher=aes-xts-plain64:sha256,size=512 >> /etc/crypttab'"
     when:
-      - disk_by_id|length > 1
+      - disk_by_id|length|int > 1
 
   - name: Run chrooted command to add swap device map to /etc/fstab
     shell:

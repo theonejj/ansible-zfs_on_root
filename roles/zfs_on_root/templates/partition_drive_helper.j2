@@ -8,13 +8,14 @@
 #           likely want to partition them in the same way as your existing 
 #           drives.
 # AUTHOR     : Richard J. Durso
-# DATE       : 08/12/2020
-# VERSION    : 0.20
+# DATE       : 08/15/2020
+# VERSION    : 0.30
 #############################################################################
 
 # ---------------------------------------------------------------------------
 # Define device name to use:
 DISK_DEVICE=/dev/disk/by-id/PUT_YOUR_DEVICE_NAME_HERE
+DISK_DEVICE=/dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -41,9 +42,15 @@ ZFS_RPOOL_NAME={{root_pool_name}}
 
 # ---------------------------------------------------------------------------
 BIOS_PARTITION="-part1"
-UEFI_PARTITION="-part2"
+SWAP_PARTITION="-part2"
 BOOT_PARTITION="{{boot_partition_name_suffix}}"
 ROOT_PARTITION="{{root_partition_name_suffix}}"
+MDADM_SWAP_DEVICE="/dev/md0"
+UEFI_PARTITION_FLAGS="{{ uefi_partition_flags }}"
+BIOS_PARTITION_FLAGS="{{ bios_partition_flags }}"
+SWAP_PARTITION_FLAGS="{{(boot_pool_type == 'raidz')|ternary(raidz_multi_disk_swap_flags, single_disk_or_mirror_swap_flags)}}"
+BOOT_POOL_PARTITION_FLAGS="{{(boot_pool_type == 'raidz')|ternary(raidz_multi_disk_boot_partition_flags,single_disk_or_mirror_boot_partition_flags)}}"
+ROOT_POOL_PARTITION_FLAGS="{{ root_partition_flags }}"
 # ---------------------------------------------------------------------------
 
 # ---[ Usage Statement ]-----------------------------------------------------
@@ -56,6 +63,9 @@ __usage() {
   systems.
 
   DISK_DEVICE set to: ${DISK_DEVICE}
+ 
+  Try to detect the path name of the new new device:
+  ${0##*/} -d
 
   To check device exists and has no partitions:
   ${0##*/} -c
@@ -66,13 +76,55 @@ __usage() {
   To CREATE partitions on an empty device:
   ${0##*/} -p
 
-  To CHECK UPDATED /etc/fstab entry
+  To CHECK and UPDATE /etc/fstab entry
   ${0##*/} -f
 
   To REPLACE devices in ZFS Pools (replace old partitions with new ones):
   ${0##*/} -r
+
+  To REPLACE Swap device in MDADM RAID Configuration
+  ${0##*/} -s
   "
 }
+
+# ---[ Attempt Best Guess of Device Name ]------------------------------------
+__guess_device_name() {
+  #  Find the ones which match device types we look for
+  local DEVICE_LIST=$({{lsblk_device_command}})
+  local DEVICE_COUNT=0
+
+  echo Trying to determine name of possible new device....
+  echo
+  for device in $DEVICE_LIST
+  do
+    # Possible match would be a device which has no partitions?
+    if [ "$(ls -l /dev/disk/by-id | grep -c ${device})" == "1" ]; then
+      ls -l /dev/disk/by-id | awk "/${device}\$/{print \$9}"
+      DEVICE_COUNT=$((DEVICE_COUNT+1))
+    fi
+  done
+  
+  echo
+  case $DEVICE_COUNT in
+    0)
+      echo "ERROR: Unable to detect or suggest new device.  If new device has"
+      echo "       existing partitions, this script will not suggest it.  You"
+      echo "       will have to determine which device is the correct one to"
+      echo "       use and update this script to use it."
+      return 1
+    ;;
+    1)
+      echo "Confirm the above device is correct and then update this script to use it."
+      return 0
+    ;;
+    *)
+      echo "$DEVICE_COUNT device(s) found, you will need to determine which is"
+      echo "the correct device and update this script to use it."
+      return 0
+    ;;
+  esac
+}
+# ---------------------------------------------------------------------------
 
 # ---[ Check Block Device is Valid ]-----------------------------------------
 __check_block_device() {
@@ -123,11 +175,11 @@ __partition_wipe()
         echo "PASSED: mdadm --zero-superblock --force ${DISK_DEVICE}"
       fi
       echo
-      mdadm --zero-superblock --force ${DISK_DEVICE}${UEFI_PARTITION}
+      mdadm --zero-superblock --force ${DISK_DEVICE}${SWAP_PARTITION}
       if [ $? -ne 0 ]; then 
-        echo "FAILED: mdadm --zero-superblock --force ${DISK_DEVICE}${UEFI_PARTITION}"
+        echo "FAILED: mdadm --zero-superblock --force ${DISK_DEVICE}${SWAP_PARTITION}"
       else
-        echo "PASSED: mdadm --zero-superblock --force ${DISK_DEVICE}${UEFI_PARTITION}"
+        echo "PASSED: mdadm --zero-superblock --force ${DISK_DEVICE}${SWAP_PARTITION}"
       fi
       echo
       sgdisk --zap-all ${DISK_DEVICE}
@@ -159,27 +211,27 @@ __create_disk_partitions() {
   if __check_device_for_partitions; then
     echo
     echo "Creating UEFI Boot Partition"
-    sgdisk {{ uefi_partition_flags }} ${DISK_DEVICE}
+    sgdisk ${UEFI_PARTITION_FLAGS} ${DISK_DEVICE}
     if [ $? -ne 0 ]; then return 1; fi
 
     echo "Creating BIOS Boot Partition"
-    sgdisk {{ bios_partition_flags }} ${DISK_DEVICE}
+    sgdisk ${BIOS_PARTITION_FLAGS} ${DISK_DEVICE}
     if [ $? -ne 0 ]; then return 1; fi
 
     {% if enable_swap_partitions|default(true)|bool == true %}
     echo "Creating Swap Partition"
-    sgdisk {{(boot_pool_type == 'raidz')|ternary(raidz_multi_disk_swap_flags, single_disk_or_mirror_swap_flags)}} ${DISK_DEVICE}
+    sgdisk ${SWAP_PARTITION_FLAGS} ${DISK_DEVICE}
     if [ $? -ne 0 ]; then return 1; fi
     {% else %}
     # NOTE: SWAP Partitions Were not enabled, thus not created.
     {% endif %}
 
     echo "Creating Boot Pool Partition"
-    sgdisk {{(boot_pool_type == 'raidz')|ternary(raidz_multi_disk_boot_partition_flags,single_disk_or_mirror_boot_partition_flags)}} ${DISK_DEVICE}
+    sgdisk ${BOOT_POOL_PARTITION_FLAGS} ${DISK_DEVICE}
     if [ $? -ne 0 ]; then return 1; fi
 
     echo "Creating Root Pool Partition"
-    sgdisk {{ root_partition_flags }} ${DISK_DEVICE}
+    sgdisk ${ROOT_POOL_PARTITION_FLAGS} ${DISK_DEVICE}
     if [ $? -ne 0 ]; then return 1; fi
   else
     # Error - pre-existing partitions detected
@@ -202,6 +254,7 @@ __create_efi_filesystem() {
 __check_fstab_file() {
   # UUID of new device
   local UUID=$(blkid -s UUID -o value ${DISK_DEVICE}${BIOS_PARTITION})
+  local RET_VAL=1  # Assume itr will return an error
 
   if [[ -z $UUID ]]; then
     # No UUID partition partition 1 no created??
@@ -218,7 +271,7 @@ __check_fstab_file() {
       echo
       echo Entry found:
       grep "^UUID=${UUID}" /etc/fstab
-      return 0
+      RET_VAL=0
     else
       echo
       echo Device ${DISK_DEVICE} 
@@ -250,45 +303,48 @@ __check_fstab_file() {
         if [ "$ENABLE_FSTAB_FILE_UPDATES" == "TRUE" ]; then
           if [ $LINES_LEFT -ne 1 ]; then
             echo
-            echo ERROR: More than possible entry to update detected.
+            echo "ERROR: More than possible entry to update detected."
             echo
             cat $TMP_UUID_FILE
             echo 
-            echo This script can not determine which needs to be updated.
-            echo NO CHANGES HAVE BEEN MADE.
+            echo "This script can not determine which needs to be updated."
+            echo "NO CHANGES HAVE BEEN MADE."
           else
             OLD_UUID=$(cat $TMP_UUID_FILE | awk '/^UUID=.* /{print $1}')
             echo 
             echo "Attempting /etc/fstab update of ${OLD_UUID} to ${UUID}"
             echo 
             sed -i "s/^${OLD_UUID}/UUID=${UUID}/g" /etc/fstab
-            return $?
+            RET_VAL=$?
           fi
         else
           if [ "$ENABLE_FSTAB_FILE_UPDATES" != "INPROC" ]; then
-            echo This script will not update your /etc/fstab file automatically.
-            echo You need to update the value manually, or if you want this script
-            echo to attempt the update your /etc/fstab file then uncomment 
-            echo ENABLE_FSTAB_FILE_UPDATES and set its value to TRUE.
+            echo
+            echo "This script will not update your /etc/fstab file automatically."
+            echo "You need to update the value manually, or if you want this script"
+            echo "to attempt the update your /etc/fstab file then uncomment"
+            echo "ENABLE_FSTAB_FILE_UPDATES and set its value to TRUE."
           fi
 
           if [ $LINES_LEFT -ne 1 ]; then
             echo
-            echo WARNING: More than possible entry to update detected.
+            echo "WARNING: More than one possible entry to update detected."
             echo
             cat $TMP_UUID_FILE
             echo 
-            echo Update one of the above to this UUID=${UUID} and then run this script again.
+            echo "Update one of the above to this UUID=${UUID} and then run this script again."
+            RET_VAL=0
           else
             echo
-            echo This could be the entry to update in /etc/fstab
+            echo "This could be the entry to update in /etc/fstab"
             cat $TMP_UUID_FILE
             echo 
-            echo Change above to this UUID=${UUID} and then run this script again.
+            echo "Change above to this: UUID=${UUID} and then run this script again."
+            RET_VAL=0
           fi
           echo
           rm $TMP_UUID_FILE
-          return 1
+          return $RET_VAL
         fi
       else
         echo
@@ -325,9 +381,9 @@ __replace_pool_device() {
         do
           ACTION=$(zpool status $1 | grep "action:")
           PROGRESS=$(zpool status $1 | grep "resilvered,")
-          POOL_STATUS=$(zpool status $1 | awk '/state:/{print $2}')
           echo ${ACTION} ${PROGRESS}
           sleep 30
+          POOL_STATUS=$(zpool status $1 | awk '/state:/{print $2}')
         done
 
         zpool status $1 | grep "scan: resilvered"
@@ -348,7 +404,6 @@ __replace_pool_device() {
     echo "NOTE Pool \"$1\" is not DEGRADED, nothing to do."
     return 0
   fi
-
 }
 # ---------------------------------------------------------------------------
 
@@ -370,10 +425,54 @@ __replace_zfs_devices() {
 }
 # ---------------------------------------------------------------------------
 
+# ---[ Replace MDADM Swap Device ]------------------------------------------
+__replaced_mdadm_swap_device() {
+  if [ -b ${MDADM_SWAP_DEVICE} ]; then
+    local MDADM_RAID_LEVEL=$(mdadm -v --detail ${MDADM_SWAP_DEVICE} | awk '/Raid Level : /{print $4}')
+    local MDADM_RAID_STATE=$(mdadm -v --detail ${MDADM_SWAP_DEVICE} | awk '/State : /{print substr($0, index($0,$3))}' | awk '{$1=$1};1')
+
+    if (mdadm -q -E ${DISK_DEVICE} &>/dev/null); then
+      echo "MDADM Device: \"${MDADM_SWAP_DEVICE}\" is a valid block device, configured for \"${MDADM_RAID_LEVEL}\" has state \"${MDADM_RAID_STATE}\""
+      if [ "${MDADM_RAID_STATE}" != "clean" ]; then
+
+        mdadm --manage ${MDADM_SWAP_DEVICE} --add ${DISK_DEVICE}${SWAP_PARTITION}
+        if [ $? -eq 0 ]; then
+          while [ "${MDADM_RAID_STATE}" != "clean" ]
+          do 
+            mdadm -v --detail ${MDADM_SWAP_DEVICE} | grep "Rebuild Status"
+            sleep 5
+            MDADM_RAID_STATE=$(mdadm -v --detail ${MDADM_SWAP_DEVICE} | awk '/State : /{print substr($0, index($0,$3))}' | awk '{$1=$1};1')
+          done
+          return 0
+        else
+          echo
+          echo "mdadm --add return unexpected result."
+          return 1
+        fi
+      else
+        echo
+        echo "Nothing to do."
+        return 0
+      fi
+    else
+      echo
+      echo "ERROR: Device ${DISK_DEVICE}"
+      echo "       has no super-block and is not part of any mdm RAID Configuration."
+    fi
+  else
+    echo
+    echo "ERROR: MDADM Device: ${MDADM_SWAP_DEVICE} is not valid block device."
+  fi
+}
+# ---------------------------------------------------------------------------
+
 # ---[ Process Parameters ]--------------------------------------------------
 if [ $# -gt 0 ]; then
-  while getopts "cwpfr" opt; do
+  while getopts "dcwpfrs" opt; do
     case "$opt" in
+      d|D)
+        __guess_device_name
+      ;;
       c|C)
         if __check_block_device; then
           if ! __check_device_for_partitions; then  # show message if detected
@@ -427,6 +526,15 @@ if [ $# -gt 0 ]; then
         if __check_block_device; then
           if __replace_zfs_devices; then
             echo Completed
+          else
+            echo Failed.
+          fi
+        fi
+      ;;
+      s|S)
+        if __check_block_device; then
+          if __replaced_mdadm_swap_device; then
+            echo Completed.
           else
             echo Failed.
           fi

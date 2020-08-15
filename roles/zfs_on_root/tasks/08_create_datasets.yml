@@ -62,6 +62,8 @@
   - name: Debug Create Grub Dataset only when root_pool_type is a mirror, raidz, raidz2, raidz3
     debug:
       msg: "zfs create {{grub_dataset_options}}"
+    when:
+      debug|default(false) == true
 
   - name: Create Grub Dataset only when root_pool_type is a mirror, raidz, raidz2, raidz3 (anything other than empty)
     command:

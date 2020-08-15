@@ -484,6 +484,10 @@ if [ $# -gt 0 ]; then
         if __partition_wipe; then
           echo
           echo "Completed Successfully"
+        else
+          echo
+          echo "ERROR: Wipe Partitions Failed"
+          exit 3
         fi
       ;;
       p|P)
@@ -516,7 +520,7 @@ if [ $# -gt 0 ]; then
             fi
           else
             echo
-            echo "ERROR: Unexpected error detected."
+            echo "ERROR: Unexpected error detected"
             exit 3
           fi
         fi
@@ -524,18 +528,23 @@ if [ $# -gt 0 ]; then
       r|R)
         if __check_block_device; then
           if __replace_zfs_devices; then
-            echo Completed
+            echo 
+            echo "Replace ZFS Devices Completed"
           else
-            echo Failed.
+            echo "ERROR: Replace ZFS Devices Failed"
+            exit 3
           fi
         fi
       ;;
       s|S)
         if __check_block_device; then
           if __replaced_mdadm_swap_device; then
-            echo Completed.
+            echo
+            echo "Replace Swap Device Completed"
           else
-            echo Failed.
+            echo 
+            echo "ERROR: Replace Swap Device Failed"
+            exit 3
           fi
         fi
       ;;

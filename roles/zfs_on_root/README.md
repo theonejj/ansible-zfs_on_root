@@ -253,9 +253,9 @@ _NOTE: Any Ansible method to define the variable `passphrase` will be enough to 
 ### Prepare the Install Environment
 
 1. Boot the Ubuntu Live CD:
-    a. Select option <button name="button">Try Ubuntu</button>.
-    b. Connect your system to the Internet as appropriate (e.g. join your Wi-Fi network).
-    c. Open a terminal - press <kbd>Ctrl</kbd> <kbd>Alt</kbd>-<kbd>T</kbd>.
+    1. Select option <button name="button">Try Ubuntu</button>.
+    2. Connect your system to the Internet as appropriate (e.g. join your Wi-Fi network).
+    3. Open a terminal - press <kbd>Ctrl</kbd> <kbd>Alt</kbd>-<kbd>T</kbd>.
 2. Install and start the OpenSSH server in the Live CD environment:
 
 #### Fetch Helper Script

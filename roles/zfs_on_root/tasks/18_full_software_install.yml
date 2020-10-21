@@ -1,5 +1,5 @@
 ---
-###[ Full Software Installtion ]###############################################
+###[ Full Software Installation ]##############################################
 - name: Full Software Installation Block
   block:
   - name: Update minimal linux system
@@ -9,7 +9,7 @@
 
   - name: Installing command-line only environment
     apt:
-      name: ['ubuntu-standard','update-notifier-common']
+      name: ['ubuntu-server']
       install_recommends: yes
     when:
       - command_line_only|default(false)|bool == true

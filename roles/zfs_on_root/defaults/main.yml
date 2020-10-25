@@ -47,8 +47,8 @@ raidz_boot_partition_size_MB: "512"
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
 use_uefi_booting: true
 
-# Full GUI installation or command-line only environment
-command_line_only: false
+# For Full GUI Desktop installation (set to false) or command-line only server environment (set to true)
+command_line_only: true
 
 # Prompt for Native ZFS Encryption Passphrase.  if true, then prompt for passphrase if not provided.
 prompt_for_zfs_passphrase: true

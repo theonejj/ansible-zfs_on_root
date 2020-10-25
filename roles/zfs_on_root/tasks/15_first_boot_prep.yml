@@ -2,25 +2,25 @@
 ###[ Prepare for First Reboot ]##############################################
 - name: Prepare for First Reboot Block
   block:
-  - name: Run chrooted command to install SSH Server and python
+  - name: Run chroot command to install SSH Server and python3
     command: 
-      "{{chroot_cmd}} bash -c 'apt install --yes openssh-server python python-apt'"
+      "{{chroot_cmd}} bash -c 'apt install --yes openssh-server python3 python3-apt'"
     when:
       - ansible_os_family == "Debian"
 
-  - name: Run chrooted command add ansible user account (password disabled)
+  - name: Run chroot command add ansible user account (password disabled)
     command: 
       "{{chroot_cmd}} bash -c 'adduser {{ ansible_user }} --disabled-password --gecos Ansible_User'"
     args:
       creates: "/mnt/home/{{ ansible_user }}"
 
-  - name: Copy over ansible sudoers include file to chrooted environment
+  - name: Copy over ansible sudoers include file to chroot environment
     copy:
       src: "{{sudoers_include_file}}"
       dest: "/mnt/{{sudoers_include_file}}"
       remote_src: yes
 
-  - name: Copy over ansible ssh key to chrooted environment
+  - name: Copy over ansible ssh key to chroot environment
     copy:
       src: /home/{{ ansible_user }}/.ssh
       dest: /mnt/home/{{ ansible_user }}/
@@ -46,7 +46,7 @@
       group: root
       mode: '0700'
 
-  - name: Unmount chrooted filesystems
+  - name: Unmount chroot file systems
     shell: 
       cmd: "mount | grep -v zfs | tac | awk '/\\/mnt/ {print $3}' | xargs -i{} umount -lf {}"
       warn: false

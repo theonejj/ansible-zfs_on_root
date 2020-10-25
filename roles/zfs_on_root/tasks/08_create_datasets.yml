@@ -1,54 +1,20 @@
 ---
-###[ Create Datasets for Filesystems ]#########################################
-- name: Create Boot and Root Filesystems Block
+###[ Create Datasets for Filesystem ]#########################################
+- name: Create Datasets for Filesystem Block
   block:
-  - name: Debug Create Boot and Root Filesystems list
+  - name: Debug Datasets for Filesystem list
     debug:
-      msg: "{{item}}"
-    with_items:
-      - "zfs create {{srv_dataset_options}}"
-      - "zfs create {{usr_dataset_options}}"
-      - "zfs create {{usr_local_dataset_options}}"
-      - "zfs create {{var_dataset_options}}"
-      - "zfs create {{var_games_dataset_options}}"
-      - "zfs create {{var_lib_dataset_options}}"
-      - "zfs create {{var_lib_acc_dataset_options}}"
-      - "zfs create {{var_lib_apt_dataset_options}}"
-      - "zfs create {{var_lib_dpkg_dataset_options}}"
-      - "zfs create {{var_lib_net_dataset_options}}"
-      - "zfs create {{var_lib_docker_dataset_options}}"
-      - "zfs create {{var_log_dataset_options}}"
-      - "zfs create {{var_mail_dataset_options}}"
-      - "zfs create {{var_snap_dataset_options}}"
-      - "zfs create {{var_spool_dataset_options}}"
-      - "zfs create {{var_www_dataset_options}}"
-      - "zfs create {{userdata_dataset_options}}"
-      - "zfs create {{userdata_root_dataset_options}}"
+      msg: "zfs create {{item}}"
+    loop: 
+      "{{ datasets_to_create }}"
     when:
       debug|default(false) == true
 
-  - name: Create Boot and Root Filesystems
+  - name: Create Boot and Root Filesystem
     command:
-      cmd: "{{item}}"
-    with_items:
-      - "zfs create {{srv_dataset_options}}"
-      - "zfs create {{usr_dataset_options}}"
-      - "zfs create {{usr_local_dataset_options}}"
-      - "zfs create {{var_dataset_options}}"
-      - "zfs create {{var_games_dataset_options}}"
-      - "zfs create {{var_lib_dataset_options}}"
-      - "zfs create {{var_lib_acc_dataset_options}}"
-      - "zfs create {{var_lib_apt_dataset_options}}"
-      - "zfs create {{var_lib_dpkg_dataset_options}}"
-      - "zfs create {{var_lib_net_dataset_options}}"
-      - "zfs create {{var_lib_docker_dataset_options}}"
-      - "zfs create {{var_log_dataset_options}}"
-      - "zfs create {{var_mail_dataset_options}}"
-      - "zfs create {{var_snap_dataset_options}}"
-      - "zfs create {{var_spool_dataset_options}}"
-      - "zfs create {{var_www_dataset_options}}"
-      - "zfs create {{userdata_dataset_options}}"
-      - "zfs create {{userdata_root_dataset_options}}"
+      cmd: "zfs create {{item}}"
+    loop: 
+      "{{ datasets_to_create }}"
   
   when:
     - ansible_nodename != "localhost"

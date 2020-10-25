@@ -26,7 +26,7 @@ root_partition_flags: "-n4:0:0          -t4:BF00"
 boot_partition_name_suffix: "-part3"
 root_partition_name_suffix: "-part4"
 
-# Enable native ZFS root pool encryption (default false) - This will be set to true when a passprhase 
+# Enable native ZFS root pool encryption (default false) - This will be set to true when a passphrase 
 # is specified as an extra variable.
 root_pool_encryption: false
 
@@ -70,33 +70,36 @@ root_pool_encryption_options:
 boot_pool_container_options: "-o canmount=off -o mountpoint=none {{boot_pool_name}}/BOOT"
 root_pool_container_options: "-o canmount=off -o mountpoint=none {{root_pool_name}}/ROOT"
 
-# Define Fileystem Dataset Options
+# Define Filesystem Dataset Options
 boot_dataset_options: "-o canmount=noauto -o mountpoint=/boot"
 root_dataset_options: "-o canmount=noauto -o mountpoint=/ -o com.ubuntu.zsys:bootfs=yes"
 
 boot_pool_dataset_path: "{{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
 root_pool_dataset_path: "{{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
 
-srv_dataset_options: "-o com.ubuntu.zsys:bootfs=no {{root_pool_dataset_path}}/srv"
-usr_dataset_options: "-o com.ubuntu.zsys:bootfs=no -o canmount=off {{root_pool_dataset_path}}/usr"
-usr_local_dataset_options: "{{root_pool_dataset_path}}/usr/local"
-var_dataset_options: "-o com.ubuntu.zsys:bootfs=no -o canmount=off {{root_pool_dataset_path}}/var"
-var_games_dataset_options: "{{root_pool_dataset_path}}/var/games"
-var_lib_dataset_options: "{{root_pool_dataset_path}}/var/lib"
-var_lib_acc_dataset_options: "{{root_pool_dataset_path}}/var/lib/AccountsService"
-var_lib_apt_dataset_options: "{{root_pool_dataset_path}}/var/lib/apt"
-var_lib_dpkg_dataset_options: "{{root_pool_dataset_path}}/var/lib/dpkg"
-var_lib_net_dataset_options: "{{root_pool_dataset_path}}/var/lib/NetworkManager"
-var_lib_docker_dataset_options: "-o com.sun:auto-snapshot=false {{root_pool_dataset_path}}/var/lib/docker"
-var_log_dataset_options: "{{root_pool_dataset_path}}/var/log"
-var_mail_dataset_options: "{{root_pool_dataset_path}}/var/mail"
-var_snap_dataset_options: "{{root_pool_dataset_path}}/var/snap"
-var_spool_dataset_options: "{{root_pool_dataset_path}}/var/spool"
-var_www_dataset_options: "{{root_pool_dataset_path}}/var/www"
+# Define Additional Datasets to Create
+datasets_to_create:
+- "-o com.ubuntu.zsys:bootfs=no {{root_pool_dataset_path}}/srv"
+- "-o com.ubuntu.zsys:bootfs=no -o canmount=off {{root_pool_dataset_path}}/usr"
+- "{{root_pool_dataset_path}}/usr/local"
+- "-o com.ubuntu.zsys:bootfs=no -o canmount=off {{root_pool_dataset_path}}/var"
+- "{{root_pool_dataset_path}}/var/games"
+- "{{root_pool_dataset_path}}/var/lib"
+- "{{root_pool_dataset_path}}/var/lib/AccountsService"
+- "{{root_pool_dataset_path}}/var/lib/apt"
+- "{{root_pool_dataset_path}}/var/lib/dpkg"
+- "{{root_pool_dataset_path}}/var/lib/NetworkManager"
+#Commented out until Ubuntu zsys is mature enough to honor no snapshots flag
+# - "-o com.sun:auto-snapshot=false {{root_pool_dataset_path}}/var/lib/docker"
+- "{{root_pool_dataset_path}}/var/log"
+- "{{root_pool_dataset_path}}/var/mail"
+- "{{root_pool_dataset_path}}/var/snap"
+- "{{root_pool_dataset_path}}/var/spool"
+- "{{root_pool_dataset_path}}/var/www"
+- "-o canmount=off -o mountpoint=/ {{root_pool_name}}/USERDATA"
+- "-o com.ubuntu.zsys:bootfs-datasets={{root_pool_dataset_path}} -o canmount=on -o mountpoint=/root {{root_pool_name}}/USERDATA/root_{{UUID.stdout}}"
 
-userdata_dataset_options: "-o canmount=off -o mountpoint=/ {{root_pool_name}}/USERDATA"
-userdata_root_dataset_options: "-o com.ubuntu.zsys:bootfs-datasets={{root_pool_dataset_path}} -o canmount=on -o mountpoint=/root {{root_pool_name}}/USERDATA/root_{{UUID.stdout}}"
-
+# Define GRUB Dataset
 grub_dataset_options: "{{boot_pool_dataset_path}}/grub"
 
 ####### Variable Before are unrelated to ZFS ############
@@ -116,7 +119,7 @@ sudoers_include_file: "/etc/sudoers.d/99_sudo_include_file"
 # Name of SSH Installation Helper Script (to remove if found)
 ssh_installation_helper_script: "do_ssh.sh"
 
-# Commma Seperated Device Number to include as possible "disk" devices
+# Comma Separated Device Number to include as possible "disk" devices
 # 8=[SATA, SCSI], 179=[MMC], 259=[NVMe]
 lsblk_device_types: "8,179,259"
 

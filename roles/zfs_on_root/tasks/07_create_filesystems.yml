@@ -22,7 +22,7 @@
   tags:
     - create_filesystems
 
-# Create Filesystems Boot and Root Containers ---------------------------------
+# Create Filesystem Boot and Root Containers ---------------------------------
 - name: Debug Create Boot and Root Filesystem
   debug:
     msg: "{{item}}"
@@ -36,7 +36,7 @@
   tags:
     - create_filesystems
 
-- name: Create Boot and Root Filesystems
+- name: Create Boot and Root Filesystem
   command:
     cmd: "{{item}}"
   when:

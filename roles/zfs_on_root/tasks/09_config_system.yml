@@ -55,7 +55,7 @@
 ###############################################################################
 
 ###[ Start chroot Environment ]################################################
-# Bind Virtual Filesystems from Live CD to New environment
+# Bind Virtual Filesystem from Live CD to New environment
 # NOTE: Not using ansible mount module as we don't want these added to fstab
 - name: Work in chroot Environment Block
   block:
@@ -68,7 +68,7 @@
       - "mount --rbind /proc /mnt/proc"
       - "mount --rbind /sys  /mnt/sys"
 
-  - name: Run chrooted command for apt update
+  - name: Run chroot command for apt update
     command:
       cmd: "{{chroot_cmd}} bash -c 'apt update'"
 
@@ -79,17 +79,17 @@
       regexp: '^#.* {{locale_prefix}}'
       replace: '{{locale_prefix}}'
 
-  - name: Run chrooted command to update locale
+  - name: Run chroot command to update locale
     command:
       cmd: "{{chroot_cmd}} bash -c 'locale-gen'"
 
-  - name: Run chrooted command to install dosfstool on Debian based hosts
+  - name: Run chroot command to install dosfstool on Debian based hosts
     command:
       cmd: "{{chroot_cmd}} bash -c 'apt install --yes vim dosfstools'"
     when:
       - ansible_os_family == "Debian"
 
-  - name: Run chrooted command to set default root password
+  - name: Run chroot command to set default root password
     expect:
       command: "{{chroot_cmd}} passwd"
       responses:
@@ -101,11 +101,11 @@
       dest: /mnt/etc/systemd/system/tmp.mount
       remote_src: yes
 
-  - name: Run chrooted command enable /tmp
+  - name: Run chroot command enable /tmp
     command:
       cmd: "{{chroot_cmd}} bash -c 'systemctl enable tmp.mount'"
 
-  - name: Run chrooted commands to add system groups
+  - name: Run chroot commands to add system groups
     command:
       cmd: "{{chroot_cmd}} bash -c '{{item}}'"
     with_items:

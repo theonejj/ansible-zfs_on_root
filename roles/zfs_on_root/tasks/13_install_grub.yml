@@ -2,7 +2,7 @@
 ###[ Install GRUB ]############################################################
 - name: Install GRUB Block
   block:
-  - name: Run chrooted command to verify ZFS boot filesystem is recognized
+  - name: Run chroot command to verify ZFS boot filesystem is recognized
     command:
       "{{chroot_cmd}} bash -c 'grub-probe /boot'"
     register:
@@ -14,7 +14,7 @@
     when:
       - grub_results.stdout != "zfs"
 
-  - name: Run chrooted command to refresh initrd files
+  - name: Run chroot command to refresh initrd files
     command:
       "{{chroot_cmd}} bash -c 'update-initramfs -c -k all'"
 
@@ -42,7 +42,7 @@
       regexp: '^#GRUB_TERMINAL=console'
       replace: 'GRUB_TERMINAL=console'
 
-  - name: Run chrooted command to update-grub
+  - name: Run chroot command to update-grub
     command: "{{chroot_cmd}} bash -c 'update-grub'"
 
   when:
@@ -51,7 +51,7 @@
     - install_grub
 ###############################################################################
 
-- name: Run chrooted command to install grub on each legacy boot device
+- name: Run chroot command to install grub on each legacy boot device
   command:
     "{{chroot_cmd}} bash -c 'grub-install {{item}}'"
   loop: 
@@ -65,16 +65,16 @@
 ###[ Install GRUB on UEFI Boot ]###############################################
 - name: Install GRUB on UEFI Block
   block:
-  - name: Run chrooted command to install grub on UEFI boot device
+  - name: Run chroot command to install grub on UEFI boot device
     command: "{{chroot_cmd}} bash -c 'grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --recheck --no-floppy'"
 
-  - name: Run chrooted command to copy /boot/efi/EFI to additional UEFI boot devices
+  - name: Run chroot command to copy /boot/efi/EFI to additional UEFI boot devices
     command: "{{chroot_cmd}} bash -c 'cp -a /boot/efi/EFI /boot/efi{{item}}'"
     loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
     when:
       - disk_by_id|length|int > 1
 
-  - name: Run chrooted command to install grub on additional UEFI boot devices
+  - name: Run chroot command to install grub on additional UEFI boot devices
     command: "{{chroot_cmd}} bash -c 'grub-install --target=x86_64-efi --efi-directory=/boot/efi{{item}} --bootloader-id=ubuntu-{{item}} --recheck --no-floppy'"
     loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
     when:
@@ -89,7 +89,7 @@
 # This is the service for /boot/grub/grubenv which does not work on mirrored or raidz topologies. 
 # Disabling this keeps it from blocking subsequent mounts of /boot/grub if that mount ever fails.
 # This is to address an upstream bug
-- name: Run chrooted command to disable grub-initrd-fallback.service on multi-disk boot
+- name: Run chroot command to disable grub-initrd-fallback.service on multi-disk boot
   command: "{{chroot_cmd}} bash -c 'systemctl mask grub-initrd-fallback.service'"
   when:
     - ansible_nodename != "localhost"

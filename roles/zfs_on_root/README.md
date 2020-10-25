@@ -138,17 +138,18 @@ testlinux.rich-durso.us
 
     _NOTE: A boot partition size calculated to be between 1Gib (1024 MB) to 2Gib (2048 MB) is a reasonable range.  Smaller size may have an issue in the future trying to process kernel upgrades._
 
-4. Select UEFI or Legacy BIOS is needed, and Full Graphical Desktop or Command Line only.
-
-    You can also set your locale and timezone information here.
+4. Next select if UEFI or Legacy BIOS is needed, and select if Full Graphical Desktop or Command Line Server only.  To force Ansible to set a ZFS encryption password set that option to `true`. You can also set your locale and timezone information here.
 
     ```yaml
     ###############################################################################
     # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
     use_uefi_booting: true
 
-    # Full GUI installation or command-line only environment
-    command_line_only: false
+    # For Full GUI Desktop installation (set to false) or command-line only server environment (set to true)
+    command_line_only: true
+
+    # Prompt for Native ZFS Encryption Passphrase.  if true, then prompt for passphrase if not provided.
+    prompt_for_zfs_passphrase: true
 
     # Define the local pre-fix to enable in /etc/locale.gen
     locale_prefix: "en_US"
@@ -253,9 +254,9 @@ _NOTE: Any Ansible method to define the variable `passphrase` will be enough to 
 ### Prepare the Install Environment
 
 1. Boot the Ubuntu Live CD:
-    1. Select option <button name="button">Try Ubuntu</button>.
-    2. Connect your system to the Internet as appropriate (e.g. join your Wi-Fi network).
-    3. Open a terminal - press <kbd>Ctrl</kbd> <kbd>Alt</kbd>-<kbd>T</kbd>.
+    * Select option <button name="button">Try Ubuntu</button>.
+    * Connect your system to the Internet as appropriate (e.g. join your Wi-Fi network).
+    * Open a terminal within the Live CD environment - press <kbd>Ctrl</kbd> <kbd>Alt</kbd>-<kbd>T</kbd>.
 2. Install and start the OpenSSH server in the Live CD environment:
 
 #### Fetch Helper Script
@@ -306,40 +307,40 @@ You are now ready to perform a ZFS on Root installation to this target machine.
 The most basic way to start the ZFS on Root process:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml
+ansible-playbook -i inventory ./zfs_on_root.yml -l <remote_host_name>
 ```
 
 To enable ZFS Native Encryption:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{passphrase: "mySecr3tPa55"}'
+ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{passphrase: "mySecr3tPa55"}' -l <remote_host_name>
 ```
 
 To define specific devices or a sub-set of available devices:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb]}'
+ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb]}' -l <remote_host_name>
 ```
 
 To define an alternate hostname (other than one used for SSH connection):
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{host_name: testlinux}'
+ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{host_name: testlinux}' -l <remote_host_name>
 ```
 
 To enable some debug or verbose output:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{debug: on}'
+ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{debug: on}' -l <remote_host_name>
 
 # To enable ansible verbose details as well:
-ansible-playbook -vvvv -i inventory ./zfs_on_root.yml --extra-vars='{debug: on}'
+ansible-playbook -vvvv -i inventory ./zfs_on_root.yml --extra-vars='{debug: on}' -l <remote_host_name>
 ```
 
 To do multiple of these at the same time:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb], host_name: testlinux, passphrase: "mySecr3tPa55"}'
+ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb], host_name: testlinux, passphrase: "mySecr3tPa55"}' -l <remote_host_name>
 ```
 
 If the above is too complicated, no worries.  The script will show you the detected defaults and let you just type values.  It will also show you a summary screen of values for your reference and allow you to abort.
@@ -474,6 +475,7 @@ chmod +x do_ssh.sh
 
 ./do_ssh.sh
 ```
+
 ---
 
 ### partition_drive_helper.sh

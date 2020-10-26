@@ -10,7 +10,7 @@
   # gdisk is disk partitioning utils used by helper script "partition_drive_helper.sh"
   - name: Installing command-line only Ubuntu Server environment
     apt:
-      name: ['ubuntu-server','gdisk']
+      name: ['ubuntu-server','gdisk','man']
       install_recommends: yes
     when:
       - command_line_only|default(false)|bool == true

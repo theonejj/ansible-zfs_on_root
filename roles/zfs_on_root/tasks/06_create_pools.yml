@@ -40,7 +40,7 @@
     when:
        - root_pool_encryption|default(false) == true
 
-  - name: Create Standard ZFS Root Pool without Encrytpion
+  - name: Create Standard ZFS Root Pool without Encryption
     command:
       "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ disk_by_id|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' ' }}"
     when:
@@ -81,7 +81,7 @@
     when:
       - root_pool_encryption|default(false) == true
 
-  - name: Create Mirrored vdev ZFS Root Pool without Encrytpion
+  - name: Create Mirrored vdev ZFS Root Pool without Encryption
     command:
       "zpool create -f {{ root_pool_options|join(' ') }} {{root_pool_type}} {{ two_root_pool_devices|join(root_partition_name_suffix+' ')+root_partition_name_suffix+' '}}"
     when:

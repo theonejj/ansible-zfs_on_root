@@ -264,7 +264,7 @@ _NOTE: Any Ansible method to define the variable `passphrase` will be enough to 
 The helper script will perform many steps for you such as update packages, create an `ansible` user account, define a password for that account, grant the `ansible` account `sudo` privileges, install SSH server, python, etc.
 
 ```bash
-wget https://gitea.rich-durso.us:3000/reefland/ansible/raw/branch/master/roles/zfs_on_root/files/do_ssh.sh
+wget https://gitea.rich-durso.us/reefland/ansible/raw/branch/master/roles/zfs_on_root/files/do_ssh.sh
 
 chmod +x do_ssh.sh
 
@@ -469,7 +469,7 @@ ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sd
 Once the Ubuntu Live CD is booted on the target system, there are a number of steps you need to perform to allow ansible to connect to it over the network such as update packages, create an ansible user account, define a password, grant the ansible account `sudo` privileges, install SSH server, etc.  The helper script named `do_ssh.sh` completes all this work for you.  Simply use `wget` to fetch the file, use `chmod +x do_ssh.sh` to make it executable and run it `./so_ssh.sh` that's all.
 
 ```bash
-wget https://gitea.rich-durso.us:3000/reefland/ansible/raw/branch/master/roles/zfs_on_root/files/do_ssh.sh
+wget https://gitea.rich-durso.us/reefland/ansible/raw/branch/master/roles/zfs_on_root/files/do_ssh.sh
 
 chmod +x do_ssh.sh
 

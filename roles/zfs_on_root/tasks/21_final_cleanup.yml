@@ -47,7 +47,12 @@
         # {{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }} is complete.
         ##########################################################
 
-          Press ENTER to wrap up this installation:
+          IMPORTANT: Copy the SSH for your non-root user NOW! After the next reboot 
+                     password logins may NOT work.
+
+          ssh-copy-id -i ~/.ssh/<public_key> {{regular_user_account}}@{{(ansible_ssh_host|default(ansible_host))|default(inventory_hostname)}}
+
+          When completed, press ENTER to wrap up this installation:
 
           * Root password is now disabled (must use sudo instead).
           * Ansible password is now disabled, only SSH key connection allowed.

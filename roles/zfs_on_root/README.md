@@ -257,7 +257,29 @@ _NOTE: Any Ansible method to define the variable `passphrase` will be enough to 
     * Select option <button name="button">Try Ubuntu</button>.
     * Connect your system to the Internet as appropriate (e.g. join your Wi-Fi network).
     * Open a terminal within the Live CD environment - press <kbd>Ctrl</kbd> <kbd>Alt</kbd>-<kbd>T</kbd>.
-2. Install and start the OpenSSH server in the Live CD environment:
+
+2. Clear out Existing Partitions
+
+    The installation will do its best to clear partitions, however there are scenarios where they get in the way.  ZFS may try to mount volumes it detects that you plan on using for something else. Check if your data disks have partitions:
+
+    ```bash
+    $ lsblk
+
+    sda                                             8:0    1   2.7T  0 disk  
+    ├─sda1                                          8:1    1   2.7T  0 part  
+    └─sda9                                          8:9    1     8M  0 part  
+    sdb                                             8:16   1   2.7T  0 disk  
+    ├─sdb1                                          8:17   1   2.7T  0 part  
+    └─sdb9                                          8:25   1     8M  0 part 
+    ```
+
+    NOTE: Do not ERASE partitions of the Live CD environment! Just data disks you want to use. Launch `gparted` to create new `gpt` partitions for the devices.
+
+    ```bash
+    sudo gparted
+    ```
+
+3. Install and start the OpenSSH server in the Live CD environment:
 
 #### Fetch Helper Script
 
@@ -308,6 +330,12 @@ The most basic way to start the ZFS on Root process:
 
 ```bash
 ansible-playbook -i inventory ./zfs_on_root.yml -l <remote_host_name>
+```
+
+If a non-standard SSH port is required:
+
+```bash
+ansible-playbook -i inventory ./zfs_on_root.yml -l <remote_host_name> -e "ansible_port=22"
 ```
 
 To enable ZFS Native Encryption:

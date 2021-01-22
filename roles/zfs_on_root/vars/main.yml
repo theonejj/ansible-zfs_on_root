@@ -126,3 +126,6 @@ lsblk_device_types: "8,179,259"
 # "lsblk -ndo name,mountpoint --include {{lsblk_device_types}} | grep -v '/' | cat"
 # The RO indicates if device is read-only (value 1), the awk filters to value 0 - not read-only
 lsblk_device_command: "lsblk -ndo name,mountpoint,ro --include {{lsblk_device_types}} | awk '/0$/{print $1}'"
+
+# This version shows a little more information during manual install selection
+lsblk_device_detail_command: "lsblk -ndo name,size,mountpoint,ro --include {{lsblk_device_types}} | awk '/0$/{printf \"%-8s %8s\\n\", $1,$2}'"

@@ -48,14 +48,14 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # install SSH Server and Python to allow ansible to connect
-sudo apt install --yes openssh-server vim python python-apt
+sudo apt install --yes openssh-server vim python3 python3-apt
 if [[ $? -ne 0 ]]; then
   echo
   echo "ERROR: installing required packages failed."
 fi
 
 # Disable swap partitions, we don't want them in use when partitions are removed.
-swapoff -a
+sudo swapoff -a
 
 # Done
 echo

@@ -267,17 +267,24 @@ _NOTE: Any Ansible method to define the variable `passphrase` will be enough to 
 
     sda                                             8:0    1   2.7T  0 disk  
     ├─sda1                                          8:1    1   2.7T  0 part  
-    └─sda9                                          8:9    1     8M  0 part  
+    └─sda2                                          8:9    1     8M  0 part  
     sdb                                             8:16   1   2.7T  0 disk  
     ├─sdb1                                          8:17   1   2.7T  0 part  
-    └─sdb9                                          8:25   1     8M  0 part 
+    └─sdb2                                          8:25   1     8M  0 part 
     ```
 
-    NOTE: Do not ERASE partitions of the Live CD environment! Just data disks you want to use. Launch `gparted` to create new `gpt` partitions for the devices.
+    NOTE: Do not ERASE partitions of the Live CD environment! Just data disks you want to use.
 
-    ```bash
-    sudo gparted
-    ```
+    Press <kbd>ALT</kbd>-<kbd>F2</kbd> to run a command and enter `gparted`.  This program is used to remove existing partitions. Once Gparted has loaded:
+      * Select the device
+        * Press <kbd>ALT</kbd>-<kbd>D</kbd> for "Device"
+        * Select "Create Partition Table"
+        * Select Partition Type `gpt` and click <kbd>Apply</kbd>
+      * Repeat this process for each data drive
+      * Close Gparted
+    Press <kbd>ALT</kbd>-<kbd>F2</kbd> to run a command and enter `reboot`
+    After reboot this step can be skipped.
+
 
 3. Install and start the OpenSSH server in the Live CD environment:
 
@@ -295,18 +302,47 @@ chmod +x do_ssh.sh
 
 When prompted for the Ansible password, enter and confirm it.  This will be a temporary password only needed just to push the SSH Key to the target machine.  The Ansible password will be disabled and only SSH authentication will be allowed.
 
+#### If Helper Script is not Available
+
+These are the manual commands performed by the helper script.  If it is not available, these steps do the same.
+
+```bash
+sudo apt-add-repository universe
+sudo apt update
+
+sudo useradd -m ansible
+sudo passwd ansible
+
+sudo visudo -f /etc/sudoers.d/99_sudo_include_file
+
+ansible ALL=(ALL) NOPASSWD:ALL
+
+# Save File & Exit
+
+sudo apt install --yes openssh-server vim python3 python3-apt
+sudo swapoff -a
+```
+
 The Install Environment is now ready.  Nothing else you need to do here.  The rest is done from the Ansible Control node.
 
 ### Push your Ansible Public Key to the Install Environment
 
 From the Ansible Control Node push your ansible public key to the Install Environment.
+You will be prompted for the ansible password create within Ubuntu Live CD Install Environment:
 
 ```bash
 ssh-copy-id -i ~/.ssh/ansible.pub ansible@<remote_host_name>
 
+# Expected output:
+ansible@<remote_host_name> password: 
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh 'ansible@<remote_host_name>'"
+and check to make sure that only the key(s) you wanted were added.
 ```
 
-You will be prompted for the ansible password create within Ubuntu Live CD Install Environment.  Optionally, you can test connectivity easily to verify SSH has been configured correctly.
+Optionally, you can test connectivity easily to verify SSH has been configured correctly.
 
 ```bash
 ansible -i inventory -m ping <remote_host_name>
@@ -341,7 +377,7 @@ ansible-playbook -i inventory ./zfs_on_root.yml -l <remote_host_name> -e "ansibl
 To enable ZFS Native Encryption:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{passphrase: "mySecr3tPa55"}' -l <remote_host_name>
+ansible-playbook -i inventory ./zfs_on_root.yml -extra-vars='{passphrase: "mySecr3tPa55"}' -l <remote_host_name>
 ```
 
 To define specific devices or a sub-set of available devices:
@@ -446,7 +482,7 @@ Dropbear with Busybox can be deployed and updated independently.  Don't bother f
 If at some point in the future you wish to install Dropbear or update its configuration (perhaps add or replace RSA Public Keys) manually use:
 
 ```bash
-ansible-playbook -i inventory zfs_on_root.yml --extra-vars='{passphrase: "dummypass" --tags="install_drop_bear"
+ansible-playbook -i inventory zfs_on_root.yml --extra-vars='{passphrase: "dummypass"}' --tags="install_drop_bear"
 ```
 
 _NOTE: The correct passphrase for an existing encrypted pool is not actually needed. The passphrase variable just needs to be set for the workflow to be triggered._

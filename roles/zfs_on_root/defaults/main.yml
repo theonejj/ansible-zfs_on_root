@@ -101,7 +101,6 @@ root_pool_name: "rpool"
 #            IP Address or full directory paths.
 update_sshd_settings: true
 apply_sshd_settings:
-  Port: 46359
   PasswordAuthentication: "no"
   PermitRootLogin: "prohibit-password"
   PubkeyAuthentication: "yes"

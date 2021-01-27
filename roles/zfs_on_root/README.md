@@ -64,7 +64,7 @@ ansible_user=ansible
 ansible_ssh_private_key_file=/home/rich/.ssh/ansible
 
 [zfs_on_root_install_group]
-testlinux.rich-durso.us
+testlinux.example.com
 ```
 
 * The `[zfs_on_root_install_group:vars]` block defined the SSH connection.  If you have this defined elsewhere such as in `.ansible.cfg` then this can be omitted.  

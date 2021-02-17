@@ -19,7 +19,7 @@ raidz_multi_disk_swap_flags:      "-n2:0:+{{ raidz_swap_partition_size_MB }}M -t
 single_disk_or_mirror_boot_partition_flags: "-n3:0:+{{ single_or_mirror_boot_partition_size_MB }}M -t3:BE00"
 raidz_multi_disk_boot_partition_flags:      "-n3:0:+{{ raidz_boot_partition_size_MB }}M -t3:BE00"
 
-# Define Root Pool Partition Flags - for Unencrypted or ZFS native Encrytpion
+# Define Root Pool Partition Flags - for Unencrypted or ZFS native Encryption
 root_partition_flags: "-n4:0:0          -t4:BF00"
 
 # Define Pool Partition Suffixes

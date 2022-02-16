@@ -57,6 +57,9 @@ fi
 # Disable swap partitions, we don't want them in use when partitions are removed.
 sudo swapoff -a
 
+# Disable automounting, if disk has been used before it will be mounted if not disabled
+gsettings set org.gnome.desktop.media-handling automount false
+
 # Done
 echo
 echo "-----------------------------------------------------------------------------"

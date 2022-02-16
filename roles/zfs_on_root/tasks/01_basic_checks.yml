@@ -104,7 +104,7 @@
 ###############################################################################
 
 ###[ ZFS Passphrase Validation ]###############################################
-- name: Prompt for ZFS Passphrase if required and not provifed Block
+- name: Prompt for ZFS Passphrase if required and not provided Block
   block:
   - name: Prompt for ZFS Passphrase if required and not provided
     pause:
@@ -137,7 +137,7 @@
   block:
   # ZFS Native Encryption Passphrase must be 8 chars or longer
   - fail:
-      msg: "ERROR: ZFS passphase must be at least 8 characters."
+      msg: "ERROR: ZFS passphrase must be at least 8 characters."
     when:
       - passphrase|length|int <8
 
@@ -146,7 +146,7 @@
       root_pool_encryption: true
 
   - debug:
-      msg: "NOTE: Passphase Supplied -- Root Pool Encryption Enabled"
+      msg: "NOTE: Passphrase Supplied -- Root Pool Encryption Enabled"
     when: root_pool_encryption is true
 
   when:
@@ -300,7 +300,7 @@
 ###############################################################################
 
 ###[ UEFI Sanity Checks ]######################################################
-# If boot using UEFI specifed, then Ubuntu Live CD should have detected this.
+# If boot using UEFI specified, then Ubuntu Live CD should have detected this.
 # Path /sys/firmware/efi must exist, otherwise only legacy booting can be used.
 - name: Confirm UEFI Environment Exists Block
   block:

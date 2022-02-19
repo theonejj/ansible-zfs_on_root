@@ -1,0 +1,16 @@
+---
+###[ Install GRUB on UEFI Multi Disk ]#########################################
+- name: Install GRUB on UEFI Multi Disk Block
+  block:
+
+  # This is a place holder, below is interactive not automated yet.
+  - name: Configure Grub for Multi Disk on UEFI
+    command:
+      "dpkg-reconfigure grub-efi-amd64"
+
+  when:
+    - ansible_nodename != "localhost"
+    - use_uefi_booting|default(false)|bool == true
+    - disk_by_id|length|int > 1
+  tags:
+    - grub_uefi_multi_disk

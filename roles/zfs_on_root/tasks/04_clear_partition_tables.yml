@@ -2,6 +2,9 @@
 ###[ Wipe Partitions of Selected Device ]######################################
 - name: Wipe Partitions of Selected Devices Block
   block:
+  - name: Insure Swap Partitions are Not Used
+    command: "swapoff --all"
+
   - name: Clear any mdadm superblocks for whole disk
     command: "mdadm --zero-superblock --force {{ item }}"
     loop: 
@@ -26,6 +29,18 @@
     command: "sgdisk --zap-all {{ item }}"
     loop: 
       "{{ disk_by_id }}"
+
+  - name: Notify Kernel of Updated Partitions
+    command:
+      "partprobe"
+
+  # Leaving this installed and running may cause device busy errors
+  # later when partitions are created a /dev/md127 created and mounted
+  # -part2 partitions.
+  - name: Uninstall mdadm once partitions are cleared
+    apt: 
+      name: ['mdadm']
+      state: absent
 
   when:
     ansible_nodename != "localhost"

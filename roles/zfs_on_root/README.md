@@ -4,8 +4,9 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 
 ## Requirements
 
-* [Ansible](https://www.ansible.com/) (Built with 2.9)
-* [Ubuntu 20.04 "Focal" Live CD](https://ubuntu.com/download/desktop/) (20.04 LTS Desktop, not server images)
+* [Ansible](https://www.ansible.com/) (Built with Ansible Core 2.12)
+* [Ubuntu 20.04.3 "Focal" Live CD](https://ubuntu.com/download/desktop/) (20.04.3 LTS Desktop, DO NOT use server images)
+  _NOTE: you can configure for command-line only server build, don't worry about using the Desktop image._
 * Installing on a drive which presents 4 KiB logical sectors (a “4Kn” drive) only works with UEFI booting. This not unique to ZFS. GRUB does not and will not work on 4Kn with legacy (BIOS) booting.
 * Computers that have less than 2 GiB of memory run ZFS slowly. 4 GiB of memory is recommended for normal performance in basic workloads.
 
@@ -21,7 +22,7 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 
 This provides a configurable way to define how the ZFS installation will look like and allows for topologies that cannot be defined within the standard Ubuntu installation wizard.  
 
-* For example, if you always want a 3 disk setup to have a _mirrored_ boot pool with a _raidz_ root pool, however a 4 disk setup should use a _raidz_ boot pool and multiple _mirrored_ vdev based root pool you can define these defaults.
+* For example, if you always want a 3 disk setup to have a _mirrored_ boot pool with a _raidz_ root pool, but a 4 disk setup should use a _raidz_ boot pool and multiple _mirrored_ vdev based root pool you can define these defaults.
 * The size of boot and swap partitions can be defined to a standard value for single device and mirrored setups or a different value for raidz setup.
 * UEFI Booting can be enabled and will be used when detected, it will fall back to Legacy BIOS booting when not detected.
 * The installation is configurable to be a command-line only (server build) or Full Graphical Desktop installation.
@@ -133,10 +134,10 @@ testlinux.example.com
     # Partition size, per device, when multiple devices are used
     # If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in MB (#devices-1*size_MB)
     # The more devices used, the smaller these values can be to get the same size.
-    raidz_boot_partition_size_MB: "512"
+    raidz_boot_partition_size_MB: "768"
     ```
 
-    _NOTE: A boot partition size calculated to be between 1Gib (1024 MB) to 2Gib (2048 MB) is a reasonable range.  Smaller size may have an issue in the future trying to process kernel upgrades._
+    _NOTE: A boot partition size calculated to be between 1.5 Gib (1430 MiB) to 2 Gib (1907 MiB) is a reasonable starting range.  Larger is fine, but smaller size may have an issue in the future trying to process kernel upgrades._
 
 4. Next select if UEFI or Legacy BIOS is needed, and select if Full Graphical Desktop or Command Line Server only.  To force Ansible to set a ZFS encryption password set that option to `true`. You can also set your locale and timezone information here.
 
@@ -158,7 +159,7 @@ testlinux.example.com
     timezone_value: "America/New_York"
     ```
 
-5. Define ZFS Boot Pool Type Rules
+5. Define ZFS Boot Pool Type Rules (based on number of storage devices detected)
 
     * When one device is used, it is nothing special and no defined keyword needed. Leave it blank.
     * Two devices can only use a `mirror`, don't change it.
@@ -211,13 +212,15 @@ testlinux.example.com
 
 7. Define the pool names
 
-These are the default names typically used on Ubuntu systems.  Other systems use other names.  Some people really can't sleep well at night if the pools don't have the perfect name.
+    These are the default names typically used on Ubuntu systems.  Other systems use other names.  Some people really can't sleep well at night if the pools don't have the perfect name.
 
-```yaml
-# Define Pool Names
-boot_pool_name: "bpool"
-root_pool_name: "rpool"
-```
+    ```yaml
+    # Define Pool Names
+    boot_pool_name: "bpool"
+    root_pool_name: "rpool"
+    ```
+
+    _NOTE: Per ZFS on Root recommendations for Ubuntu 20.04, the `boot` pool name is no longer arbitrary. It must be `bpool`._
 
 ## Additional Configuration Files
 
@@ -321,9 +324,12 @@ ansible ALL=(ALL) NOPASSWD:ALL
 
 sudo apt install --yes openssh-server vim python3 python3-apt
 sudo swapoff -a
+
+gsettings set org.gnome.desktop.media-handling automount false
+
 ```
 
-The Install Environment is now ready.  Nothing else you need to do here.  The rest is done from the Ansible Control node.
+The Live CD Install Environment is now ready.  Nothing else you need to do here.  The rest is done from the Ansible Control node.
 
 ### Push your Ansible Public Key to the Install Environment
 
@@ -350,9 +356,6 @@ ansible -i inventory -m ping <remote_host_name>
 # Expect output to include:
 
 remote_host_name | SUCCESS => {
-    "ansible_facts": {
-        "discovered_interpreter_python": "/usr/bin/python"
-    },
     "changed": false,
     "ping": "pong"
 }
@@ -362,7 +365,7 @@ You are now ready to perform a ZFS on Root installation to this target machine.
 
 ### Fire-up the Ansible Playbook
 
-The most basic way to start the ZFS on Root process:
+The most basic way to run the entire ZFS on Root process:
 
 ```bash
 ansible-playbook -i inventory ./zfs_on_root.yml -l <remote_host_name>
@@ -377,7 +380,7 @@ ansible-playbook -i inventory ./zfs_on_root.yml -l <remote_host_name> -e "ansibl
 To enable ZFS Native Encryption:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml -extra-vars='{passphrase: "mySecr3tPa55"}' -l <remote_host_name>
+ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{passphrase: "mySecr3tPa55"}' -l <remote_host_name>
 ```
 
 To define specific devices or a sub-set of available devices:
@@ -408,6 +411,51 @@ ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sd
 ```
 
 If the above is too complicated, no worries.  The script will show you the detected defaults and let you just type values.  It will also show you a summary screen of values for your reference and allow you to abort.
+
+### Step by Step Installation
+
+Instead of running the entire playbook at one time, in can be run sections at a time using the ansible `tasks` as defined in `zfs_on_root.yml` file.  This method can be used to troubleshoot issues and replay steps if you have a way of rolling back previous failures. Failures can be rolled back either manually or via snapshots in Virtualbox or equivalent.
+
+To run just one stage via tags, all the Ansible Playbook examples from above can be used with the addition of including tags:
+
+```bash
+ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb], host_name: testlinux}' -l <remote_host_name> --tags="install-zfs-packages"
+```
+
+Multiple tags can be combined to run a few things in a row by combining tags:
+
+```text
+--tags="create_pools, create_filesystems, create_datasets"
+```
+
+List and order of execution of tags defined for this playbook:
+
+```text
+    tags:
+      - install-zfs-packages
+      - clear_partition_tables_from_devices
+      - create_partitions
+      - create_pools
+      - create_filesystems
+      - create_datasets
+      - config_system
+      - config_boot_fs
+      - config_grub
+      - config_swap
+      - system_tweaks
+      - install_grub
+      - fix_mount_order
+      - first_boot_prep
+      - restart_remote
+      - grub_uefi_multi_disk
+      - create_regular_user
+      - full_install
+      - restart_remote_final
+      - final_cleanup
+      - install_drop_bear
+```
+
+Helper tasks, basic sanity checks and mandatory tasks are already marked as `always` and will always be processed to setup the base ansible working environment reading configuration files, setting variables, etc... nothing special you need to do.
 
 ---
 
@@ -498,6 +546,120 @@ Connection to <remote_host_name> closed.
 ```
 
 The only thing you'll be prompted for is the passphrase to decrypt the root pool. If entered incorrectly you will be given additional attempts.  Once entered correctly the connection is closed and system boot sequence proceeds.  The Dropbear SSH service will not be running once the system has booted.
+
+---
+
+## Known Issues
+
+1. Task: zfs_on_root : Export all ZFS Pools - Fails:
+
+    ```text
+    STDERR:
+    cannot export 'rpool': pool is busy
+    ```
+
+    It can be very difficult to nearly impossible to determine why a pool is busy at search an early stage.  All mounts are removed, no datasets are shared yet, no users are within the mounted areas. Without being able to export the pool cleanly during this process, importing the pool will fail upon first reboot.  The following work around imports the pool and allows you to resume the boot process.
+
+    #### Workaround
+
+    * Power down Live CD Environment
+    * Remove LiveCD media
+    * Power up instance
+
+    The following error message is now expected:
+
+    ```bash
+    Importing pool 'rpool' using cachefile. ... Failure 1
+
+    Message: cannot import 'rpool': no such pool available
+    Error: 1
+
+    Failed to import pool 'rpool'.
+    Manually import the pool and exit.
+    ```
+
+    At the `(initramfs)` prompt, type the following:
+
+    ```bash
+    zpool import -f bpool
+    zpool import -f rpool
+    exit
+    ```
+
+    The system should now resume booting, if ZFS Encryption is enabled it will prompt for the passphrase.
+
+    * Login as root
+    * Reboot the system again
+    * Confirm it boots cleanly without the pool import error
+
+    To resume the ansible playbook, you can specify to execute the remaining steps via ansible tags (all at once, or specify one, or a few at a time):
+
+    ```text
+    --tags="grub_uefi_multi_disk, create_regular_user, full_install, restart_remote_final, final_cleanup, install_drop_bear"
+    ```
+
+2. Multi-disk SWAP using `mdadm` is not mounted as `/dev/md0` and thus no swap space
+
+    ```bash
+    $ cat /proc/swaps 
+    Filename                             Type       Size    Used    Priority
+
+    $ free -mh | grep Swap
+    Swap:         0B          0B       0B
+    ```
+
+    If there is anything incorrect with the configuration file `/etc/mdadm/mdadm.conf` the kernel will attempt to assemble the array and mount it as something like `/dev/md127` the swap is configured to be at `/dev/md0` and will not work until this is corrected.
+
+    #### Workaround
+
+    Confirm the device name of the incorrect mdadm device with:
+
+    ```bash
+    cat /proc/mdstat 
+    
+    md127 : active (auto-read-only) raid5 sda2[0] sdc2[3] sdb2[1]
+          2093056 blocks super 1.2 level 5, 512k chunk, algorithm 2 [3/3] [UUU]
+    ```
+
+    Stop the incorrectly named device:
+
+    ```bash
+    sudo mdadm -S /dev/md127
+    ```
+
+    Assemble Array with correct name `/dev/md0` include the device names listed above, they will always end with a `2` based on how ZFS on Root sets up partitions.
+
+    ```bash
+    mdadm -Av --update=name --run /dev/md0 /dev/sda2 /dev/sdb2 /dev/sdc2
+    ```
+
+    Confirm the mdadm device name is now correctly showing `md0`:
+
+    ```bash
+    cat /proc/mdstat 
+    
+    md0 : active raid5 sda2[0] sdc2[3] sdb2[1]
+      2093056 blocks super 1.2 level 5, 512k chunk, algorithm 2 [3/3] [UUU]
+    ```
+
+    This updated the mdadm configuration file, which needs to be added to the kernel initramfs image as follows:
+
+    ```bash
+    update-initramfs -c -k all
+    ```
+
+    * Reboot the system
+
+    SWAP space should now be functional:
+
+    ```bash
+    $ cat /proc/swaps 
+    Filename                                Type            Size    Used    Priority
+    /dev/dm-0                               partition       2093052 0       -2
+
+    $ free -mh | grep Swap
+    Swap:         2.0Gi          0B       2.0Gi
+    ```
 
 ---
 

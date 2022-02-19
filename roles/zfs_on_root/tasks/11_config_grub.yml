@@ -3,16 +3,14 @@
 - name: Add GRUB to fstab for Single Device Config Block
   block:
   # Some tasks that are only performed on single disk configurations
-  - name: Run chroot command to create Grub directories (single disk only)
-    command: "{{chroot_cmd}} bash -c 'mkdir -p /boot/efi/grub /boot/grub'"
-
-  - name: Run chroot command to add Grub to /etc/fstab (single disk only)
-    shell: 
-      cmd: "{{chroot_cmd}} bash -c 'echo /boot/efi/grub /boot/grub none defaults,bind 0 0 >> /etc/fstab'"
-
-  - name: Run chroot command to mount Grub in /etc/fstab (single disk only)
-    command: "{{chroot_cmd}} bash -c 'mount /boot/grub'"
-
+  - name: Run chroot commands to Configure GRUB on single disk only
+    command:
+      cmd: "{{chroot_cmd}} bash -c '{{item}}'"
+      warn: no
+    with_items:
+      - "mkdir -p /boot/efi/grub /boot/grub"
+      - "echo /boot/efi/grub /boot/grub none defaults,bind 0 0 >> /etc/fstab"
+      - "mount /boot/grub"
   when:
     - ansible_nodename != "localhost"
     - disk_by_id|length == 1
@@ -20,35 +18,21 @@
     - config_grub
 ###############################################################################
 
-###[ GRUB Installation for Legacy Devices ]####################################
+###[ GRUB Installation Process ]###############################################
 - name: GRUB Installation for Legacy Devices Block
   block:
   # Parameters added to prevent grub menu selection for legacy devices
   - name: Run chroot command to install GRUB, Linux and ZFS for Legacy BIOS Booting
     command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' install grub-pc linux-image-generic zfs-initramfs zsys"
     when:
-    - ansible_os_family == "Debian"
-
-  # Run grub-install per legacy disk device
-  - name: Run chroot command to run grub-install per legacy disk device
-    command:
-      cmd: "{{chroot_cmd}} grub-install {{ item }}"
-    loop: 
-      "{{ disk_by_id }}"
-
+      - use_uefi_booting|default(false)|bool == false
+    
+  - name: Run chroot command to install GRUB, Linux and ZFS for UEFI Booting
+    command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes install grub-efi-amd64 grub-efi-amd64-signed linux-image-generic shim-signed zfs-initramfs zsys"
+    when:
+      - use_uefi_booting|default(false)|bool == true
   when:
     - ansible_nodename != "localhost"
-    - use_uefi_booting|default(false)|bool == false
-  tags:
-    - config_grub
-###############################################################################
-
-###[ GRUB Installation for UEFI Booting ]######################################
-- name: Run chroot command to install GRUB, Linux and ZFS for UEFI Booting
-  command: "{{chroot_cmd}} /usr/bin/env DEBIAN_FRONTEND=noninteractive apt --yes install grub-efi-amd64 grub-efi-amd64-signed linux-image-generic shim-signed zfs-initramfs zsys"
-  when:
-    - ansible_nodename != "localhost"
-    - use_uefi_booting|default(false)|bool == true
     - ansible_os_family == "Debian"
   tags:
     - config_grub
@@ -60,6 +44,16 @@
   command: "{{chroot_cmd}} bash -c 'dpkg --purge os-prober'"
   when:
     - remove_os_prober|default(false)|bool == true
+  tags:
+    - config_grub
+###############################################################################
+
+###[ Set Root Password ]#######################################################
+- name: Run chroot command to set default root password
+  expect:
+    command: "{{chroot_cmd}} passwd"
+    responses:
+      (?i)password: "{{ default_root_password }}"
   tags:
     - config_grub
 ###############################################################################

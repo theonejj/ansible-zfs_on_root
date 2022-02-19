@@ -2,7 +2,7 @@
 ###[ Restart timesyncd under Virtualbox ]######################################
 - name: Restart timesyncd under Virtualbox Block
   block:
-  # ZFS package installs have failed due to "not yet valid" message. This ususally happens
+  # ZFS package installs have failed due to "not yet valid" message. This unusually happens
   # when time is not set correctly on the new system.  This happened often when virtualbox
   # snapshot images were used.  Restarting timesyncd service forces time to be updated.
   - name: Restarting timesync service under Virtualbox
@@ -14,17 +14,25 @@
 
   when: 
     - ansible_os_family == "Debian"
-    - virutal_box|default(false)|bool == true
+    - virtual_box|default(false)|bool == true
   tags:
     - install-zfs-packages
-###############################################################################
+    - always
+
+###[ Disable Auto-mounting ]###################################################
+- name: Stop reused disks from being auto mounted
+  block:
+  - name: Stop reused disks from being auto mounted
+    command: "gsettings set org.gnome.desktop.media-handling automount false"
+  tags:
+    - install-zfs-packages
 
 ###[ Install Packages Need to get Started ]####################################
-- name: Restart timesyncd under Virtualbox Block
+- name: Install Packages Need to get Started
   block:
   - name: Install ZFS packages (assumes Live CD Environment)
     apt: 
-      name: ['debootstrap','gdisk','python-pexpect','zfs-initramfs','mdadm']
+      name: ['debootstrap','gdisk','python-pexpect','zfsutils-linux','mdadm']
       state: present 
       update_cache: yes
       cache_valid_time: 3600

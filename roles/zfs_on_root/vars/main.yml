@@ -9,7 +9,7 @@ distro_name: "ubuntu"
 
 # Boot Partition Flags
 uefi_partition_flags: "-n1:1M:+512M     -t1:EF00"
-bios_partition_flags: "-a1 -n5:24K:2047 -t5:EF02"
+bios_partition_flags: "-a1 -n5:24K:+1000K -t5:EF02"
 
 # Possible SWAP Partition Flags based on one device or more
 single_disk_or_mirror_swap_flags: "-n2:0:+{{ single_or_mirror_swap_partition_size_MB }}M -t2:8200"
@@ -36,7 +36,8 @@ root_pool_type: "{{set_root_pool_type[(disk_by_id|length)]|default(set_root_pool
 
 # Define Boot Pool Options
 boot_pool_options:
-  - "-o ashift=12 -d"
+  - "-o cachefile=/etc/zfs/zpool.cache"
+  - "-o ashift=12 -o autotrim=on -d"
   - "-o feature@async_destroy=enabled"
   - "-o feature@bookmarks=enabled"
   - "-o feature@embedded_data=enabled"
@@ -48,7 +49,6 @@ boot_pool_options:
   - "-o feature@large_blocks=enabled"
   - "-o feature@lz4_compress=enabled"
   - "-o feature@spacemap_histogram=enabled"
-  - "-o feature@zpool_checkpoint=enabled"
   - "-O acltype=posixacl -O canmount=off -O compression=lz4"
   - "-O devices=off -O normalization=formD"
   - "-O relatime=on -O xattr=sa"
@@ -56,7 +56,7 @@ boot_pool_options:
 
 # Define Root Pool Options
 root_pool_options:
-  - "-o ashift=12{{' '+(root_pool_encryption|default(false)) | ternary(root_pool_encryption_options|join(' '), '') }}"
+  - "-o ashift=12 -o autotrim=on {{' '+(root_pool_encryption|default(false)) | ternary(root_pool_encryption_options|join(' '), '') }}"
   - "-O acltype=posixacl -O canmount=off -O compression=lz4"
   - "-O dnodesize=auto -O normalization=formD -O relatime=on"
   - "-O xattr=sa -O mountpoint=/ -R /mnt {{root_pool_name}}"
@@ -67,12 +67,24 @@ root_pool_encryption_options:
   - "-O keylocation=prompt -O keyformat=passphrase"
 
 # Define datasets to act as containers
-boot_pool_container_options: "-o canmount=off -o mountpoint=none {{boot_pool_name}}/BOOT"
-root_pool_container_options: "-o canmount=off -o mountpoint=none {{root_pool_name}}/ROOT"
+boot_pool_container_options:
+  - "-o canmount=off"
+  - "-o mountpoint=none"
+  - "{{boot_pool_name}}/BOOT"
+
+root_pool_container_options:
+  - "-o canmount=off"
+  - "-o mountpoint=none"
+  - "{{root_pool_name}}/ROOT"
 
 # Define Filesystem Dataset Options
-boot_dataset_options: "-o canmount=noauto -o mountpoint=/boot"
-root_dataset_options: "-o canmount=noauto -o mountpoint=/ -o com.ubuntu.zsys:bootfs=yes"
+boot_dataset_options:
+  - "-o mountpoint=/boot"
+
+root_dataset_options: 
+  - "-o mountpoint=/"
+  - "-o com.ubuntu.zsys:bootfs=yes"
+  - "-o com.ubuntu.zsys:last-used={{epoch.stdout}}"
 
 boot_pool_dataset_path: "{{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
 root_pool_dataset_path: "{{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
@@ -89,8 +101,6 @@ datasets_to_create:
 - "{{root_pool_dataset_path}}/var/lib/apt"
 - "{{root_pool_dataset_path}}/var/lib/dpkg"
 - "{{root_pool_dataset_path}}/var/lib/NetworkManager"
-#Commented out until Ubuntu zsys is mature enough to honor no snapshots flag
-# - "-o com.sun:auto-snapshot=false {{root_pool_dataset_path}}/var/lib/docker"
 - "{{root_pool_dataset_path}}/var/log"
 - "{{root_pool_dataset_path}}/var/mail"
 - "{{root_pool_dataset_path}}/var/snap"
@@ -100,7 +110,7 @@ datasets_to_create:
 - "-o com.ubuntu.zsys:bootfs-datasets={{root_pool_dataset_path}} -o canmount=on -o mountpoint=/root {{root_pool_name}}/USERDATA/root_{{UUID.stdout}}"
 
 # Define GRUB Dataset
-grub_dataset_options: "{{boot_pool_dataset_path}}/grub"
+grub_dataset_options: "-o com.ubuntu.zsys:bootfs=no"
 
 ####### Variable Before are unrelated to ZFS ############
 # Define chroot command to use

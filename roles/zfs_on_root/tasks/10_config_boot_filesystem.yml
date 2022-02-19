@@ -2,22 +2,21 @@
 ###[ Create Boot Filesystem ]##################################################
 - name: Create Boot Filesystem Block
   block:
-  - name: Run chroot command to create EFI filesystems on all "-part1" partitions
+  - name: Run chroot command to install dosfstool on Debian based hosts
     command:
-      cmd: "{{chroot_cmd}} bash -c 'mkdosfs -F 32 -s 1 -n EFI {{ item }}-part1'"
-    loop: 
-      "{{ disk_by_id }}"
+      cmd: "{{chroot_cmd}} bash -c 'apt install --yes vim dosfstools'"
+    when:
+      - ansible_os_family == "Debian"
 
   - name: Run chroot command to create /boot/efi directory
     command: 
       "{{chroot_cmd}} bash -c 'mkdir -p /boot/efi'"
 
-  # Create additional /boot/efi directories for each additional device
-  - name: Run chroot command to create additional /boot/efi directories
-    command: "{{chroot_cmd}} bash -c 'mkdir -p /boot/efi{{item}}'"
-    loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
-    when:
-      - disk_by_id|length > 1
+  - name: Run chroot command to create EFI filesystems on all "-part1" partitions
+    command:
+      cmd: "{{chroot_cmd}} bash -c 'mkdosfs -F 32 -s 1 -n EFI {{ item }}-part1'"
+    loop: 
+      "{{ disk_by_id }}"
 
   when:
     ansible_nodename != "localhost"
@@ -33,14 +32,8 @@
   - name:  Remove any existing /boot/efi references from fstab
     replace:
       path: /mnt/etc/fstab
-      regexp: '(?m)^UUID=.*/boot/efi.*\n?'
+      regexp: '(?m)^/dev/disk/by-uuid/.*/boot/efi.*\n?'
       replace: ''
-
-  - name: Run chroot command to add EFI Filesystems to /etc/fstab
-    shell:
-      cmd: "{{chroot_cmd}} bash -c 'echo UUID=$(blkid -s UUID -o value {{item}}-part1) /boot/efi vfat umask=0022,fmask=0022,dmask=0022 0 1>> /etc/fstab'"
-    loop: 
-      "{{ disk_by_id }}"
 
   - name: Remove UNCONFIGURED message in /etc/fstab
     blockinfile:
@@ -48,13 +41,23 @@
       marker: "# UNCONFIGURED FSTAB FOR BASE SYSTEM"
       block: ""
 
-  # If multiple devices then references to /boot/efi need to be unique
-  - name: Fix multiple EFI entries in /etc/fstab in chroot environment 
+  - name: Add EFI Filesystems to /etc/fstab
+    shell:
+      cmd: 
+        echo /dev/disk/by-uuid/$(blkid -s UUID -o value "{{disk_by_id[0]}}-part1") /boot/efi vfat defaults 0 0 >>/mnt/etc/fstab
+  
+  - name: Debug get contents of chroot /etc/fstab
     command:
-      cmd: "sed -i ':a;N;$!ba;s/efi /efi{{item}} /2' /mnt/etc/fstab"
-      warn: no
-    loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
-    when: disk_by_id|length > 1
+      cmd: cat /mnt/etc/fstab
+    register: cmd_output
+    when:
+      debug|default(false) == true
+
+  - name: Debug show contents of chroot /etc/fstab
+    debug:
+      var: cmd_output['stdout']
+    when:
+      debug|default(false) == true
 
   when:
     ansible_nodename != "localhost"
@@ -69,13 +72,6 @@
   # Mount /boot/efi directory in chroot environment
   - name: Run chroot command to mount /boot/efi directory
     command: "{{chroot_cmd}} bash -c 'mount /boot/efi'"
-
-  # Mount additional /boot/efi directories in chroot env for each additional device
-  - name: Run chroot command to mount additional /boot/efi directories
-    command: "{{chroot_cmd}} bash -c 'mount /boot/efi{{item}}'"
-    loop: "{{ range(2, disk_by_id|length|int + 1)|list}}"
-    when:
-      - disk_by_id|length > 1
 
   when:
     ansible_nodename != "localhost"

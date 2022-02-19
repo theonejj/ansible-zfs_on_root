@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# Version 1.1 - based off the ZFS on Root LInux Guide
+# https://openzfs.github.io/openzfs-docs/Getting%20Started/Ubuntu/Ubuntu%2020.04%20Root%20on%20ZFS.html#overview
+#
+
 if [[ "$#" -ne 1 ]]; then
   echo "You must provide a username of a home directory to create."
   exit 1
@@ -7,16 +12,15 @@ else
       echo "Home directory ${1} already exists."
       exit 1
     else
-      UUID=$(dd if=/dev/urandom of=/dev/stdout bs=1 count=100 2>/dev/null |  tr -dc 'a-z0-9' | cut -c-6)
       ROOT_DS=$(zfs list -o name | awk '/ROOT\/{{distro_name}}_/{print $1;exit}')
+      UUID=$(echo $ROOT_DS | grep -E -o "{{root_pool_name}}/ROOT/{{distro_name}}_[^/]*{6}$" | rev | cut -c 1-6 | rev)
       zfs create -o com.ubuntu.zsys:bootfs-datasets=$ROOT_DS \
           -o canmount=on -o mountpoint=/home/${1} \
           {{root_pool_name}}/USERDATA/${1}_${UUID}
-      cp -a /etc/skel/. /home/${1}
-      chown -R ${1}:${1} /home/${1}
 
       adduser ${1}
       cp -a /etc/skel/. /home/${1}
       chown -R ${1}:${1} /home/${1}
+      usermod -a -G {{regular_user_groups}} ${1}
     fi
 fi

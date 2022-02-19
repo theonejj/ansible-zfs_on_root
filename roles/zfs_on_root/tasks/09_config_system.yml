@@ -2,20 +2,16 @@
 ###[ Start Configuring System ]################################################
 - name: Configure System Block
   block:
-  - name: Copy hostname template to /mnt/etc/hostname
+  - name: Copy template files to /mnt/etc/
     template:
-      src: hostname.j2
-      dest: /mnt/etc/hostname
+      src: "{{item}}.j2"
+      dest: /mnt/etc/{{item}}
       owner: root
       group: root
       mode: '0644'
-
-  # Update /etc/hosts to host_name specified on command line
-  - name: Updating /mnt/etc/hosts to "{{host_name}}"
-    replace:
-      path: /mnt/etc/hosts
-      regexp: '\b{{distro_name}}\b'
-      replace: '{{host_name}}'
+    with_items:
+      - hostname
+      - hosts
 
   # Update Netplan Network file - not tested on multiple adapters, might break
   - name: Get Network adapter name on Ubuntu
@@ -64,54 +60,22 @@
       cmd: "{{item}}"
       warn: no
     with_items:
-      - "mount --rbind /dev  /mnt/dev"
-      - "mount --rbind /proc /mnt/proc"
-      - "mount --rbind /sys  /mnt/sys"
+      - "mount --make-private --rbind /dev  /mnt/dev"
+      - "mount --make-private --rbind /proc /mnt/proc"
+      - "mount --make-private --rbind /sys  /mnt/sys"
 
   - name: Run chroot command for apt update
     command:
       cmd: "{{chroot_cmd}} bash -c 'apt update'"
 
-  # uncomment the specified locale from the default locale.gen file
-  - name:  Enable locale for {{locale_prefix}}
-    replace:
-      path: /mnt/etc/locale.gen
-      regexp: '^#.* {{locale_prefix}}'
-      replace: '{{locale_prefix}}'
-
-  - name: Run chroot command to update locale
-    command:
-      cmd: "{{chroot_cmd}} bash -c 'locale-gen'"
-
-  - name: Run chroot command to install dosfstool on Debian based hosts
-    command:
-      cmd: "{{chroot_cmd}} bash -c 'apt install --yes vim dosfstools'"
-    when:
-      - ansible_os_family == "Debian"
-
-  - name: Run chroot command to set default root password
-    expect:
-      command: "{{chroot_cmd}} passwd"
-      responses:
-        (?i)password: "{{ default_root_password }}"
-
-  - name: Setup /tmp to use tmpfs
-    copy:
-      src: /usr/share/systemd/tmp.mount
-      dest: /mnt/etc/systemd/system/tmp.mount
-      remote_src: yes
-
-  - name: Run chroot command enable /tmp
-    command:
-      cmd: "{{chroot_cmd}} bash -c 'systemctl enable tmp.mount'"
-
-  - name: Run chroot commands to add system groups
+  - name: Configure chroot Environment
     command:
       cmd: "{{chroot_cmd}} bash -c '{{item}}'"
+      warn: no
     with_items:
-      - "addgroup --system lpadmin"
-      - "addgroup --system lxd"
-      - "addgroup --system sambashare"
+      - "locale-gen --purge {{locale_prefix}}"
+      - "update-locale LANG={{locale_prefix}}"
+      - "dpkg-reconfigure --frontend noninteractive locales tzdata keyboard-configuration console-setup"
 
   when:
     - ansible_nodename != "localhost"

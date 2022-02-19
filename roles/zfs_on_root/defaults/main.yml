@@ -41,7 +41,7 @@ single_or_mirror_boot_partition_size_MB: "2048"
 # Partition size, per device, when multiple devices are used
 # If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in MB (#devices-1*size_MB)
 # The more devices used, the smaller these values can be to get the same size.
-raidz_boot_partition_size_MB: "512"
+raidz_boot_partition_size_MB: "768"
 
 ###############################################################################
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
@@ -54,7 +54,7 @@ command_line_only: true
 prompt_for_zfs_passphrase: true
 
 # Define the local pre-fix to enable in /etc/locale.gen
-locale_prefix: "en_US"
+locale_prefix: "en_US.UTF-8"
 
 # Define the timezone to be placed in /etc/timezone
 timezone_value: "America/New_York"
@@ -90,6 +90,7 @@ set_root_pool_type:
   default: "raidz"
 
 # Define Pool Names
+# The boot pool name MUST be "bpool", requires /etc/grub.d/10_linux_zfs modifications to change it
 boot_pool_name: "bpool"
 root_pool_name: "rpool"
 

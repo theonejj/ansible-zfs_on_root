@@ -4,8 +4,8 @@
   debug:
     msg: "{{item}}"
   with_items:
-    - "zfs create {{boot_pool_container_options}}"
-    - "zfs create {{root_pool_container_options}}"
+    - "zfs create {{root_pool_container_options|join(' ')}}"
+    - "zfs create {{boot_pool_container_options|join(' ')}}"
   when:
     debug|default(false) == true
   tags:
@@ -17,8 +17,8 @@
   when:
     - ansible_nodename != "localhost"
   with_items:
-    - "zfs create {{boot_pool_container_options}}"
-    - "zfs create {{root_pool_container_options}}"
+    - "zfs create {{boot_pool_container_options|join(' ')}}"
+    - "zfs create {{root_pool_container_options|join(' ')}}"
   tags:
     - create_filesystems
 
@@ -27,10 +27,10 @@
   debug:
     msg: "{{item}}"
   with_items:
-    - "zfs create {{root_dataset_options}} -o com.ubuntu.zsys:last-used={{epoch.stdout}} {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
-    - "zfs mount {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
-    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
-    - "zfs mount {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
+    - "zfs create {{root_dataset_options|join(' ')}} {{root_pool_dataset_path}}"
+#    - "zfs mount {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
+    - "zfs create {{boot_dataset_options|join(' ')}} {{boot_pool_dataset_path}}"
+#    - "zfs mount {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
   when:
     debug|default(false) == true
   tags:
@@ -42,9 +42,9 @@
   when:
     - ansible_nodename != "localhost"
   with_items:
-    - "zfs create {{root_dataset_options}} -o com.ubuntu.zsys:last-used={{epoch.stdout}} {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
-    - "zfs mount {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
-    - "zfs create {{boot_dataset_options}} {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
-    - "zfs mount {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
+    - "zfs create {{root_dataset_options|join(' ')}} {{root_pool_dataset_path}}"
+#    - "zfs mount {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
+    - "zfs create {{boot_dataset_options|join(' ')}} {{boot_pool_dataset_path}}"
+#    - "zfs mount {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
   tags:
     - create_filesystems

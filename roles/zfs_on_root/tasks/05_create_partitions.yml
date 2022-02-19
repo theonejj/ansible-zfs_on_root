@@ -34,6 +34,10 @@
     loop: 
       "{{ disk_by_id }}"
 
+  - name: Notify Kernel of Updated Partitions
+    command:
+      "partprobe"
+
   when:
     ansible_nodename != "localhost"
   tags:

@@ -2,46 +2,31 @@
 ###[ Create Regular / Non-root User ]##########################################
 - name: Create Regular User Block
   block:
-  - name: Generate UUID for regular user dataset
-    shell:
-      cmd: "dd if=/dev/urandom of=/dev/stdout bs=1 count=100 2>/dev/null |  tr -dc 'a-z0-9' | cut -c-6"
-    register: UUID
-
-  - name: Generate Root Dataset value
-    shell:
-      cmd: "zfs list -o name | awk '/ROOT\\/ubuntu_/{print $1;exit}'"
-    register: ROOT_DS
-
-  - name: Generated Values
-    debug: 
-      msg: "Generated UUID: {{UUID.stdout}} ROOT_DS:{{ROOT_DS.stdout}}"
-    when:
-      - debug|default(false) == true
 
   - name: Create ZFS data set for home directory of regular user
     command: >-
-      zfs create -o com.ubuntu.zsys:bootfs-datasets={{ROOT_DS.stdout}}
+      zfs create -o com.ubuntu.zsys:bootfs-datasets={{root_pool_dataset_path}}
       -o canmount=on -o mountpoint=/home/{{regular_user_account}} 
       {{root_pool_name}}/USERDATA/{{regular_user_account}}_{{UUID.stdout}}
 
-- name: Create Regular User
-  user:
-    name: "{{regular_user_account}}"
-    groups: "{{regular_user_groups}}"
-    home: "/home/{{regular_user_account}}"
-    password: "{{ regular_user_password|password_hash('sha512') }}"
-    shell: "{{regular_user_shell}}"
-    state: present
+  - name: Create Regular User
+    user:
+      name: "{{regular_user_account}}"
+      groups: "{{regular_user_groups}}"
+      home: "/home/{{regular_user_account}}"
+      password: "{{ regular_user_password|password_hash('sha512') }}"
+      shell: "{{regular_user_shell}}"
+      state: present
 
-- name: Create skeleton home directory structure
-  copy:
-    src: "/etc/skel/."
-    dest: "/home/{{regular_user_account}}"
-    owner: "{{regular_user_account}}"
-    group: "{{regular_user_account}}"
-    mode: "0700"
-    remote_src: yes
-
+  - name: Create skeleton home directory structure
+    copy:
+      src: "/etc/skel/."
+      dest: "/home/{{regular_user_account}}"
+      owner: "{{regular_user_account}}"
+      group: "{{regular_user_account}}"
+      mode: "0700"
+      remote_src: yes
+ 
   when:
     - ansible_nodename != "localhost"
   tags:

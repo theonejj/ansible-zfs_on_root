@@ -17,6 +17,9 @@ regular_user_shell: "/bin/bash"
 ###############################################################################
 # Computer Configuration Settings
 ###############################################################################
+# Domain name to set
+domain_name: "rich-durso.us"
+
 # Create Swap Partitions
 enable_swap_partitions: true
 

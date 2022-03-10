@@ -128,6 +128,7 @@
 
   - set_fact:
       passphrase: "{{passphrase_prompt.user_input}}"
+      no_log: "{{no_log_secrets}}|default(false)|bool"
 
   when:
     - prompt_for_zfs_passphrase|default(true)|bool == true

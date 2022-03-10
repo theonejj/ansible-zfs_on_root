@@ -65,11 +65,13 @@ ansible_user=ansible
 ansible_ssh_private_key_file=/home/rich/.ssh/ansible
 
 [zfs_on_root_install_group]
-testlinux.example.com
+testlinux.example.com  host_name="testlinux" disk_device='["sda", "sdb", "sdc"]'
 ```
 
 * The `[zfs_on_root_install_group:vars]` block defined the SSH connection.  If you have this defined elsewhere such as in `.ansible.cfg` then this can be omitted.  
 * The `[zfs_on_root_install_group]` block lists the hostname(s) that you intend to boot the Live CD on and perform a ZFS on Root installation.
+* The `host_name=` is optional, if set you will not be prompted for it
+* The `disk_device=` is optional, you can specify on command line or be prompted for it.  This defines the name of the disk devices to use when building the ZFS pool if you know them in advance.  If this is set you will not be prompted for this.
 
 ### Edit `defaults/main.yml` to define the defaults
 

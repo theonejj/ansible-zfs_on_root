@@ -46,15 +46,6 @@
       group: root
       mode: '0700'
 
-  - name: Unmount chroot file systems
-    shell: 
-      cmd: "mount | grep -v zfs | tac | awk '/\\/mnt/ {print $3}' | xargs -i{} umount -lf {}"
-      warn: false
-
-  - name: Export all ZFS Pools
-    command: 
-      "zpool export -a"
-
   when:
     - ansible_nodename != "localhost"
   tags:

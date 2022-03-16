@@ -3,10 +3,9 @@
 - name: Install GRUB on UEFI Multi Disk Block
   block:
 
-  # This is a place holder, below is interactive not automated yet.
   - name: Configure Grub for Multi Disk on UEFI
     command:
-      "dpkg-reconfigure grub-efi-amd64"
+      "dpkg-reconfigure --frontend noninteractive grub-efi-amd64"
 
   when:
     - ansible_nodename != "localhost"

@@ -5,6 +5,16 @@
 
 - name: Configure System for Dropbear and Busybox to allow Remote Unlock Block
   block:
+    # Possible the boot pool is not imported, make sure all is good
+    - name: Make sure /boot/grub/grub.cf file is accessible
+      stat:
+        path: "/boot/grub/grub.cfg"
+      register: grub_cfg
+    
+    - name: try to import boot pool if /boot/grub/grub.cfg did not exist
+      command: "zpool import {{boot_pool_name}}"
+      when: not grub_cfg.stat.exists
+
     - name: Install Dropbear and BusyBox
       apt: 
         name: ['dropbear','busybox']

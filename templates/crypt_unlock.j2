@@ -21,6 +21,7 @@ if [ "${DROPBEAR}" != "n" ] && [ -r "/etc/zfs" ] ; then
 cat > "${DESTDIR}/bin/unlock" << EOF 
 #!/bin/sh 
 if PATH=/lib/unlock:/bin:/sbin /scripts/local-top/cryptroot; then 
+kill \`ps | grep [z]fs | awk '{print \$1}'\` 2>/dev/null
 /sbin/zfs load-key -a
 
 # rpool/root 

@@ -28,9 +28,7 @@
     msg: "{{item}}"
   with_items:
     - "zfs create {{root_dataset_options|join(' ')}} {{root_pool_dataset_path}}"
-#    - "zfs mount {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
     - "zfs create {{boot_dataset_options|join(' ')}} {{boot_pool_dataset_path}}"
-#    - "zfs mount {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
   when:
     debug|default(false) == true
   tags:
@@ -43,8 +41,7 @@
     - ansible_nodename != "localhost"
   with_items:
     - "zfs create {{root_dataset_options|join(' ')}} {{root_pool_dataset_path}}"
-#    - "zfs mount {{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
     - "zfs create {{boot_dataset_options|join(' ')}} {{boot_pool_dataset_path}}"
-#    - "zfs mount {{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
+
   tags:
     - create_filesystems

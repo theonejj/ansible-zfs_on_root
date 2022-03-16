@@ -33,6 +33,8 @@
   - name: Notify Kernel of Updated Partitions
     command:
       "partprobe"
+    when:
+      - disable_partprobe|default(false)|bool == false
 
   # Leaving this installed and running may cause device busy errors
   # later when partitions are created a /dev/md127 created and mounted

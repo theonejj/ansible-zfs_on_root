@@ -26,8 +26,13 @@ regular_user_shell: "/bin/bash"
 # Domain name to set
 domain_name: "rich-durso.us"
 
+# "Partprobe" is used to let the kernel know that partition tables have changed.
+# Sometimes it gets in the way with weird messaged such as:
+# "The driver descriptor says the physical block size is 2048 bytes, but Linux says it is 512 bytes."
+disable_partprobe: true
+
 # Create Swap Partitions
-enable_swap_partitions: true
+enable_swap_partitions: false
 
 # NOTE: For hibernation you need at least as much swap as the system RAM
 #       Hibernation does not work with encrypted swap.

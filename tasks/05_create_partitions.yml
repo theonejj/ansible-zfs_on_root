@@ -37,7 +37,9 @@
   - name: Notify Kernel of Updated Partitions
     command:
       "partprobe"
-
+    when:
+      - disable_partprobe|default(false)|bool == false
+    
   when:
     ansible_nodename != "localhost"
   tags:

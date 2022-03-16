@@ -60,10 +60,6 @@
       - "{{boot_pool_name}}"
       - "{{root_pool_name}}"
 
-  when:
-    - ansible_nodename != "localhost"
-    - enable_swap_partitions|default(true)|bool == true
-    - disk_by_id|length|int > 1
   tags:
     - fix_mount_order
 ###############################################################################

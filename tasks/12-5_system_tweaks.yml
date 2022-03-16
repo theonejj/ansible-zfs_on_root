@@ -1,6 +1,6 @@
 ---
-###[ Enable /tmp using tmpfs ]##################################################
-- name: Enable tmp directory using tmpfs Block
+###[ System Tweaks Block ]##################################################
+- name: System Tweaks Block
   block:
   - name: Setup /tmp to use tmpfs
     copy:
@@ -11,15 +11,7 @@
   - name: Run chroot command enable /tmp
     command:
       cmd: "{{chroot_cmd}} bash -c 'systemctl enable tmp.mount'"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - system_tweaks
-###############################################################################
 
-###[ Add System Groups ]#######################################################
-- name: Add System Groups Block
-  block:
   - name: Run chroot commands to add system groups
     command:
       cmd: "{{chroot_cmd}} bash -c '{{item}}'"
@@ -27,15 +19,7 @@
       - "addgroup --system lpadmin"
       - "addgroup --system lxd"
       - "addgroup --system sambashare"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - system_tweaks
-###############################################################################
 
-### [ Patch Dependency Loop ]##################################################
-- name: Patch Dependency Loop Block
-  block:
   - name: Install Packaged Needed to fetch and apply patch
     command: 
       "{{chroot_cmd}} bash -c 'apt install --yes --no-install-recommends curl patch'"

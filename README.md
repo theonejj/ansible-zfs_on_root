@@ -2,7 +2,6 @@
 
 Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://openzfs.github.io/openzfs-docs/Getting%20Started/Ubuntu/Ubuntu%2020.04%20Root%20on%20ZFS.html#overview) with many enhancements:
 
-
 * Predefine rules for ZFS `bpool` and `rpool` pools types (mirror, raidz1, raidz2, multiple mirror vdevs) based on number of devices available
 * Swap partitions can be enabled
   * Multi-disk swap partitions automatically setup with `mdadm`
@@ -47,6 +46,7 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 * Backup your data. Any existing data will be lost.
 
 ---
+
 ## WHY use THIS instead of Ubuntu's Installation Wizard
 
 ### Configurable Rules
@@ -133,7 +133,7 @@ The `defaults/main.yml` hold most setting that can be changed.
   regular_user_shell: "/bin/bash"
   ```
 
-### Additional Settings to Review:
+### Additional Settings to Review
 
 * Review [SWAP Partition Settings](docs/swap-partition-settings.md)
 * Review [Boot Pool & Partition Settings](docs/boot-partition-settings.md)
@@ -185,7 +185,6 @@ boot_pool_name: "bpool"
 root_pool_name: "rpool"
 ```
 
-
 ### Additional Configuration Files
 
 There should be no reason to alter the configuration file `vars/main.yml` which defines all the details and flags to construct partitions, root and boot pools, all the dataset that will be created.  If this type of information interests you, this is where you find it... but don't change anything unless you understand what you are looking at.
@@ -227,7 +226,6 @@ There should be no reason to alter the configuration file `vars/main.yml` which 
       * Close Gparted
     Press <kbd>ALT</kbd>-<kbd>F2</kbd> to run a command and enter `reboot`
     After reboot this step can be skipped.
-
 
 3. Install and start the OpenSSH server in the Live CD environment:
 
@@ -405,7 +403,7 @@ Helper tasks, basic sanity checks and mandatory tasks are already marked as `alw
 
 ## Known Issues
 
-### Issue #1 - Task: zfs_on_root : Export all ZFS Pools - Fails:
+### Issue #1 - Task: zfs_on_root : Export all ZFS Pools - Fails
 
 ```text
 STDERR:
@@ -414,13 +412,13 @@ cannot export 'rpool': pool is busy
 
 It can be very difficult to nearly impossible to determine why a pool is busy at search an early stage.  All mounts are removed, no datasets are shared yet, no users are within the mounted areas. Without being able to export the pool cleanly during this process, importing the pool will fail upon first reboot.  The following work around imports the pool and allows you to resume the boot process.
 
-#### Workaround
+#### Workaround for Issue #1
 
 * Power down Live CD Environment
 * Remove LiveCD media
 * Power up instance
 
-The following error message is now expected:
+The following error message is now expected during boot up:
 
 ```bash
 Importing pool 'rpool' using cachefile. ... Failure 1
@@ -435,7 +433,6 @@ Manually import the pool and exit.
 At the `(initramfs)` prompt, type the following:
 
 ```bash
-zpool import -f bpool
 zpool import -f rpool
 exit
 ```
@@ -466,7 +463,7 @@ Swap:         0B          0B       0B
 
 If there is anything incorrect with the configuration file `/etc/mdadm/mdadm.conf` the kernel will attempt to assemble the array and mount it as something like `/dev/md127` the swap is configured to be at `/dev/md0` and will not work until this is corrected.
 
-#### Workaround
+#### Workaround for Issues #2
 
 Confirm the device name of the incorrect mdadm device with:
 
@@ -549,7 +546,7 @@ As part of the ZFS on Root process, a script will dynamically generated located 
 
 #### Marking Swap Device as Failed
 
-NOTE: `mdadm` is used to create mirrored or striped swap partitions.  If you will be replacing a drive then you should mark the device as *failed* before removing it from the system. Failure to do so will likely result in no swap being available.  Marking the device as failed before removal allows the swap device to function even if in a degraded state.
+NOTE: `mdadm` is used to create mirrored or striped swap partitions.  If you will be replacing a drive then you should mark the device as **failed** before removing it from the system. Failure to do so will likely result in no swap being available.  Marking the device as failed before removal allows the swap device to function even if in a degraded state.
 
 Swap device created by this ZFS on Root will always end with "2" as partition 2 is used for swap on each device.  You just need to figure out the device letters such as `sda`, `sdb`, `sdb`, etc.
 

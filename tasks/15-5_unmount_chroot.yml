@@ -5,7 +5,7 @@
 
   - name: Unmount chroot file systems
     shell: |
-      mount | grep -v zfs | tac | awk '/\\/mnt/ {print $3}' | xargs -i{} umount -lf {}
+      mount | grep -v zfs | tac | awk '/\/mnt/ {print $3}' | xargs -i{} umount -lf {}
       umount /mnt/*
       umount -l /mnt
       grep /mnt /proc*/mounts | tac | awk '{print $3}' FS="/" | uniq | xargs -i{} kill -9 {}

@@ -8,6 +8,8 @@
       "sgdisk {{ uefi_partition_flags }} {{ item }}"
     loop: 
       "{{ disk_by_id }}"
+    loop_control:
+      label: "{{ disk_by_id }}"
 
   # This is only created for legacy BIOS Booting only
   - name: Create BIOS Boot Loader Partitions for Legacy Boot
@@ -15,6 +17,8 @@
       "sgdisk {{ bios_partition_flags }} {{ item }}"
     loop: 
       "{{ disk_by_id }}"
+    loop_control:
+      label: "{{ disk_by_id }}"
     when:
       - use_uefi_booting|default(false)|bool == false
 
@@ -23,6 +27,8 @@
       "sgdisk {{(boot_pool_type == 'raidz')|ternary(raidz_multi_disk_swap_flags, single_disk_or_mirror_swap_flags)}} {{ item }}"
     loop: 
       "{{ disk_by_id }}"
+    loop_control:
+      label: "{{ disk_by_id }}"
     when:
       - enable_swap_partitions|default(true)|bool == true 
 
@@ -31,12 +37,16 @@
       "sgdisk {{(boot_pool_type == 'raidz')|ternary(raidz_multi_disk_boot_partition_flags,single_disk_or_mirror_boot_partition_flags)}} {{ item }}"
     loop: 
       "{{ disk_by_id }}"
+    loop_control:
+      label: "{{ disk_by_id }}"
 
   - name: Create Root Pool Partitions
     command:
       "sgdisk {{ root_partition_flags }} {{ item }}"
     loop: 
       "{{ disk_by_id }}"
+    loop_control:
+      label: "{{ disk_by_id }}"
 
   - name: Notify Kernel of Updated Partitions
     command:

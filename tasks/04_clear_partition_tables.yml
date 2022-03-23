@@ -9,6 +9,8 @@
     command: "wipefs --all --force {{ item }}"
     loop: 
       "{{ disk_by_id }}"
+    loop_control:
+      label: "{{ disk_by_id }}"
 
   - name: Wait for kernel notification of changes to be processed
     command: "udevadm settle"

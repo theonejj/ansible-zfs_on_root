@@ -19,7 +19,7 @@
 ###############################################################################
 
 ###[ GRUB Installation Process ]###############################################
-- name: GRUB Installation for Legacy Devices Block
+- name: GRUB Installation Block
   block:
   # Parameters added to prevent grub menu selection for legacy devices
   - name: Run chroot command to install GRUB, Linux and ZFS for Legacy BIOS Booting

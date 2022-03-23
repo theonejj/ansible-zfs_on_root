@@ -15,6 +15,8 @@
       cmd: "zfs create {{item}}"
     loop: 
       "{{ datasets_to_create }}"
+    loop_control:
+      label: "{{item}}"
   
   - name: Set Permissions on /mnt/root
     ansible.builtin.file:

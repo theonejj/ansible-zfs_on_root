@@ -12,6 +12,8 @@
     with_items:
       - hostname
       - hosts
+    loop_control:
+      label: "{{item}}.j2"
 
   # Update Netplan Network file - not tested on multiple adapters, might break
   - name: Get Network adapter name on Ubuntu

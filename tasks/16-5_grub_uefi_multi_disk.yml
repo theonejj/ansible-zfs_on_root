@@ -3,10 +3,16 @@
 - name: Install GRUB on UEFI Multi Disk Block
   block:
 
-  - name: Configure Grub for Multi Disk on UEFI
-    command:
-      "dpkg-reconfigure --frontend noninteractive grub-efi-amd64"
+#  - name: Configure Grub for Multi Disk on UEFI
+#    command:
+#      "dpkg-reconfigure --frontend noninteractive grub-efi-amd64"
 
+# Instead use "dd" to clone part-1 to other partitions
+  - name: Clone -part1 to each disk
+    command: "dd if={{disk_by_id[0]}}-part1 of={{ disk_by_id[item] }}-part1"
+    loop: 
+      "{{ range(1,disk_by_id|length|int) }}"
+      
   when:
     - ansible_nodename != "localhost"
     - use_uefi_booting|default(false)|bool == true

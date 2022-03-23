@@ -1,47 +1,43 @@
 ---
-# Create Filesystem Containers ---------------------------------------------------
-- name: Debug Create Boot and Root Filesystem Dataset Container
-  debug:
-    msg: "{{item}}"
-  with_items:
-    - "zfs create {{root_pool_container_options|join(' ')}}"
-    - "zfs create {{boot_pool_container_options|join(' ')}}"
-  when:
-    debug|default(false) == true
-  tags:
-    - create_filesystems
+###[ Create Filesystem Containers ]############################################
+- name: Create Filesystem Containers Block
+  block:
+  - name: Debug Create Boot and Root Filesystem Dataset Container
+    debug:
+      msg: "{{item}}"
+    with_items:
+      - "zfs create {{root_pool_container_options|join(' ')}}"
+      - "zfs create {{boot_pool_container_options|join(' ')}}"
+    when:
+      debug|default(false) == true
 
-- name: Create Boot and Root Filesystem Dataset Container
-  command:
-    cmd: "{{item}}"
-  when:
-    - ansible_nodename != "localhost"
-  with_items:
-    - "zfs create {{boot_pool_container_options|join(' ')}}"
-    - "zfs create {{root_pool_container_options|join(' ')}}"
-  tags:
-    - create_filesystems
+  - name: Create Boot and Root Filesystem Dataset Container
+    command:
+      cmd: "{{item}}"
+    when:
+      - ansible_nodename != "localhost"
+    with_items:
+      - "zfs create {{boot_pool_container_options|join(' ')}}"
+      - "zfs create {{root_pool_container_options|join(' ')}}"
 
-# Create Filesystem Boot and Root Containers ---------------------------------
-- name: Debug Create Boot and Root Filesystem
-  debug:
-    msg: "{{item}}"
-  with_items:
-    - "zfs create {{root_dataset_options|join(' ')}} {{root_pool_dataset_path}}"
-    - "zfs create {{boot_dataset_options|join(' ')}} {{boot_pool_dataset_path}}"
-  when:
-    debug|default(false) == true
-  tags:
-    - create_filesystems
+  # Create Filesystem Boot and Root Containers ---------------------------------
+  - name: Debug Create Boot and Root Filesystem
+    debug:
+      msg: "{{item}}"
+    with_items:
+      - "zfs create {{root_dataset_options|join(' ')}} {{root_pool_dataset_path}}"
+      - "zfs create {{boot_dataset_options|join(' ')}} {{boot_pool_dataset_path}}"
+    when:
+      debug|default(false) == true
 
-- name: Create Boot and Root Filesystem
-  command:
-    cmd: "{{item}}"
-  when:
-    - ansible_nodename != "localhost"
-  with_items:
-    - "zfs create {{root_dataset_options|join(' ')}} {{root_pool_dataset_path}}"
-    - "zfs create {{boot_dataset_options|join(' ')}} {{boot_pool_dataset_path}}"
+  - name: Create Boot and Root Filesystem
+    command:
+      cmd: "{{item}}"
+    when:
+      - ansible_nodename != "localhost"
+    with_items:
+      - "zfs create {{root_dataset_options|join(' ')}} {{root_pool_dataset_path}}"
+      - "zfs create {{boot_dataset_options|join(' ')}} {{boot_pool_dataset_path}}"
 
   tags:
     - create_filesystems

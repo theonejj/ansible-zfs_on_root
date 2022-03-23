@@ -5,44 +5,19 @@
   - name: Insure Swap Partitions are Not Used
     command: "swapoff --all"
 
-  - name: Clear any mdadm superblocks for whole disk
-    command: "mdadm --zero-superblock --force {{ item }}"
+  - name: Wipe filesystem and partition table information
+    command: "wipefs --all --force {{ item }}"
     loop: 
       "{{ disk_by_id }}"
 
-  # See if partition ending in "-part2" exists, if so try to remove it.
-  # Sign a guide like this has been followed before.
-  # Assumption that ine one exist, it will exist on all of them.
-  - stat:
-      path: "{{disk_by_id[0]}}-part2"
-    register: part2
-
-  - name: Clear any mdadm superblocks for partitions
-    command: "mdadm --zero-superblock --force {{ item }}-part2"
-    ignore_errors: yes
-    loop: 
-      "{{ disk_by_id }}"
-    when:
-      - part2.stat.exists
-
-  - name: Clear Partition Table from Devices
-    command: "sgdisk --zap-all {{ item }}"
-    loop: 
-      "{{ disk_by_id }}"
+  - name: Wait for kernel notification of changes to be processed
+    command: "udevadm settle"
 
   - name: Notify Kernel of Updated Partitions
     command:
       "partprobe"
     when:
       - disable_partprobe|default(false)|bool == false
-
-  # Leaving this installed and running may cause device busy errors
-  # later when partitions are created a /dev/md127 created and mounted
-  # -part2 partitions.
-  - name: Uninstall mdadm once partitions are cleared
-    apt: 
-      name: ['mdadm']
-      state: absent
 
   when:
     ansible_nodename != "localhost"

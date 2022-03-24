@@ -79,7 +79,7 @@ _NOTE: The correct passphrase for an existing encrypted pool is not actually nee
 To establish an `SSH` connection to a remote system with Dropbear installed, using your Dropbear specific RSA Key to connect as root:
 
 ```bash
-$ ssh -i ~/.ssh/dropbear_rsa -p 2222 root@<remote_host_name>
+$ ssh -i ~/.ssh/dropbear_rsa -p 2222 -o PubKeyAcceptedKeyTypes=+ssh-rsa root@<remote_host_name>
 
 Enter passphrase for 'rpool':
 1 / 1 key(s) successfully loaded
@@ -88,5 +88,7 @@ Connection to <remote_host_name> closed.
 ```
 
 The only thing you'll be prompted for is the passphrase to decrypt the root pool. If entered incorrectly you will be given additional attempts.  Once entered correctly the connection is closed and system boot sequence proceeds.  The Dropbear SSH service will not be running once the system has booted.
+
+* NOTE: SSH clients have started to drop support for RSA keys.  The `-o PubKeyAcceptedKeyTypes=+ssh-rsa` is required on such clients otherwise you will get an access denied trying to connect.
 
 [Back to README.md](../README.md)

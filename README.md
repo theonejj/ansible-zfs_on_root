@@ -88,50 +88,85 @@ My intention for this was the occasional one off build, however being based on A
 
 ### Edit your inventory document
 
-Add something like the following:
+I use a `yaml` format inventory file, you will have to adjust to whatever format you use.
 
-```ini
+```yaml
 
-[zfs_on_root_install_group:vars]
-ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-ansible_user=ansible
-ansible_ssh_private_key_file=/home/rich/.ssh/ansible
+---
+###[ Define all Hosts ]########################################################
+all:
+  hosts:
+    testlinux01.localdomain:
+    testlinux02.localdomain:
+ 
+   vars:
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    ansible_python_interpreter: "/usr/bin/python3"
+    ansible_user: ansible
+    ansible_ssh_private_key_file: "/home/rich/.ssh/ansible"
+    ansible_port: 22
 
-[zfs_on_root_install_group]
-testlinux.example.com  host_name="testlinux" disk_device='["sda", "sdb", "sdc"]'
+  children:
+    ###[ ZFS on Root Installs ]################################################
+    zfs_on_root_install_group:
+      hosts:
+        testlinux01.localdomain:
+          host_name: "testlinux01"
+          disk_devices: ["sda", "sdb", "sdc"]
+        testlinux01.localdomain:
+          host_name: "testlinux02"
+          disk_devices: ["sda", "nvme0n1"]
+
+      vars:
+        # Define the default domain these hosts will use
+        domain_name: "localdomain"
 ```
 
-* The `[zfs_on_root_install_group:vars]` block defined the SSH connection.  If you have this defined elsewhere such as in `.ansible.cfg` then this can be omitted.  
-* The `[zfs_on_root_install_group]` block lists the hostname(s) that you intend to boot the Live CD on and perform a ZFS on Root installation.
-* The `host_name=` is optional, defines the name of the new system to be built, if set here you will not be prompted for it
-* The `disk_device=` is optional, you can specify on command line or be prompted for it.  This defines the name of the disk devices to use when building the ZFS pool if you know them in advance.  If this is set you will not be prompted for this.
+* The `vars:` block under `all:` defined the SSH default ssh connections settings all hosts will use (child hosts below can override these values if needed)
+* The `zfs_on_root_install_group:` block lists the hostname(s) that you intend to boot the Live CD on and perform a ZFS on Root installation.
+* The `host_name:` is optional, defines the name of the new system to be built, if set here you will not be prompted for it
+* The `disk_device:` is optional, you can specify on command line or be prompted for it.  This defines the name of the disk devices to use when building the ZFS pools if you know them in advance.  
+  * If this is set you will not be prompted.
+  * Default rules will make 2 devices a mirror, 3 will use a raidz1, 4 will join two mirrored vdevs into a pool (you can redefine these)
+* The `domain_name:` under `vars:` sets the domain name that will be used for each host created.  If an individual host needs a different domain name then just add a `domain_name:` under that host.
 
 ---
 
 ### Edit `defaults/main.yml` to define the defaults
 
-The `defaults/main.yml` hold most setting that can be changed.
+The `defaults/main.yml` contains most setting that can be changed.  
 
-#### Define the Non-Root Account
+You are  defining reasonable defaults.  Individual hosts that need something a little different can be set in the inventory file or you can use any other method that Ansible support for defining variables.
 
- Define your standard privileged account.  The root account password will be disabled at the end, the privileged account defined here will have `sudo` privilege to perform root activities.
+#### Define Temporary Root Password
 
-  ```yaml
-  ###############################################################################
-  # User Specific Settings
-  ###############################################################################
+This temporary root password is only used during the build process.  The ability for root to use a password will be disabled towards the finally stages.
 
-  # Default root password to set - temporary, password is disabled at end.
-  # The non-root user account will have sudo privileges
-  default_root_password: "change!me"
+```yml
+###############################################################################
+# User Settings
+###############################################################################
 
-  # Define non-root usr account to create (home drive will be its own dataset)
-  regular_user_account: "rich"
-  regular_user_password: "change!me"
-  regular_user_fullname: "Richard Durso"
-  regular_user_groups: "adm,cdrom,dip,lpadmin,lxd,plugdev,sambashare,sudo"
-  regular_user_shell: "/bin/bash"
-  ```
+# This is a temporary root password used during the build process.  
+# Root password will be disabled during the final stages.
+# The non-root user account will have sudo privileges
+default_root_password: "change!me"
+```
+
+#### Define the Non-Root Account(s)
+
+ Define your standard privileged account.  The root account password will be disabled at the end, the privileged account(s) defined here must have `sudo` privilege to perform root activities.  Additional accounts can be defined.
+
+```yaml
+# Define non-root user account(s) to create (home drives will be its own dataset)
+# Each user will be required to change password upon first login
+regular_user_accounts: 
+  - user_id: "rich"
+    password: "change!me"
+    full_name: "Richard Durso"
+    groups: "adm,cdrom,dip,lpadmin,lxd,plugdev,sambashare,sudo"
+    shell: "/bin/bash"
+```
 
 ### Additional Settings to Review
 
@@ -144,7 +179,7 @@ The `defaults/main.yml` hold most setting that can be changed.
 
 #### UEFI or Legacy BIOS
 
-Select if UEFI or Legacy BIOS is needed:
+Select if UEFI or Legacy BIOS is needed. When available UEFI will be used, if not available it will automatically fallback to BIOS.  If you never want to use UEFI then set this to false.
 
 ```yaml
 ###############################################################################
@@ -187,7 +222,7 @@ root_pool_name: "rpool"
 
 ### Additional Configuration Files
 
-There should be no reason to alter the configuration file `vars/main.yml` which defines all the details and flags to construct partitions, root and boot pools, all the dataset that will be created.  If this type of information interests you, this is where you find it... but don't change anything unless you understand what you are looking at.
+There should be no reason to alter the configuration file `vars/main.yml` which defines all the details and flags to construct partitions, root and boot pools, all the dataset that will be created.  If this type of information interests you, this is where you will find it... but don't change anything unless you understand what you are looking at.
 
 ---
 
@@ -303,11 +338,13 @@ You are now ready to perform a ZFS on Root installation to this target machine.
 
 ### Fire-up the Ansible Playbook
 
-The most basic way to run the entire ZFS on Root process:
+The most basic way to run the entire ZFS on Root process and limit to an individual host as specified:
 
 ```bash
 ansible-playbook -i inventory ./zfs_on_root.yml -l <remote_host_name>
 ```
+
+The following shows examples of overriding values from the command line. Typically it will be easier to define these in the inventory instead.
 
 If a non-standard SSH port is required:
 
@@ -354,7 +391,7 @@ If the above is too complicated, no worries.  The script will show you the detec
 
 ### Step by Step Installation
 
-As an alternative to running the entire playbook at one time, in can be run sections at a time using the ansible `tags` as defined below.  This method can be used to troubleshoot issues and replay steps if you have a way of rolling back previous failures. Failures can be rolled back either manually or via snapshots in Virtualbox or equivalent.
+As an alternative to running the entire playbook at one time, it can be run sections at a time using the ansible `tags` as defined below.  This method can be used to troubleshoot issues and replay steps if you have a way of rolling back previous failures. Failures can be rolled back either manually or via snapshots in Virtualbox or equivalent.
 
 To run just one stage via tags, all the Ansible Playbook examples from above can be used with the addition of including tags:
 
@@ -362,13 +399,13 @@ To run just one stage via tags, all the Ansible Playbook examples from above can
 ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb], host_name: testlinux}' -l <remote_host_name> --tags="install-zfs-packages"
 ```
 
-Multiple tags can be combined to run a few things in a row by combining tags:
+Multiple tags can be combined to run several tasks:
 
 ```text
 --tags="create_pools, create_filesystems, create_datasets"
 ```
 
-List and order of execution of tags defined for this playbook:
+This is the list and order of execution for all tags defined for this playbook:
 
 ```text
     tags:
@@ -410,7 +447,7 @@ STDERR:
 cannot export 'rpool': pool is busy
 ```
 
-It can be very difficult to nearly impossible to determine why a pool is busy at search an early stage.  All mounts are removed, no datasets are shared yet, no users are within the mounted areas. Without being able to export the pool cleanly during this process, importing the pool will fail upon first reboot.  The following work around imports the pool and allows you to resume the boot process.
+It can be very difficult to nearly impossible to determine why a pool is busy at such an early stage in the build process.  All mounts are removed, no datasets are shared yet, no users are within the mounted areas. Without being able to export the pool cleanly during this process, importing the pool will fail upon first reboot.  The following work around imports the pool and allows you to resume the boot process.
 
 #### Workaround for Issue #1
 
@@ -418,7 +455,7 @@ It can be very difficult to nearly impossible to determine why a pool is busy at
 * Remove LiveCD media
 * Power up instance
 
-The following error message is now expected during boot up:
+The following error message is now expected during the boot process:
 
 ```bash
 Importing pool 'rpool' using cachefile. ... Failure 1
@@ -437,16 +474,18 @@ zpool import -f rpool
 exit
 ```
 
-The system should now resume booting, if ZFS Encryption is enabled it will prompt for the passphrase.
+The system should now resume booting. If ZFS Encryption is enabled it will prompt for the passphrase to unlock the pool.
+
+Then:
 
 * Login as root
 * Reboot the system again
 * Confirm it boots cleanly without the pool import error
 
-To resume the ansible playbook, you can specify to execute the remaining steps via ansible tags (all at once, or specify one, or a few at a time):
+To resume the ansible playbook, you can specify to execute the remaining steps via ansible tags (all at once, or specify one, or a few at a time -- your choice):
 
 ```text
---tags="grub_uefi_multi_disk, create_regular_user, full_install, restart_remote_final, final_cleanup, install_drop_bear"
+--tags="grub_uefi_multi_disk, create_regular_user, full_install, restart_remote_final, final_cleanup, install_drop_bear, update_sshd_settings"
 ```
 
 ---

@@ -76,6 +76,8 @@
       cmd: "if grep -Eq '(^|[^#y])compress' {{item.path}} ; then sed -i -r 's/(^|[^#y])(compress)/\\1#\\2/' {{item.path}}; fi"
     with_items: "{{ files_matched.files }}"
     ignore_errors: yes
+    loop_control:
+      label: "{{item.path}}"
 
   when:
     - ansible_nodename != "localhost"

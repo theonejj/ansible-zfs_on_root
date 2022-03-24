@@ -8,7 +8,7 @@
     register:
       grub_results
 
-  # grub_results must be "zfs" of something is not right
+  # grub_results must be "zfs" or something is not right
   - fail:
       msg: "ERROR: grub-probe /boot did not find zfs."
     when:

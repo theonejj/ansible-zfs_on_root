@@ -6,25 +6,28 @@
 no_log_secrets: true
 
 ###############################################################################
-# User Specific Settings
+# User Settings
 ###############################################################################
 
-# Default root password to set - temporary, password is disabled at end.
+# This is a temporary root password used during the build process.  
+# Root password will be disabled during the final stages.
 # The non-root user account will have sudo privileges
 default_root_password: "change!me"
 
-# Define non-root usr account to create (home drive will be its own dataset)
-regular_user_account: "rich"
-regular_user_password: "change!me"
-regular_user_fullname: "Richard Durso"
-regular_user_groups: "adm,cdrom,dip,lpadmin,lxd,plugdev,sambashare,sudo"
-regular_user_shell: "/bin/bash"
+# Define non-root user account(s) to create (home drives will be its own dataset)
+# Each user will be required to change password upon first login
+regular_user_accounts: 
+  - user_id: "rich"
+    password: "change!me"
+    full_name: "Richard Durso"
+    groups: "adm,cdrom,dip,lpadmin,lxd,plugdev,sambashare,sudo"
+    shell: "/bin/bash"
 
 ###############################################################################
 # Computer Configuration Settings
 ###############################################################################
-# Domain name to set
-domain_name: "rich-durso.us"
+# Default domain hosts will use if not defined in inventory file
+domain_name: "localdomain"
 
 # "Partprobe" is used to let the kernel know that partition tables have changed.
 # Sometimes it gets in the way with weird messaged such as:

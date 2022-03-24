@@ -50,11 +50,11 @@
           IMPORTANT: Copy the SSH for your non-root user NOW! After the next reboot 
                      SSH based password logins may NOT work.
 
-          ssh-copy-id -i ~/.ssh/<public_key> {{regular_user_account}}@{{(ansible_ssh_host|default(ansible_host))|default(inventory_hostname)}}
+          ssh-copy-id -i ~/.ssh/<public_key> {{regular_user_accounts[0].user_id}}@{{(ansible_ssh_host|default(ansible_host))|default(inventory_hostname)}}
 
           When completed, press ENTER to wrap up this installation:
 
-          * Root password is now disabled (login as "{{regular_user_account}}" and use sudo instead).
+          * Root password is now disabled (login as "{{regular_user_accounts[0].user_id}}" and use sudo instead).
           * Ansible password is now disabled, only SSH key connection allowed.
           * Graphical Boot Process is be enabled.
           {% if root_pool_encryption|default(false)|bool == true %}{% if enable_dropbear_with_busybox_support|bool == true %}

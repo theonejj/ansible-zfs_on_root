@@ -8,10 +8,11 @@
 
          Default Root Password: {{default_root_password}}
       
-              Non-root Account: {{regular_user_account}}       
-                      Password: {{regular_user_password}}
-                     Full Name: {{regular_user_fullname}}
-                 Add to Groups: {{regular_user_groups}}
+      Primary Non-root Account: {{regular_user_accounts[0].user_id}}       
+                      Password: {{regular_user_accounts[0].password}}
+                     Full Name: {{regular_user_accounts[0].full_name}}
+                 Add to Groups: {{regular_user_accounts[0].groups}}
+            Accounts to Create: {{regular_user_accounts|length}}
 
       Environment Installation: {% if command_line_only|default(false)|bool == true%}Command-line only{%else%}Full GUI Environment{% endif %}
 

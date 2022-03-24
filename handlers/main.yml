@@ -1,0 +1,20 @@
+---
+- name: "Create skeleton home directory structure"
+  copy:
+    src: "/etc/skel/."
+    dest: "/home/{{item.item.user_id}}"
+    owner: "{{item.item.user_id}}"
+    group: "{{item.item.user_id}}"
+    mode: "0700"
+    remote_src: yes
+  when: item.changed
+  with_items: "{{home_dirs.results}}"
+  loop_control:
+    label: "/home/{{item.item.user_id}}"
+
+- name: "Force change password"
+  command: "chage -d 0 {{ item.item.user_id }}"
+  when: item.changed
+  with_items: "{{ accounts.results }}"
+  loop_control:
+    label: "{{ item.item.user_id }}"

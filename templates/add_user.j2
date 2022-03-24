@@ -1,11 +1,20 @@
 #!/bin/bash
 #
-# Version 1.1 - based off the ZFS on Root LInux Guide
+# Version 1.2 - based off the ZFS on Root Linux Guide
 # https://openzfs.github.io/openzfs-docs/Getting%20Started/Ubuntu/Ubuntu%2020.04%20Root%20on%20ZFS.html#overview
 #
+ADD_TO_GROUPS="{{regular_user_accounts[0].groups}}"
 
+__usage(){
+echo "
+This script is used to create additional non-root user accounts with ZFS dataset for home directory.
+  
+These groups will be applied: $ADD_TO_GROUPS
+
+usage: ${0##*/} <user_id>"
+}
 if [[ "$#" -ne 1 ]]; then
-  echo "You must provide a username of a home directory to create."
+  __usage
   exit 1
 else
     if [[ -d /home/${1} ]]; then
@@ -21,6 +30,6 @@ else
       adduser ${1}
       cp -a /etc/skel/. /home/${1}
       chown -R ${1}:${1} /home/${1}
-      usermod -a -G {{regular_user_groups}} ${1}
+      usermod -a -G ${ADD_TO_GROUPS} ${1}
     fi
 fi

@@ -31,20 +31,32 @@ domain_name: "localdomain"
 
 # "Partprobe" is used to let the kernel know that partition tables have changed.
 # Sometimes it gets in the way with weird messaged such as:
-# "The driver descriptor says the physical block size is 2048 bytes, but Linux says it is 512 bytes."
+# "The driver descriptor says the physical block size is 2048 bytes, but Linux
+# says it is 512 bytes."
 disable_partprobe: true
 
 # Create Swap Partitions
 enable_swap_partitions: false
 
+# Disable IPv6 if you do not use it.  The "disable_settings" will be applied to
+# "conf_file"
+ipv6:
+  disable: true
+  conf_file: "/etc/sysctl.d/99-sysctl.conf"
+  disable_settings:
+    - "net.ipv6.conf.all.disable_ipv6 = 1"
+    - "net.ipv6.conf.default.disable_ipv6 = 1"
+    - "net.ipv6.conf.lo.disable_ipv6 = 1"
+  apply_cmd: "sysctl -p"
+  
 # NOTE: For hibernation you need at least as much swap as the system RAM
 #       Hibernation does not work with encrypted swap.
-
 # Swap partition size when a single device or set_boot_pool_type is mirror
 single_or_mirror_swap_partition_size_MB: "4096"
 
 # Partition size, per device, when multiple devices are used
-# If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in MB (#devices-1*size_MB)
+# If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in
+# MB (#devices-1*size_MB)
 # The more devices used, the smaller these values can be to get the same size.
 raidz_swap_partition_size_MB: "1024"
 
@@ -56,7 +68,8 @@ raidz_swap_partition_size_MB: "1024"
 single_or_mirror_boot_partition_size_MB: "2048"
 
 # Partition size, per device, when multiple devices are used
-# If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in MB (#devices-1*size_MB)
+# If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in
+# MB (#devices-1*size_MB)
 # The more devices used, the smaller these values can be to get the same size.
 raidz_boot_partition_size_MB: "768"
 
@@ -64,10 +77,12 @@ raidz_boot_partition_size_MB: "768"
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
 use_uefi_booting: true
 
-# For Full GUI Desktop installation (set to false) or command-line only server environment (set to true)
+# For Full GUI Desktop installation (set to false) or command-line only server
+# environment (set to true)
 command_line_only: true
 
-# Prompt for Native ZFS Encryption Passphrase.  if true, then prompt for passphrase if not provided.
+# Prompt for Native ZFS Encryption Passphrase.  if true, then prompt for
+# passphrase if not provided.
 prompt_for_zfs_passphrase: true
 
 # Define the local pre-fix to enable in /etc/locale.gen
@@ -107,16 +122,17 @@ set_root_pool_type:
   default: "raidz"
 
 # Define Pool Names
-# The boot pool name MUST be "bpool", requires /etc/grub.d/10_linux_zfs modifications to change it
+# The boot pool name MUST be "bpool", requires /etc/grub.d/10_linux_zfs modifications
+# to change it
 boot_pool_name: "bpool"
 root_pool_name: "rpool"
 
 ###############################################################################
 # The following SSHD Settings will be applied at final_cleanup
-# IMPORTANT: Only some basic settings which can be search and replaced using values
-#            such as works such as: "yes", "no", "none", "any", "prohibit-password", 
-#             digits (such as 10, 22, or 2m). Does not match fancy items like 
-#            IP Address or full directory paths.
+# IMPORTANT: Only some basic settings which can be search and replaced using
+#            values such as works such as: "yes", "no", "none", "any",
+#            "prohibit-password", digits (such as 10, 22, or 2m). This does not
+#            match fancy items like IP Address or full directory paths.
 update_sshd_settings: true
 apply_sshd_settings:
   PasswordAuthentication: "no"
@@ -124,12 +140,12 @@ apply_sshd_settings:
   PubkeyAuthentication: "yes"
 
 ###############################################################################
-# Dropbear support allows for small SSH service to be included in initram to allow
-# for remote connection to enter the ZFS Native Encryption Password.
+# Dropbear support allows for small SSH service to be included in initram to
+# allow for remote connection to enter the ZFS Native Encryption Password.
 #
-# NOTE: Dropbear's private keys will reside on the unencrypted boot volume. Someone
-#       with physical access to the server would be able to discover the private
-#       keys.
+# NOTE: Dropbear's private keys will reside on the unencrypted boot volume.
+#       Someone with physical access to the server would be able to discover the
+#       private keys.
 enable_dropbear_with_busybox_support: true
 apply_dropbear_settings:
   NO_START: "0"

@@ -1,5 +1,9 @@
 # ZFS on Root For Ubuntu 20.04 LTS
 
+This role is my standardized ZFS on Root installation that I build all my systems with.  Additional roles are applied on top of this to make the generic host a specialized Home Theater PC, Full Graphical Desktop, a headless Docker Server or perhaps a Kubernetes cluster.
+
+---
+
 Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://openzfs.github.io/openzfs-docs/Getting%20Started/Ubuntu/Ubuntu%2020.04%20Root%20on%20ZFS.html#overview) with many enhancements:
 
 * Predefine rules for ZFS `bpool` and `rpool` pools types (mirror, raidz1, raidz2, multiple mirror vdevs) based on number of devices available
@@ -8,7 +12,7 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
   * If encryption is enabled, LUKS is used to encrypt Swap partitions
 * Native ZFS Encryption Support
 * UEFI and Legacy Boot Partitions
-* non-root user account creation
+* Multiple non-root user account creation
 * Customized SSH Configuration Options
 * DropBear support for unlocking remote ZFS encrypted pools
 
@@ -16,10 +20,10 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 
 ## TL;DR
 
-* **Review know issues at the bottom.**  There is a "rpool" busy condition introduced with Ubuntu 20.04.03 and newer that I've not been able to resolve which results in a Ansible failure and manual interaction.
+* **Review know issues at the bottom.**  There is a "rpool" busy condition introduced with Ubuntu 20.04.03 and newer that I've not been able to resolve which results in a Ansible failure and manual interaction is required.
 * This Ansible based process is intended to be used against bare-metal systems or virtual machines (just needs SSH access to get started)
-* The uses ENTIRE disk(s) and wipes partitions on specified disks, any existing data on these partitions on the target system will be lost
-* Review the `defaults/main.yml` to set default passwords,  non-root user accounts and basic rules on boot partition sizes, swap partitions, etc.
+* This uses ENTIRE disk(s) and wipes partitions on the specified disks, any existing data on these partitions on the target system will be lost
+* Review the `defaults/main.yml` to set temporary passwords,  non-root user account(s) and basic rules on boot partition sizes, swap partitions, etc.
 * Defaults to building a headless server environment, however a full graphical desktop can be enabled instead
 
 ---
@@ -206,6 +210,23 @@ locale_prefix: "en_US"
 
 # Define the timezone to be placed in /etc/timezone
 timezone_value: "America/New_York"
+```
+
+#### Disable IPv6 Networking
+
+By default IPv6 networking will be disabled.  If you have a need for it, you can set `ipv6.disable: false`
+
+```yml
+# Disable IPv6 if you do not use it.  The "disable_settings" will be applied to
+# "conf_file"
+ipv6:
+  disable: true
+  conf_file: "/etc/sysctl.d/99-sysctl.conf"
+  disable_settings:
+    - "net.ipv6.conf.all.disable_ipv6 = 1"
+    - "net.ipv6.conf.default.disable_ipv6 = 1"
+    - "net.ipv6.conf.lo.disable_ipv6 = 1"
+  apply_cmd: "sysctl -p"
 ```
 
 #### Define the ZFS Pool Names

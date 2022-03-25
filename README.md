@@ -256,34 +256,7 @@ There should be no reason to alter the configuration file `vars/main.yml` which 
     * Connect your system to the Internet as appropriate (e.g. join your Wi-Fi network).
     * Open a terminal within the Live CD environment - press <kbd>Ctrl</kbd> <kbd>Alt</kbd>-<kbd>T</kbd>.
 
-2. Clear out Existing Partitions
-
-    The installation will do its best to clear partitions, however there are scenarios where they get in the way.  ZFS may try to mount volumes it detects that you plan on using for something else. Check if your data disks have partitions:
-
-    ```bash
-    $ lsblk
-
-    sda                                             8:0    1   2.7T  0 disk  
-    ├─sda1                                          8:1    1   2.7T  0 part  
-    └─sda2                                          8:9    1     8M  0 part  
-    sdb                                             8:16   1   2.7T  0 disk  
-    ├─sdb1                                          8:17   1   2.7T  0 part  
-    └─sdb2                                          8:25   1     8M  0 part 
-    ```
-
-    NOTE: Do not ERASE partitions of the Live CD environment! Just data disks you want to use.
-
-    Press <kbd>ALT</kbd>-<kbd>F2</kbd> to run a command and enter `gparted`.  This program is used to remove existing partitions. Once Gparted has loaded:
-      * Select the device
-        * Press <kbd>ALT</kbd>-<kbd>D</kbd> for "Device"
-        * Select "Create Partition Table"
-        * Select Partition Type `gpt` and click <kbd>Apply</kbd>
-      * Repeat this process for each data drive
-      * Close Gparted
-    Press <kbd>ALT</kbd>-<kbd>F2</kbd> to run a command and enter `reboot`
-    After reboot this step can be skipped.
-
-3. Install and start the OpenSSH server in the Live CD environment:
+2. Install and start the OpenSSH server in the Live CD environment (see helper script below):
 
 #### Fetch Helper Script
 
@@ -449,6 +422,7 @@ This is the list and order of execution for all tags defined for this playbook:
       - grub_uefi_multi_disk
       - create_regular_user
       - full_install
+      - disable_ipv6
       - restart_remote_final
       - install_drop_bear
       - final_cleanup
@@ -503,10 +477,10 @@ Then:
 * Reboot the system again
 * Confirm it boots cleanly without the pool import error
 
-To resume the ansible playbook, you can specify to execute the remaining steps via ansible tags (all at once, or specify one, or a few at a time -- your choice):
+To resume the ansible playbook, you can specify to execute the remaining steps via ansible tags (all at once, or specify one, or a few at a time -- your choice).
 
 ```text
---tags="grub_uefi_multi_disk, create_regular_user, full_install, restart_remote_final, final_cleanup, install_drop_bear, update_sshd_settings"
+--tags="grub_uefi_multi_disk, create_regular_user, full_install, disable_ipv6, restart_remote_final, final_cleanup, install_drop_bear, update_sshd_settings"
 ```
 
 ---

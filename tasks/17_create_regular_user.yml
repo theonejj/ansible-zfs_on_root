@@ -32,12 +32,14 @@
     loop: "{{regular_user_accounts}}"
     register: accounts
     notify: Force change password
-
-  - name: Flush handlers
-    meta: flush_handlers
-   
+  
   when:
     - ansible_nodename != "localhost"
+  tags:
+    - create_regular_user
+
+- name: Flush handlers
+  meta: flush_handlers
   tags:
     - create_regular_user
 

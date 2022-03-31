@@ -100,15 +100,7 @@ I use a `yaml` format inventory file, you will have to adjust to whatever format
 ###[ Define all Hosts ]########################################################
 all:
   hosts:
-    testlinux01.localdomain:
-    testlinux02.localdomain:
- 
-   vars:
-    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-    ansible_python_interpreter: "/usr/bin/python3"
-    ansible_user: ansible
-    ansible_ssh_private_key_file: "/home/rich/.ssh/ansible"
-    ansible_port: 22
+    ...
 
   children:
     ###[ ZFS on Root Installs ]################################################
@@ -126,11 +118,10 @@ all:
         domain_name: "localdomain"
 ```
 
-* The `vars:` block under `all:` defined the SSH default ssh connections settings all hosts will use (child hosts below can override these values if needed)
 * The `zfs_on_root_install_group:` block lists the hostname(s) that you intend to boot the Live CD on and perform a ZFS on Root installation.
 * The `host_name:` is optional, defines the name of the new system to be built, if set here you will not be prompted for it
 * The `disk_device:` is optional, you can specify on command line or be prompted for it.  This defines the name of the disk devices to use when building the ZFS pools if you know them in advance.  
-  * If this is set you will not be prompted.
+  * When this is set you will not be prompted.
   * Default rules will make 2 devices a mirror, 3 will use a raidz1, 4 will join two mirrored vdevs into a pool (you can redefine these)
 * The `domain_name:` under `vars:` sets the domain name that will be used for each host created.  If an individual host needs a different domain name then just add a `domain_name:` under that host.
 
@@ -144,7 +135,7 @@ You are  defining reasonable defaults.  Individual hosts that need something a l
 
 #### Define Temporary Root Password
 
-This temporary root password is only used during the build process.  The ability for root to use a password will be disabled towards the finally stages.
+This temporary root password is only used during the build process.  The ability for root to use a password will be disabled towards the final stages.
 
 ```yml
 ###############################################################################
@@ -159,7 +150,7 @@ default_root_password: "change!me"
 
 #### Define the Non-Root Account(s)
 
- Define your standard privileged account.  The root account password will be disabled at the end, the privileged account(s) defined here must have `sudo` privilege to perform root activities.  Additional accounts can be defined.
+ Define your standard privileged account(s).  The root account password will be disabled at the end, the privileged account(s) defined here must have `sudo` privilege to perform root activities.  Additional accounts can be defined.
 
 ```yaml
 # Define non-root user account(s) to create (home drives will be its own dataset)
@@ -270,7 +261,7 @@ chmod +x do_ssh.sh
 ./do_ssh.sh
 ```
 
-When prompted for the Ansible password, enter and confirm it.  This will be a temporary password only needed just to push the SSH Key to the target machine.  The Ansible password will be disabled and only SSH authentication will be allowed.
+* When prompted for the Ansible password, enter and confirm it.  This will be a temporary password only needed just to push the SSH Key to the target machine.  The Ansible password will be disabled and only SSH authentication will be allowed.
 
 #### If Helper Script is not Available
 
@@ -318,7 +309,7 @@ and check to make sure that only the key(s) you wanted were added.
 Optionally, you can test connectivity easily to verify SSH has been configured correctly.
 
 ```bash
-ansible -i inventory -m ping <remote_host_name>
+ansible -i inventory.yml -m ping <remote_host_name>
 
 # Expect output to include:
 
@@ -335,7 +326,7 @@ You are now ready to perform a ZFS on Root installation to this target machine.
 The most basic way to run the entire ZFS on Root process and limit to an individual host as specified:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml -l <remote_host_name>
+ansible-playbook -i inventory.yml ./zfs_on_root.yml -l <remote_host_name>
 ```
 
 The following shows examples of overriding values from the command line. Typically it will be easier to define these in the inventory instead.
@@ -343,40 +334,40 @@ The following shows examples of overriding values from the command line. Typical
 If a non-standard SSH port is required:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml -l <remote_host_name> -e "ansible_port=22"
+ansible-playbook -i inventory.yml ./zfs_on_root.yml -l <remote_host_name> -e "ansible_port=22"
 ```
 
 To enable ZFS Native Encryption:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{passphrase: "mySecr3tPa55"}' -l <remote_host_name>
+ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{passphrase: "mySecr3tPa55"}' -l <remote_host_name>
 ```
 
 To define specific devices or a sub-set of available devices:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb]}' -l <remote_host_name>
+ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb]}' -l <remote_host_name>
 ```
 
 To define an alternate hostname (other than one used for SSH connection):
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{host_name: testlinux}' -l <remote_host_name>
+ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{host_name: testlinux}' -l <remote_host_name>
 ```
 
 To enable some debug or verbose output:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{debug: on}' -l <remote_host_name>
+ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{debug: on}' -l <remote_host_name>
 
 # To enable ansible verbose details as well:
-ansible-playbook -vvvv -i inventory ./zfs_on_root.yml --extra-vars='{debug: on}' -l <remote_host_name>
+ansible-playbook -vvvv -i inventory.yml ./zfs_on_root.yml --extra-vars='{debug: on}' -l <remote_host_name>
 ```
 
 To do multiple of these at the same time:
 
 ```bash
-ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb], host_name: testlinux, passphrase: "mySecr3tPa55"}' -l <remote_host_name>
+ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb], host_name: testlinux, passphrase: "mySecr3tPa55"}' -l <remote_host_name>
 ```
 
 If the above is too complicated, no worries.  The script will show you the detected defaults and let you just type values.  It will also show you a summary screen of values for your reference and allow you to abort.
@@ -481,6 +472,12 @@ To resume the ansible playbook, you can specify to execute the remaining steps v
 
 ```text
 --tags="grub_uefi_multi_disk, create_regular_user, full_install, disable_ipv6, restart_remote_final, final_cleanup, install_drop_bear, update_sshd_settings"
+```
+
+If root pool encryption was being used, include this variable to trigger steps which need to act on it:
+
+```text
+--extra-vars='root_pool_encryption=true'
 ```
 
 ---

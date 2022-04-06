@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  author: Richard Durso
+  description: ZFS on Root for Ubuntu 20.04 with rules based on device numbers presented, Native ZFS Encryption, UEFI, multiple non-root accounts, Dropbear support and some SSH tweaks.
+
+  platforms:
+  - name: Ubuntu
+    versions:
+      - 20.04
+
+  license: BSD
+
+  min_ansible_version: 2.0
+
+  galaxy_tags:
+    - ZFS
+    - Ubuntu
+    - UEFI
+    - non-root
+    - Dropbear
+    - bare-metal

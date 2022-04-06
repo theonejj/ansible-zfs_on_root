@@ -257,7 +257,7 @@ There should be no reason to alter the configuration file `vars/main.yml` which 
 The helper script will perform many steps for you such as update packages, create an `ansible` user account, define a password for that account, grant the `ansible` account `sudo` privileges, install SSH server, python, etc.
 
 ```bash
-wget https://gitea.rich-durso.us/reefland/ansible-zfs_on_root/raw/branch/master/files/do_ssh.sh
+wget https://raw.githubusercontent.com/reefland/ansible-zfs_on_root/master/files/do_ssh.sh
 
 chmod +x do_ssh.sh
 

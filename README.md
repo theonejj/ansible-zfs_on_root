@@ -1,6 +1,8 @@
 # ZFS on Root For Ubuntu 20.04 LTS
 
-This role is my standardized ZFS on Root installation that I build all my systems with.  Additional roles are applied on top of this to make the generic host a specialized Home Theater PC, Full Graphical Desktop, a headless Docker Server or perhaps a Kubernetes cluster.
+This Ansible role is my standardized ZFS on Root installation that I use as a base for all my systems.  Additional roles are applied on top of this to make the generic host a specialized Home Theater PC, Full Graphical Desktop, Kubernetes Cluster node, a headless Docker Server, etc...
+
+_NOTE: This Ansible role is not structured as rigid as a typical Ansible role should be.  Tips and suggestions on how to improve this are welcomed._
 
 ---
 
@@ -24,7 +26,7 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 * This Ansible based process is intended to be used against bare-metal systems or virtual machines (just needs SSH access to get started)
 * This uses ENTIRE disk(s) and wipes partitions on the specified disks, any existing data on these partitions on the target system will be lost
 * Review the `defaults/main.yml` to set temporary passwords,  non-root user account(s) and basic rules on boot partition sizes, swap partitions, etc.
-* Defaults to building a headless server environment, however a full graphical desktop can be enabled instead
+* Defaults to building a headless server environment, however a full graphical desktop can be enabled
 
 ---
 
@@ -37,7 +39,7 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 
 ## Requirements
 
-* [Ansible](https://www.ansible.com/) (Built with Ansible Core 2.12)
+* [Ansible](https://www.ansible.com/) (Built with Ansible Core 2.12 or newer)
 * [Ubuntu 20.04.4 "Focal" Live CD](https://ubuntu.com/download/desktop/) (20.04.4 LTS Desktop, DO NOT use server images)
   _NOTE: you can configure for command-line only server build, don't worry about using the Desktop image._
 * Installing on a drive which presents 4 KiB logical sectors (a “4Kn” drive) only works with UEFI booting. This not unique to ZFS. GRUB does not and will not work on 4Kn with legacy (BIOS) booting.
@@ -45,9 +47,9 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 
 ## Caution
 
-* This process uses the whole physical disk.
-* This process is not compatible with dual-booting.
-* Backup your data. Any existing data will be lost.
+* This process uses the whole physical disk
+* This process is not compatible with dual-booting
+* Backup your data. **Any existing data will be lost!**
 
 ---
 
@@ -57,7 +59,8 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 
 This provides a configurable way to define how the ZFS installation will look like and allows for topologies that cannot be defined within the standard Ubuntu installation wizard.  
 
-* For example, if you always want a 3 disk setup to have a _mirrored_ boot pool with a _raidz_ root pool, but a 4 disk setup should use a _raidz_ boot pool and multiple _mirrored_ vdev based root pool you can define these defaults.
+* For example:
+  * If you always want a 3 disk setup to have a _mirrored_ boot pool with a _raidz_ root pool, but a 4 disk setup should use a _raidz_ boot pool and multiple _mirrored_ vdev based root pool you can define these defaults.
 * The size of boot and swap partitions can be defined to a standard value for single device and mirrored setups or a different value for raidz setup.
 * UEFI Booting can be enabled and will be used when detected, it will fall back to Legacy BIOS booting when not detected.
 * The installation is configurable to be a command-line only (server build) or Full Graphical Desktop installation.

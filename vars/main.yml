@@ -20,7 +20,7 @@ single_disk_or_mirror_boot_partition_flags: "-n3:0:+{{ single_or_mirror_boot_par
 raidz_multi_disk_boot_partition_flags:      "-n3:0:+{{ raidz_boot_partition_size_MB }}M -t3:BE00"
 
 # Define Root Pool Partition Flags - for Unencrypted or ZFS native Encryption
-root_partition_flags: "-n4:0:0          -t4:BF00"
+root_partition_flags: "-n4:0:{{root_partition_size}}          -t4:BF00"
 
 # Define Pool Partition Suffixes
 boot_partition_name_suffix: "-part3"

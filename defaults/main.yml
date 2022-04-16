@@ -74,6 +74,22 @@ single_or_mirror_boot_partition_size_MB: "2048"
 raidz_boot_partition_size_MB: "768"
 
 ###############################################################################
+# The root pool by default will consume all remaining disk space on the devices
+# limited by the free space of the smallest device specified.  For example a
+# mirror between a 512GB and 256GB device cannot be larger than the capacity of
+# the smaller device.
+
+# If you wish to limit the root pool size leaving unused space, you can define
+# that here.  Specify how much space to allocate or NOT allocate per root pool
+# partition per device.
+
+# Examples:
+# "+256G" will create partitions 256Gib in size
+# "-200M" will use all available space, minus 200Mib
+# "0" (zero) use all available space
+root_partition_size: "0"
+
+###############################################################################
 # Use Grub with UEFI (will do Grub with Legacy BIOS if false)
 use_uefi_booting: true
 

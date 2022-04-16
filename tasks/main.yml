@@ -10,18 +10,11 @@
 # If the required "disk_devices", or "host_name" is not specified, you will be prompted to enter it.
 ######################################################################################################
 
-- include_role: 
-      name: helper_tasks
-      tasks_from: 01_test_virtualbox.yml
-  tags:
-    - always
-
- #####################################################################################################
-
 - name: Include Task Files
   include_tasks: "{{task_names}}"
   tags: ["always"]
   loop:
+    - 01_test_virtualbox.yml
     - 01_basic_checks.yml
     - 02_confirm_defaults.yml
     - 03_install_zfs_packages.yml
@@ -47,13 +40,7 @@
     - 19_restart_remote_final.yml
     - 20_enable_dropbear.yml
     - 21_final_cleanup.yml
+    - 22_update_sshd_settings.yml
   loop_control:
+    label: "{{task_names}}"
     loop_var: task_names
-
-- include_role: 
-    name: helper_tasks
-    tasks_from: 02_update_sshd_settings.yml
-  when:
-    - update_sshd_settings|default(false)|bool == true
-  tags:
-    - update_sshd_settings

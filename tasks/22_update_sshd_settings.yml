@@ -1,0 +1,21 @@
+---
+
+- name: Update SSHD Settings Block
+  block:
+
+  - name: Update SSHD Settings
+    replace:
+      path: /etc/ssh/sshd_config
+      regexp: "^(#? ?)?{{item.key}} +(yes|no|none|any|prohibit-password|[0-9]+|[0-9]+m)"
+      replace: "{{ item.key }} {{ item.value }}"
+      validate: "/usr/sbin/sshd -t -f %s"
+    loop: "{{ apply_sshd_settings|dict2items }}"
+    register: update_sshd
+
+  - name: Restart SSHD Server
+    service:
+      name: sshd
+      state: restarted
+    when: update_sshd.changed
+  tags:
+    - update_sshd_settings

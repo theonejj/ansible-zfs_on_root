@@ -32,16 +32,15 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 
 ## Environments Tested
 
-* Ubuntu 20.04.3 Live CD Boot on Bare Metal or within VirtualBox
-* Ubuntu 20.04.4 Live CD Boot on Bare Metal or within VirtualBox
+* Ubuntu 20.04.x Live CD Boot on Bare Metal or within VirtualBox
 
 ---
 
 ## Requirements
 
 * [Ansible](https://www.ansible.com/) (Built with Ansible Core 2.12 or newer)
-* [Ubuntu 20.04.4 "Focal" Live CD](https://ubuntu.com/download/desktop/) (20.04.4 LTS Desktop, DO NOT use server images)
-  _NOTE: you can configure for command-line only server build, don't worry about using the Desktop image._
+* [Ubuntu 20.04.4 "Focal" Live CD](https://ubuntu.com/download/desktop/) (20.04 LTS Desktop - DO NOT use server images)
+  * _NOTE: you can configure for command-line only server build even when using the desktop image._
 * Installing on a drive which presents 4 KiB logical sectors (a “4Kn” drive) only works with UEFI booting. This not unique to ZFS. GRUB does not and will not work on 4Kn with legacy (BIOS) booting.
 * Computers that have less than 2 GiB of memory run ZFS slowly. 4 GiB of memory is recommended for normal performance in basic workloads.
 
@@ -54,6 +53,8 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 ---
 
 ## WHY use THIS instead of Ubuntu's Installation Wizard
+
+My intention for this to have a standardized and repeatable base install for my occasional one off builds.  However being based on Ansible this can be used to make batches of servers or desktops needing ZFS on Root installations.
 
 ### Configurable Rules
 
@@ -79,15 +80,11 @@ Some of the [SSHD configuration](docs/custom-sshd-settings.md) options can be de
 
 ### Dropbear Support
 
-When the server is rebooted with ZFS native encryption enabled then someone needs to be at the console to enter the passphrase for the root pool encryption.  
+When a computer is rebooted with ZFS native encryption enabled then someone needs to be at the console to enter the passphrase for the root pool encryption.  
 
 * You can enable the option to install [Dropbear](https://en.wikipedia.org/wiki/Dropbear_(software)) with [Busybox](https://en.wikipedia.org/wiki/BusyBox) to provide a lightweight SSH process as part of the initramfs during the boot process.  
-* This allows you to remotely SSH to the console to provide the Root Pool passphrase to allow the machine to continue to boot.  
-* You can customize the port, which RSA keys are allowed to connect and customize the options.  The default settings used are as secure as we could make it, and more secure than most guides.
-
-All of this can be used to define a standard base installation for which other Ansible playbooks would build upon to make it a Home Theater PC, Docker Server, or just leave it as a functioning desktop.  
-
-My intention for this was the occasional one off build, however being based on Ansible this can be used to make batches of servers or desktops needing ZFS on Root installations.
+* This allows you to remotely SSH to the console to provide the root pool passphrase to allow the machine to continue to boot.  
+* You can customize the port, which RSA keys are allowed to connect and adjust several options.  The default settings are fairly secure and a bit more secure than most guides.
 
 ---
 
@@ -112,21 +109,38 @@ all:
         testlinux01.localdomain:
           host_name: "testlinux01"
           disk_devices: ["sda", "sdb", "sdc"]
-        testlinux01.localdomain:
+
+        testlinux02.localdomain:
           host_name: "testlinux02"
           disk_devices: ["sda", "nvme0n1"]
+
+        testlinux03.localdomain:
+          host_name: "testlinux02"
+          disk_devices: ["sda"]
+          root_partition_size: "120G"
 
       vars:
         # Define the default domain these hosts will use
         domain_name: "localdomain"
 ```
 
-* The `zfs_on_root_install_group:` block lists the hostname(s) that you intend to boot the Live CD on and perform a ZFS on Root installation.
-* The `host_name:` is optional, defines the name of the new system to be built, if set here you will not be prompted for it
-* The `disk_device:` is optional, you can specify on command line or be prompted for it.  This defines the name of the disk devices to use when building the ZFS pools if you know them in advance.  
+* `zfs_on_root_install_group:` block lists the hostname(s) that you intend to boot the Live CD on and perform a ZFS on Root installation.
+
+#### Inventory / Host Variables
+
+All of these are optional, if not provided you will be prompted to enter values if needed.
+
+* `host_name:` defines the name of the new system to be built, if set here you will not be prompted for it.
+* `disk_device:` defines the name of the disk devices to use when building the ZFS pools if you know them in advance.  
+  * This makes reinstalls easier. Define unique configurations when needed.
   * When this is set you will not be prompted.
   * Default rules will make 2 devices a mirror, 3 will use a raidz1, 4 will join two mirrored vdevs into a pool (you can redefine these)
-* The `domain_name:` under `vars:` sets the domain name that will be used for each host created.  If an individual host needs a different domain name then just add a `domain_name:` under that host.
+* `root_partition_size:` allows you to specify the partition size to be used for the root pool.  
+  * This is per disk device partition size (not a specification of overall pool size)
+  * By default it will allocate all remaining disk space (zero value)
+  * You can specify a specific size (positive number) such as `120G` or `+120G`
+  * Or state how much space not to use (negative number) such as `-512M`
+* `domain_name:` under `vars:` sets the domain name that will be used for each host created.  If an individual host needs a different domain name then just add a `domain_name:` under that host.
 
 ---
 
@@ -266,31 +280,11 @@ chmod +x do_ssh.sh
 
 * When prompted for the Ansible password, enter and confirm it.  This will be a temporary password only needed just to push the SSH Key to the target machine.  The Ansible password will be disabled and only SSH authentication will be allowed.
 
+The Live CD Install Environment is now ready.  Nothing else you need to do here.  The rest is done from the Ansible Control node.
+
 #### If Helper Script is not Available
 
-These are the manual commands performed by the helper script.  If it is not available, these steps do the same.
-
-```bash
-sudo apt-add-repository universe
-sudo apt update
-
-sudo useradd -m ansible
-sudo passwd ansible
-
-sudo visudo -f /etc/sudoers.d/99_sudo_include_file
-
-ansible ALL=(ALL) NOPASSWD:ALL
-
-# Save File & Exit
-
-sudo apt install --yes openssh-server vim python3 python3-apt
-sudo swapoff -a
-
-gsettings set org.gnome.desktop.media-handling automount false
-
-```
-
-The Live CD Install Environment is now ready.  Nothing else you need to do here.  The rest is done from the Ansible Control node.
+* [Manual steps](docs/do_ssh_helper_script.md) if you are unable to access "do_ssh.sh" Help Script.
 
 ### Push your Ansible Public Key to the Install Environment
 
@@ -332,52 +326,15 @@ The most basic way to run the entire ZFS on Root process and limit to an individ
 ansible-playbook -i inventory.yml ./zfs_on_root.yml -l <remote_host_name>
 ```
 
-The following shows examples of overriding values from the command line. Typically it will be easier to define these in the inventory instead.
+* [Additional Examples with Playbook Variables](docs/playbook-examples.md)
 
-If a non-standard SSH port is required:
+After a few minutes, if all goes well you will have a reasonably decent standardized configuring to be a base system ready to be used and modified for any other specific role.  Please see below about the expected `rpool busy` error that will required your manual intervention.
 
-```bash
-ansible-playbook -i inventory.yml ./zfs_on_root.yml -l <remote_host_name> -e "ansible_port=22"
-```
-
-To enable ZFS Native Encryption:
-
-```bash
-ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{passphrase: "mySecr3tPa55"}' -l <remote_host_name>
-```
-
-To define specific devices or a sub-set of available devices:
-
-```bash
-ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb]}' -l <remote_host_name>
-```
-
-To define an alternate hostname (other than one used for SSH connection):
-
-```bash
-ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{host_name: testlinux}' -l <remote_host_name>
-```
-
-To enable some debug or verbose output:
-
-```bash
-ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{debug: on}' -l <remote_host_name>
-
-# To enable ansible verbose details as well:
-ansible-playbook -vvvv -i inventory.yml ./zfs_on_root.yml --extra-vars='{debug: on}' -l <remote_host_name>
-```
-
-To do multiple of these at the same time:
-
-```bash
-ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb], host_name: testlinux, passphrase: "mySecr3tPa55"}' -l <remote_host_name>
-```
-
-If the above is too complicated, no worries.  The script will show you the detected defaults and let you just type values.  It will also show you a summary screen of values for your reference and allow you to abort.
+The first thing I do once this Playbook completes is apply the [Customized Message of the Day](https://github.com/reefland/ansible-motd-zfs-smartd) Ansible Playbook for a login screen with a bit of bling.
 
 ---
 
-### Step by Step Installation
+### Alternative Step by Step Installation
 
 As an alternative to running the entire playbook at one time, it can be run sections at a time using the ansible `tags` as defined below.  This method can be used to troubleshoot issues and replay steps if you have a way of rolling back previous failures. Failures can be rolled back either manually or via snapshots in Virtualbox or equivalent.
 
@@ -560,329 +517,14 @@ Here is a brief [overview with additional information](docs/root-pools-multi-mir
 
 ## Helper Scripts
 
-### do_ssh.sh
-
-Once the Ubuntu Live CD is booted on the target system, there are a number of steps you need to perform to allow ansible to connect to it over the network such as update packages, create an ansible user account, define a password, grant the ansible account `sudo` privileges, install SSH server, etc.  The helper script named `do_ssh.sh` completes all this work for you.  Simply use `wget` to fetch the file, use `chmod +x do_ssh.sh` to make it executable and run it `./so_ssh.sh` that's all.
-
-```bash
-wget https://gitea.rich-durso.us/reefland/ansible/raw/branch/master/roles/zfs_on_root/files/do_ssh.sh
-
-chmod +x do_ssh.sh
-
-./do_ssh.sh
-```
+* [do_ssh.sh](docs/do_ssh_helper_script.md) - Makes a LiveCD environment accessible to Ansible via SSH.
+* [partition_drive_helper.sh](docs/partition_drive_helper_script.md) - documents disk partitions values used and will help you go from a blank replacement device to a fully repaired system.
 
 ---
 
-### partition_drive_helper.sh
-
-As part of the ZFS on Root process, a script will dynamically generated located in `/root` named `partition_drive_helper.sh` which documents how the partitions were created and flags used to build the system.  This script will be handy in the future when you need to replace a drive and have to create new partitions on that drive to match the existing configuration.
-
-#### Marking Swap Device as Failed
+### Marking Swap Device as Failed
 
 NOTE: `mdadm` is used to create mirrored or striped swap partitions.  If you will be replacing a drive then you should mark the device as **failed** before removing it from the system. Failure to do so will likely result in no swap being available.  Marking the device as failed before removal allows the swap device to function even if in a degraded state.
 
-Swap device created by this ZFS on Root will always end with "2" as partition 2 is used for swap on each device.  You just need to figure out the device letters such as `sda`, `sdb`, `sdb`, etc.
-
-```text
-# mdadm --manage /dev/md0 --fail /dev/sdb2
-
-Output:  mdadm: set /dev/sdb2 faulty in /dev/md0
-
-# mdadm --detail /dev/md0
-
-Output:
-...
-   Number   Major   Minor   RaidDevice State
-       0       8        2        0      active sync   /dev/sda2
-       -       0        0        1      removed
-
-       1       8       18        -      faulty   /dev/sdb2
-
-```
-
-_Example above will mark device `/dev/sdb2` as failed, you need to replace it with the device name you will be replacing. Then you can power off and remove the device from the system and install the replacement device._
-
-The `partition_drive_helper.sh` script can help you go from a blank replacement device to a fully repaired system.  
-
-```text
- $ sudo -i
-
- # ./partition_drive_helper.sh
-
-  zfs_on_root Partitioning Helper Script
-  ---------------------------------------------------------------------------
-  The flags set in this script were specific to this installation at the time
-  the zfs_on_root script was executed.  This should not be executed on other
-  systems.
-
-  DISK_DEVICE set to: /dev/disk/by-id/PUT_YOUR_DEVICE_NAME_HERE
-
-  Try to detect the path name of the new new device:
-  partition_drive_helper.sh -d
-
-  To check device exists and has no partitions:
-  partition_drive_helper.sh -c
-
-  To WIPE, DELETE, REMOVE, DESTROY, ZAP, ELIMINATE device partitions:
-  partition_drive_helper.sh -w
-
-  To CREATE partitions on an empty device:
-  partition_drive_helper.sh -p
-
-  To CHECK and UPDATE /etc/fstab entry
-  partition_drive_helper.sh -f
-
-  To REPLACE devices in ZFS Pools (replace old partitions with new ones):
-  partition_drive_helper.sh -r
-
-  To REPLACE Swap device in MDADM RAID Configuration
-  partition_drive_helper.sh -s
-
-```
-
-1. Determine the name of your _new_ device located in `/dev/disk/by-id`:
-    You can manually review the devices listed and determine which the one to use. Or see if this script can help you.  Example below shows a new SATA device as named by Virtual Box.
-
-    ```text
-    # ./partition_drive_helper.sh -d
-    Trying to determine name of possible new device....
-
-    ata-VBOX_HARDDISK_VBd008842e-5645e243
-
-    Confirm the above device is correct and then update this script to use it.
-    ```
-
-    NOTE: If the new device has existing partitions, the script will not be able to determine it is new, you will see a message such as:
-
-    ```text
-    # ./partition_drive_helper.sh -d
-    Trying to determine name of possible new device....
-
-
-    ERROR: Unable to detect or suggest new device.  If new device has
-          existing partitions, this script will not suggest it.  You
-          will have to determine which device is the correct one to
-          use and update this script to use it.
-    ```
-
-2. Edit the `partition_drive_helper.sh` script to set your device name:
-    Locate this section of the script:
-
-    ```bash
-    # ---------------------------------------------------------------------------
-    # Define device name to use:
-    DISK_DEVICE=/dev/disk/by-id/PUT_YOUR_DEVICE_NAME_HERE
-    # ---------------------------------------------------------------------------
-    ```
-
-    Edit the script and replace `PUT_YOUR_DEVICE_NAME_HERE` with the name of the device, and save the changes.
-
-    ```bash
-    # ---------------------------------------------------------------------------
-    # Define device name to use:
-    DISK_DEVICE=/dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243
-    # ---------------------------------------------------------------------------
-    ```
-
-3. Check the device setting and confirm no partitions exist:
-
-    ```bash
-    ./partition_drive_helper.sh -c
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243 is a valid block device.
-
-    No partitions detected.
-    ```
-
-    If partitions exits, the partitions must be removed first.  The output would like something like the following:
-
-    ```text
-    # ./partition_drive_helper.sh -c
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243 is a valid block device.
-
-    Partitions detected:
-
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243-part1
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243-part2
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243-part3
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243-part4
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243-part5
-
-    You must remove partitions from this device to use this script.
-    If this was not expected did you specify the wrong device?
-    ```
-
-    NOTE: If you attempt to use the script erase your partitions, you will trigger a safety check:
-
-    ```text
-    # ./partition_drive_helper.sh -w
-
-    This script will not delete partitions by default.  You will need to
-    manually edit this script and uncomment ENABLE_PARTITION_WIPE and set
-    its value to TRUE.
-    ```
-
-    _You can edit the script as instructed to remove the safety check and it will remove partitions.  Know what you are doing, you are on your own._
-
-4. Create Partitions on the new device:
-    This script contains all the flags used to construct your original partitions and will build the device to look identical to the other partitions on the system.
-
-    ```text
-    # ./partition_drive_helper.sh -p
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243 is a valid block device.
-
-    No partitions detected.
-
-    Creating UEFI Boot Partition
-    Creating new GPT entries in memory.
-    The operation has completed successfully.
-    Creating BIOS Boot Partition
-    The operation has completed successfully.
-    Creating Swap Partition
-    The operation has completed successfully.
-    Creating Boot Pool Partition
-    The operation has completed successfully.
-    Creating Root Pool Partition
-    The operation has completed successfully.
-    Creating EFI filesystems on -part1 partition
-    mkfs.fat 4.1 (2017-01-24)
-
-    Completed Successfully
-    ```
-
-5. Check status of `/etc/fstab`:
-    The new device will have a new UUID which needs to replace the old UUID of the previous device.  The script will show the new UUID and attempt to determine what the old UUID was.
-
-    ```text
-    # ./partition_drive_helper.sh -f 
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243 is a valid block device.
-
-    Device /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243
-    With UUID: C624-E491 is not found in /etc/fstab
-
-    This script will not update your /etc/fstab file automatically.
-    You need to update the value manually, or if you want this script
-    to attempt the update your /etc/fstab file then uncomment
-    ENABLE_FSTAB_FILE_UPDATES and set its value to TRUE.
-
-    This could be the entry to update in /etc/fstab
-    UUID=23FF-226F /boot/efi2 vfat umask=0022,fmask=0022,dmask=0022 0
-
-    Change above to this UUID=C624-E491 and then run this script again.
-    ```
-
-    Manually edit `/etc/fstab` or remove the safety check within the script to attempt to have the script make the changes for you.
-
-    _With the script safety check removed, the script will perform the update for you and the output would be something like the following:_
-
-    ```text
-    # ./partition_drive_helper.sh -f
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243 is a valid block device.
-
-    Device /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243
-    With UUID: C624-E491 is not found in /etc/fstab
-
-    Attempting /etc/fstab update of UUID=23FF-226F to C624-E491
-
-    Update Completed, running again to validate:
-
-    Device /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243
-    With UUID: C624-E491 is found in /etc/fstab, no action needed.
-
-    Entry found:
-    UUID=C624-E491 /boot/efi2 vfat umask=0022,fmask=0022,dmask=0022 0
-    ```
-
-6. Replace devices in ZFS Pools:
-    The script will parse the output of "zpool status" to determine the old device name and replace it with the new partition devices.  This will automatically trigger a resilvering process.  The script will monitor the output until the resilvering process has completed.
-
-    ```text
-    # ./partition_drive_helper.sh -r
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243 is a valid block device.
-
-    Pool: "bpool" shows DEGRADED state
-    Old Device Placeholder: 16826862562842805836
-    Old Device Name: /dev/disk/by-id/ata-VBOX_HARDDISK_VB04106fa7-5e7f1c91-part3
-    New Device Name: /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243-part3
-
-    Rebuild of "bpool" Started:
-    action: Wait for the resilver to complete. 11.8M resilvered, 5.85% done, 0 days 00:00:16 to go
-
-      scan: resilvered 330M in 0 days 00:00:00 with 0 errors on Sat Aug 15 16:42:45 2020
-    DONE: bpool
-
-
-    Pool: "rpool" shows DEGRADED state
-    Old Device Placeholder: 7559734512386936318
-    Old Device Name: /dev/disk/by-id/ata-VBOX_HARDDISK_VB04106fa7-5e7f1c91-part4
-    New Device Name: /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243-part4
-
-    Rebuild of "rpool" Started:
-    action: Wait for the resilver to complete. 2.68M resilvered, 0.10% done, no estimated completion time
-
-      scan: resilvered 10.5G in 0 days 00:00:24 with 0 errors on Sat Aug 15 16:44:09 2020
-    DONE: rpool
-    Completed
-    ```
-
-7. Replace Swap Device in mdadm raid array:
-
-  ```text
-    # ./partition_drive_helper.sh -s
-    /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243 is a valid block device.
-
-    MDADM Device: "/dev/md0" is a valid block device, configured for "raid1" has state "clean, degraded"
-    mdadm: added /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243-part2
-        Rebuild Status : 0% complete
-        Rebuild Status : 23% complete
-        Rebuild Status : 47% complete
-        Rebuild Status : 71% complete
-        Rebuild Status : 95% complete
-    Completed.
-  ```
-
-  Check the status of MDADM Swap Device:
-  
-  ```text
-  # ./partition_drive_helper.sh -s
-  /dev/disk/by-id/ata-VBOX_HARDDISK_VBd008842e-5645e243 is a valid block device.
-
-  MDADM Device: "/dev/md0" is a valid block device, configured for "raid1" has state "clean"
-
-  Nothing to do.
-  Completed.
-  ```
-
-  Check Status with mdadm:
-
-  ```text
-  mdadm -v --detail /dev/md0
-  /dev/md0:
-            Version : 1.2
-      Creation Time : Sat Aug 15 14:00:46 2020
-          Raid Level : raid1
-          Array Size : 4189184 (4.00 GiB 4.29 GB)
-      Used Dev Size : 4189184 (4.00 GiB 4.29 GB)
-        Raid Devices : 2
-      Total Devices : 2
-        Persistence : Superblock is persistent
-
-        Update Time : Sat Aug 15 19:00:52 2020
-              State : clean 
-      Active Devices : 2
-    Working Devices : 2
-      Failed Devices : 0
-      Spare Devices : 0
-
-  Consistency Policy : resync
-
-                Name : testlinux:0  (local to host testlinux)
-                UUID : a1e29ce7:4972f93a:0cd6454c:246fdf33
-              Events : 62
-
-      Number   Major   Minor   RaidDevice State
-        0       8        2        0      active sync   /dev/sda2
-        2       8       18        1      active sync   /dev/sdb2
-  ```
-
-The system should be fully functional now.  All zpools and swap devices functional.
+* [Detailed mdam steps to review](docs/mark_swap_device_as_failed.md) to mark as failed.
+* Includes steps on rebuilding all partitions and replacing a completely failed drive.

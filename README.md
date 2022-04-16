@@ -115,7 +115,7 @@ all:
           disk_devices: ["sda", "nvme0n1"]
 
         testlinux03.localdomain:
-          host_name: "testlinux02"
+          host_name: "testlinux03"
           disk_devices: ["sda"]
           root_partition_size: "120G"
 

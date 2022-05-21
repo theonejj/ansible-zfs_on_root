@@ -8,8 +8,8 @@
 #           likely want to partition them in the same way as your existing 
 #           drives.
 # AUTHOR     : Richard J. Durso
-# DATE       : 08/15/2020
-# VERSION    : 0.30
+# DATE       : 05/21/2022
+# VERSION    : 0.31
 #############################################################################
 
 # ---------------------------------------------------------------------------
@@ -97,7 +97,7 @@ __guess_device_name() {
   for device in $DEVICE_LIST
   do
     # Possible match would be a device which has no partitions?
-    if [ "$(ls -l /dev/disk/by-id | grep -c ${device})" == "1" ]; then
+    if [ $(grep -c "${device}[0-9]" /proc/partitions) -eq 0 ]; then
       ls -l /dev/disk/by-id | awk "/${device}\$/{print \$9}"
       DEVICE_COUNT=$((DEVICE_COUNT+1))
     fi
@@ -482,6 +482,7 @@ if [ $# -gt 0 ]; then
       ;;
       w|W)
         if __partition_wipe; then
+          partprobe
           echo
           echo "Completed Successfully"
         else
@@ -493,6 +494,7 @@ if [ $# -gt 0 ]; then
       p|P)
         if __check_block_device; then
           if __create_disk_partitions; then
+            partprobe
             if __create_efi_filesystem; then
               echo
               echo "Completed Successfully"

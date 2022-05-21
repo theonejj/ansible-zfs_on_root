@@ -1,8 +1,8 @@
 # Marking Swap Device as Failed
 
-[Back to README.md](../README.md)
+[Back to Partition Drive Helper Page](./partition_drive_helper_script.md)
 
-The `mdadm` utility is used to create mirrored or striped swap partitions.  If you will be replacing a drive then you should mark the device as **failed** before removing it from the system. 
+The `mdadm` utility is used to create mirrored or striped swap partitions.  If you will be replacing a drive then you should mark the device as **failed** before removing it from the system.
 
 * Failure to do so will likely result in no swap being available.  
 * Marking the device as failed before removal allows the swap device to function even if in a degraded state.
@@ -29,6 +29,10 @@ Output:
 ```
 
 _Example above will mark device `/dev/sdb2` as failed, you need to replace it with the device name you will be replacing. Then you can power off and remove the device from the system and install the replacement device._
+
+---
+
+## Replacing a Failed Device
 
 The [partition_drive_helper.sh](partition_drive_helper_script.md) script can help you go from a blank replacement device to a fully repaired system.  
 
@@ -121,7 +125,7 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
     No partitions detected.
     ```
 
-    If partitions exits, the partitions must be removed first.  The output would like something like the following:
+    If partitions exist, the partitions must be removed first.  The output would be something like the following:
 
     ```text
     # ./partition_drive_helper.sh -c
@@ -314,4 +318,4 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
 
 The system should be fully functional now.  All zpools and swap devices functional.
 
-[Back to README.md](../README.md)
+[Back to Partition Drive Helper Page](./partition_drive_helper_script.md)

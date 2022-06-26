@@ -8,8 +8,8 @@
 #           likely want to partition them in the same way as your existing 
 #           drives.
 # AUTHOR     : Richard J. Durso
-# DATE       : 05/21/2022
-# VERSION    : 0.31
+# DATE       : 06/26/2022
+# VERSION    : 0.32
 #############################################################################
 
 # ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ __usage() {
   systems.
 
   DISK_DEVICE set to: ${DISK_DEVICE}
- 
+
   Try to detect the path name of the new new device:
   ${0##*/} -d
 
@@ -98,7 +98,7 @@ __guess_device_name() {
   do
     # Possible match would be a device which has no partitions?
     if [ $(grep -c "${device}[0-9]" /proc/partitions) -eq 0 ]; then
-      ls -l /dev/disk/by-id | awk "/${device}\$/{print \$9}"
+      ls -l /dev/disk/by-id/ | awk "/${device}\$/{print \$9}"
       DEVICE_COUNT=$((DEVICE_COUNT+1))
     fi
   done
@@ -244,6 +244,7 @@ __create_disk_partitions() {
 # ---[ Create EFI Filesystem on Partition 1 ]--------------------------------
 __create_efi_filesystem() {
   echo "Creating EFI filesystems on "${BIOS_PARTITION}" partition"
+  sleep 2
   mkdosfs -F 32 -s 1 -n EFI ${DISK_DEVICE}${BIOS_PARTITION}
   return $?
 }
@@ -417,9 +418,9 @@ __replace_zfs_devices() {
   echo
   # Attempt work on ROOT Pool
   if (__replace_pool_device $ZFS_RPOOL_NAME ${ROOT_PARTITION}); then
-      echo DONE: $ZFS_RPOOL_NAME
-   else
-     echo FAIL: $ZFS_RPOOL_NAME
+    echo DONE: $ZFS_RPOOL_NAME
+  else
+    echo FAIL: $ZFS_RPOOL_NAME
   fi
 }
 # ---------------------------------------------------------------------------

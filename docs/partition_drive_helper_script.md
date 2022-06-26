@@ -13,6 +13,7 @@ As part of the ZFS on Root process, a script will be dynamically generated and s
 ## Examples
 
 * [Failed Drive Replacement](./mark_swap_device_as_failed.md) - A full working example of rebuilding a complete drive including swap volumes.
+* [Upgrade Working Drive to Larger Drive](upgrade_working_device.md) - A full working example of replacing a working (non-failed drive) in way that does not degrade pool state or redundancy.
 * [Convert Single Device to ZFS Mirror](./convert_single_to_mirror.md) - Convert an initial single ZFS on Root installation to a ZFS Mirrored boot and root pools.
 
 [Back to README.md](../README.md)

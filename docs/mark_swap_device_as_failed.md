@@ -1,6 +1,8 @@
-# Marking Swap Device as Failed
+# Replace a Failed Drive
 
 [Back to Partition Drive Helper Page](./partition_drive_helper_script.md)
+
+## Marking Swap Device as Failed
 
 The `mdadm` utility is used to create mirrored or striped swap partitions.  If you will be replacing a drive then you should mark the device as **failed** before removing it from the system.
 

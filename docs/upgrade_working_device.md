@@ -147,8 +147,8 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
 
 3. Check the device setting and confirm no partitions exist:
 
-    ```bash
-    ./partition_drive_helper.sh -c
+    ```text
+    # ./partition_drive_helper.sh -c
     /dev/disk/by-id/scsi-SATA_WDC_WD80EFZZ-68B_WD-CA1040NK is a valid block device.
 
     No partitions detected.
@@ -204,6 +204,9 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
     The operation has completed successfully.
     Creating Root Pool Partition
     The operation has completed successfully.
+
+    Partitions Created, running partprobe...
+
     Creating EFI filesystems on -part1 partition
     mkfs.fat 4.1 (2017-01-24)
 
@@ -389,7 +392,15 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
     errors: No known data errors
     ```
 
-    Once completed, it will not longer reference the old device:
+    NOTE: If you are using larger drives, and all drives in the `vdev` have been upgraded and you expect the `vdev` to now be a larger size.  Be sure that `autoexpand` has been enabled.  This can be set while the resilvering is in progress.
+
+    ```shell
+      $ zpool set autoexpand=on rpool
+
+      # No output expected.
+    ```
+
+    Once resilvering has completed, it will not longer reference the old device:
 
     ```shell
     $ zpool status rpool
@@ -459,7 +470,17 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
     UUID=3608-D8FF /boot/efi2 vfat umask=0022,fmask=0022,dmask=0022 
     ```
 
-11. Repopulate EUFI Boot Directory
+11. Mount the new EUFI Directory
+
+    The new entry added to `etc/fstab` needs to be mounted.
+
+    ```shell
+    $ sudo mount -a
+
+    # No output expected.
+    ```
+
+12. Repopulate EUFI Boot Directory
 
     From the example above the `/boot/efi2` directory is for the new device.  Checking the contents of this directory it is now empty:
 
@@ -485,7 +506,14 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
     EFI
     ```
 
-12. Replace Swap Device in mdadm raid array:
+    NOTE: If you get this error message, then the new entry to the `/etc/fstab` is not mounted correctly:
+
+      ```text
+      Installing for x86_64-efi platform.
+      grub-install: error: /boot/efi2 doesn't look like an EFI partition.
+      ```
+
+13. Replace Swap Device in mdadm raid array:
 
     ```text
       # ./partition_drive_helper.sh -s
@@ -547,13 +575,17 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
 
     The system should be fully functional now.  All zpools and swap devices functional.
 
-13. Script cleanup.  To be safe, edit the `partition_drive_helper.sh` script again and set the `DISK_DEVICE` back to its default setting:
+14. Script cleanup.  To be safe, edit the `partition_drive_helper.sh` script again and set the edited variables back to their default settings:
 
     ```text
     # Define device name to use:
     DISK_DEVICE=/dev/disk/by-id/PUT_YOUR_DEVICE_NAME_HERE
+
+    ENABLE_PARTITION_WIPE=FALSE
+
+    ENABLE_FSTAB_FILE_UPDATES=FALSE
     ```
 
-    Save & Exit.  Now the script if run again, can not make modifications to any device.
+    Save & Exit.  Now if the script is run again, can not make modifications to any device.
 
 [Back to Partition Drive Helper Page](./partition_drive_helper_script.md)

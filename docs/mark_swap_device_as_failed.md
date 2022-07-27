@@ -226,7 +226,35 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
     UUID=C624-E491 /boot/efi2 vfat umask=0022,fmask=0022,dmask=0022 0
     ```
 
-6. Replace devices in ZFS Pools:
+6. Mount EFI Partition.  This will read and verify the changes just made to `/etc/fstab` file:
+
+    ```text
+    # mount /boot/efi
+
+    - No output expected.
+    ```
+
+    * No output is expected.  If you get an error message then address the issue.
+
+7. Install Grub on EFI Partition
+    Now that the new device's EFI partition is mounted, it needs to have grub installed:
+
+    ```text
+    # grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu --recheck --no-floppy
+
+    Installing for x86_64-efi platform.
+    Installation finished. No error reported.
+    ```
+
+    Confirm the new directory has also been populated:
+
+    ```text
+    #  ls /boot/e*
+    /boot/efi:
+    EFI
+    ```
+
+8. Replace devices in ZFS Pools:
     The script will parse the output of "zpool status" to determine the old device name and replace it with the new partition devices.  This will automatically trigger a resilvering process.  The script will monitor the output until the resilvering process has completed.
 
     ```text
@@ -258,7 +286,7 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
     Completed
     ```
 
-7. Replace Swap Device in mdadm raid array:
+9. Replace Swap Device in mdadm raid array:
 
   ```text
     # ./partition_drive_helper.sh -s

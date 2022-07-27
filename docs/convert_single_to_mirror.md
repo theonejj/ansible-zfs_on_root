@@ -158,6 +158,78 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
     Completed Successfully
     ```
 
+5. Add EFI Partition to `/etc/fstab` file.
+    The new device's EFI partition needs to be added to the `/etc/fstab` file.  This will allow the new device to be bootable in the event the primary device fails or is removed.  You will be able to boot from this device instead.
+
+    * The script will not add this directly for you but will give you the information you need to manually add it:
+
+    ```text
+    # ./partition_drive_helper.sh -f
+
+    /dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S64ANS0T201060J is a valid block device.
+
+    Device /dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S64ANS0T201060J
+    With UUID: BCD4-2F02 is not found in /etc/fstab
+
+    Unable to determine the device to update in /etc/fstab
+
+    ERROR: Unexpected error detected
+    ```
+
+    * You just need the UUID number shown above.
+
+    Next you need to create a directory to mount the partition into.
+
+    ```text
+    # ls /boot | grep efi
+    efi
+    ```
+
+    Based on the example above create an `efi2` directory:
+
+    ```text
+    # mkdir /boot/efi2
+    ```
+
+    Now add the following line to the `/etc/fstab` file. This has the UUID number from above and the directory you just created.
+
+    ```text
+    /dev/disk/by-uuid/BCD4-2F02 /boot/efi2 vfat defaults 0 0
+    ```
+
+    * Save and exit your text editor.
+
+6. Mount EFI Partition.  This will read and verify the change you just made to `/etc/fstab` file:
+
+    ```text
+    # mount /boot/efi2
+
+    - No output expected.
+    ```
+
+    * No output is expected.  If you get an error message then address the issue.
+
+7. Install Grub on EFI Partition
+    Now that the new device's EFI partition is mounted, it needs to have grub installed:
+
+    ```text
+    # grub-install --target=x86_64-efi --efi-directory=/boot/efi2 --bootloader-id=ubuntu --recheck --no-floppy
+
+    Installing for x86_64-efi platform.
+    Installation finished. No error reported.
+    ```
+
+    Confirm the new directory has also been populated:
+
+    ```text
+    #  ls /boot/e*
+    /boot/efi:
+    EFI
+
+    /boot/efi2:
+    EFI
+    ```
+
 ---
 
 ## Attach ZFS Partitions

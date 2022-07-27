@@ -487,7 +487,7 @@ The [partition_drive_helper.sh](partition_drive_helper_script.md) script can hel
     ```shell
     $ ls /boot/efi2/
 
-    # No output
+    # No output expected.
     ```
 
     Use `grub-install` to populate the directory.  This example uses `/boot/efi2` adjust as needed for your device.

@@ -1,4 +1,4 @@
-# ZFS on Root For Ubuntu 20.04 LTS
+# ZFS on Root For Ubuntu 22.04 LTS
 
 This Ansible role is my standardized ZFS on Root installation that I use as a base for all my systems.  Additional roles are applied on top of this to make the generic host a specialized Home Theater PC, Full Graphical Desktop, Kubernetes Cluster node, a headless Docker Server, etc...
 
@@ -6,9 +6,12 @@ _NOTE: This Ansible role is not structured as rigid as a typical Ansible role sh
 
 ---
 
-Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://openzfs.github.io/openzfs-docs/Getting%20Started/Ubuntu/Ubuntu%2020.04%20Root%20on%20ZFS.html#overview) with many enhancements:
+Originally based on the OpenZFS 'ZFS on Root' Guide, but no longer. Now with many enhancements:
 
-* Predefine rules for ZFS `bpool` and `rpool` pools types (mirror, raidz1, raidz2, multiple mirror vdevs) based on number of devices available
+* Uses ZFS Boot Menu / rEFInd / Syslinux to manage boot environments
+* No GRUB Boot Loader!
+* No separation of `bpool` and `rpool` just a single 'rpool' is needed
+* Predefine rules for ZFS `rpool` pools types (mirror, raidz1, raidz2, multiple mirror vdevs) based on number of devices available
 * Swap partitions can be enabled
   * Multi-disk swap partitions automatically setup with `mdadm`
   * If encryption is enabled, LUKS is used to encrypt Swap partitions
@@ -22,7 +25,7 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 
 ## TL;DR
 
-* **Review know issues at the bottom.**  There is a "rpool" busy condition introduced with Ubuntu 20.04.03 and newer that I've not been able to resolve which results in a Ansible failure and manual interaction is required.
+* THIS IS WORK IN PROGRESS / NOT COMPLETE
 * This Ansible based process is intended to be used against bare-metal systems or virtual machines (just needs SSH access to get started)
 * This uses ENTIRE disk(s) and wipes partitions on the specified disks, any existing data on these partitions on the target system will be lost
 * Review the `defaults/main.yml` to set temporary passwords,  non-root user account(s) and basic rules on boot partition sizes, swap partitions, etc.
@@ -32,16 +35,15 @@ Automated 'ZFS on Root' based on [OpenZFS Ubuntu 20.04 recommendations](https://
 
 ## Environments Tested
 
-* Ubuntu 20.04.x Live CD Boot on Bare Metal or within VirtualBox
+* Ubuntu 22.04.1 Live CD Boot on Bare Metal or within VirtualBox
 
 ---
 
 ## Requirements
 
 * [Ansible](https://www.ansible.com/) (Built with Ansible Core 2.12 or newer)
-* [Ubuntu 20.04.4 "Focal" Live CD](https://ubuntu.com/download/desktop/) (20.04 LTS Desktop - DO NOT use server images)
+* [Ubuntu 22.04.1 "Jammy" Live CD](https://ubuntu.com/download/desktop/) (22.04 LTS Desktop - DO NOT use server images)
   * _NOTE: you can configure for command-line only server build even when using the desktop image._
-* Installing on a drive which presents 4 KiB logical sectors (a “4Kn” drive) only works with UEFI booting. This not unique to ZFS. GRUB does not and will not work on 4Kn with legacy (BIOS) booting.
 * Computers that have less than 2 GiB of memory run ZFS slowly. 4 GiB of memory is recommended for normal performance in basic workloads.
 
 ## Caution
@@ -183,7 +185,6 @@ regular_user_accounts:
 ### Additional Settings to Review
 
 * Review [SWAP Partition Settings](docs/swap-partition-settings.md)
-* Review [Boot Pool & Partition Settings](docs/boot-partition-settings.md)
 * Review [Root Pool & Partition Settings](docs/root-partition-settings.md)
 * Review [ZFS Native Encryption Settings](docs/zfs-encryption-settings.md)
 * Review [Custom SSHD Configuration Settings](docs/custom-sshd-settings.md)
@@ -244,10 +245,13 @@ These are the default names typically used on Ubuntu systems.  Other systems use
  _NOTE: Within the ZFS on Root recommendations for Ubuntu 20.04, the `boot` pool name is no longer arbitrary. The boot pool name of `bpool` is required. The `rpool` name can be altered._
 
 ```yaml
-# Define Pool Names
-boot_pool_name: "bpool"
-root_pool_name: "rpool"
+# Define Pool Names - can be set to whatever you like.
+# Short hostname is default, this is like "rpool" in the previous methods.
+root_pool_name: "{{ host_name }}"
 ```
+
+* User data will be stored in ZFS Dataset: `host_name/ROOT/home`
+* Operating System is within ZFS Dataset: `host_name/ROOT/ubuntu`
 
 ### Additional Configuration Files
 
@@ -361,23 +365,19 @@ This is the list and order of execution for all tags defined for this playbook:
       - create_filesystems
       - create_datasets
       - config_system
+      - install_zfs
       - config_boot_fs
-      - config_grub
-      - config_swap
+      - install_dracut
+      - install_refind
+      - install_syslinux
+      - install_zfsbootmenu
+      - config_swap [not tested]
       - system_tweaks
-      - install_grub
-      - fix_mount_order
       - first_boot_prep
+      - fix_mount_order
       - unmount_chroot
-      - restart_remote
-      - grub_uefi_multi_disk
-      - create_regular_user
-      - full_install
-      - disable_ipv6
-      - restart_remote_final
-      - install_drop_bear
-      - final_cleanup
-      - update_sshd_settings
+      - reboot_remote
+      - create_regular_users
 ```
 
 Helper tasks, basic sanity checks and mandatory tasks are already marked as `always` and will always be processed to setup the base ansible working environment reading configuration files, setting variables, etc... nothing special you need to do.
@@ -386,63 +386,8 @@ Helper tasks, basic sanity checks and mandatory tasks are already marked as `alw
 
 ## Known Issues
 
-### Issue #1 - Task: zfs_on_root : Export all ZFS Pools - Fails
 
-```text
-STDERR:
-cannot export 'rpool': pool is busy
-```
-
-It can be very difficult to nearly impossible to determine why a pool is busy at such an early stage in the build process.  All mounts are removed, no datasets are shared yet, no users are within the mounted areas. Without being able to export the pool cleanly during this process, importing the pool will fail upon first reboot.  The following work around imports the pool and allows you to resume the boot process.
-
-#### Workaround for Issue #1
-
-* Power down Live CD Environment
-* Remove LiveCD media
-* Power up instance
-
-The following error message is now expected during the boot process:
-
-```bash
-Importing pool 'rpool' using cachefile. ... Failure 1
-
-Message: cannot import 'rpool': no such pool available
-Error: 1
-
-Failed to import pool 'rpool'.
-Manually import the pool and exit.
-```
-
-At the `(initramfs)` prompt, type the following:
-
-```bash
-zpool import -f rpool
-exit
-```
-
-The system should now resume booting. If ZFS Encryption is enabled it will prompt for the passphrase to unlock the pool.
-
-Then:
-
-* Login as root
-* Reboot the system again
-* Confirm it boots cleanly without the pool import error
-
-To resume the ansible playbook, you can specify to execute the remaining steps via ansible tags (all at once, or specify one, or a few at a time -- your choice).
-
-```text
---tags="grub_uefi_multi_disk, create_regular_user, full_install, disable_ipv6, restart_remote_final, final_cleanup, install_drop_bear, update_sshd_settings"
-```
-
-If root pool encryption was being used, include this variable to trigger steps which need to act on it:
-
-```text
---extra-vars='root_pool_encryption=true'
-```
-
----
-
-### Issue #2 - Multi-disk SWAP using `mdadm` is not mounted as `/dev/md0` and thus no swap space
+### Issue #1 - Multi-disk SWAP using `mdadm` is not mounted as `/dev/md0` and thus no swap space
 
 ```bash
 $ cat /proc/swaps 
@@ -454,7 +399,7 @@ Swap:         0B          0B       0B
 
 If there is anything incorrect with the configuration file `/etc/mdadm/mdadm.conf` the kernel will attempt to assemble the array and mount it as something like `/dev/md127` the swap is configured to be at `/dev/md0` and will not work until this is corrected.
 
-#### Workaround for Issues #2
+#### Workaround for Issue #1
 
 Confirm the device name of the incorrect mdadm device with:
 

@@ -1,341 +1,306 @@
 ---
 # This playbook can never be run on localhost as it is destructive.
-- fail:
+- name: Confirm not on localhost
+  ansible.builtin.fail:
     msg: "ERROR: This playbook can not be used on localhost."
   when:
     ansible_nodename == "localhost"
   tags:
     - always
 
-###[ Process Devices to use ZFS ]##############################################
+###############################################################################
+# [ Process Devices to use ZFS ]###############################################
 # If disk devices not specified on command line, detect available devices
 - name: Detect and Generate Available Disk Devices Block
-  block:
-  - name: Detect available disk devices to show
-    shell:
-      cmd: "{{lsblk_device_detail_command}}"
-    register: lsblk_devices
-
-  - name: Generate default device list to suggest
-    shell:
-      cmd: "{{lsblk_device_command}}"
-    register: lsblk_default
-
-  # If disk devices not specified on command line, then prompt for it.
-  - pause:
-      prompt: |
-        #########################################################################
-        This playbook requires that you define one or more disk devices to use.
-        Each disk device specified will have its partitions erased and rebuilt
-        using ZFS on Root recommendations based on Ubuntu 20.04.
-
-        NOTE: You can specify devices to use as an ansible parameter using the
-              extra-vars parameter, for example:
-          
-              --extra-vars='{disk_devices: [sda,sdb]}'
-        #########################################################################
-
-        Devices Detected:
-        {{lsblk_devices.stdout}}
-
-        Devices Selected: {{lsblk_default.stdout.splitlines()|map('trim')|list}}
-
-        Press [ENTER] to accept the Devices Selected, or enter a comma separated
-        list of devices to use such as: sda,sdb
-        OR press CTRL-C to Abort.
-      echo: yes
-    register: 
-      prompt
-
-  # If user provided input was only pressing ENTER to accept the default then set default value
-  - set_fact:
-      disk_devices: "{{lsblk_default.stdout.splitlines()|map('trim')|list}}"
-    when:
-      - prompt.user_input|default('') == ""
-
-  # If user provided input, then convert comma seperated values into a list.
-  - set_fact:
-      disk_devices: "{{prompt.user_input.split(',')}}"
-  when: 
+  when:
     disk_devices is undefined
   tags:
     - always
-###############################################################################
-
-###[ Process Remote Host Name ]################################################
-# If host_name not specified on command line, then prompt for it.
-- name: host_name Validation Block
   block:
-  - name: host_name not specified, prompt for it.
-    pause:
-      prompt: |
-        #########################################################################
-        This playbook requires that you define a hostname to be used for the 
-        new system being created.
+    - name: Detect available disk devices to show
+      ansible.builtin.shell: # noqa command-instead-of-shell
+        cmd: "{{ lsblk_device_detail_command }}"
+      register: lsblk_devices
+      changed_when: lsblk_devices.rc == 0
 
-        NOTE: You can specify the hostname to use as an ansible parameter using
-              the extra-vars parameter, for example:
-          
-              --extra-vars='{host_name: "mynewpc"}'
-        #########################################################################
+    - name: Generate default device list to suggest
+      ansible.builtin.shell: # noqa command-instead-of-shell
+        cmd: "{{ lsblk_device_command }}"
+      register: lsblk_default
+      changed_when: lsblk_default.rc == 0
 
-        Default Value:
-        {{ansible_host.split(".")[0]|lower}}
+    # If disk devices not specified on command line, then prompt for it.
+    - name: Prompt for devices to select
+      ansible.builtin.pause:
+        prompt: |
+          #########################################################################
+          This playbook requires that you define one or more disk devices to use.
+          Each disk device specified will have its partitions erased and rebuilt
+          using ZFS on Root recommendations based on Ubuntu 20.04.
 
-        Please enter an alternate hostname or ENTER to accept the default.
-        OR press CTRL-C to Abort:
-      echo: yes
-    register: 
-      prompt
+          NOTE: You can specify devices to use as an ansible parameter using the
+                extra-vars parameter, for example:
 
-  # If user provided input was only pressing ENTER to accept the default, then set default value
-  - set_fact:
-      host_name: "{{ansible_host.split('.')[0]|lower}}"
-    when:
-      prompt.user_input == ""
+                --extra-vars='{disk_devices: [sda,sdb]}'
+          #########################################################################
 
-  # If user provided input, if FQDN accept only hostname and convert to lower case
-  - set_fact:
-      host_name: "{{prompt.user_input.split('.')[0]|lower}}"
-  when: 
+          Devices Detected:
+          {{ lsblk_devices.stdout }}
+
+          Devices Selected: {{ lsblk_default.stdout.splitlines() | map('trim') | list }}
+
+          Press [ENTER] to accept the Devices Selected, or enter a comma separated
+          list of devices to use such as: sda,sdb
+          OR press CTRL-C to Abort.
+        echo: true
+      register:
+        prompt
+
+    # If user provided input was only pressing ENTER to accept the default then set default value
+    - name: Check if default should be used
+      ansible.builtin.set_fact:
+        disk_devices: "{{ lsblk_default.stdout.splitlines() | map('trim') | list }}"
+      when:
+        - prompt.user_input|default('') == ""
+
+    # If user provided input, then convert comma separated values into a list.
+    - name: Process user input
+      ansible.builtin.set_fact:
+        disk_devices: "{{ prompt.user_input.split(',') }}"
+
+###############################################################################
+# [ Process Remote Host Name ]#################################################
+# If host_name not specified on command line, then prompt for it
+
+- name: Check host_name Validation Block
+  when:
     host_name is undefined
   tags:
-  - always
+    - always
+  block:
+    - name: If host_name not specified, prompt for it
+      ansible.builtin.pause:
+        prompt: |
+          #########################################################################
+          This playbook requires that you define a hostname to be used for the
+          new system being created.
+
+          NOTE: You can specify the hostname to use as an ansible parameter using
+                the extra-vars parameter, for example:
+
+                --extra-vars='{host_name: "mynewpc"}'
+          #########################################################################
+
+          Default Value:
+          {{ ansible_host.split(".")[0] | lower }}
+
+          Please enter an alternate hostname or ENTER to accept the default.
+          OR press CTRL-C to Abort:
+        echo: true
+      register:
+        prompt
+
+    # If user provided input was only pressing ENTER to accept the default, then set default value
+    - name: Check if default should be used
+      ansible.builtin.set_fact:
+        host_name: "{{ ansible_host.split('.')[0] | lower }}"
+      when:
+        prompt.user_input == ""
+
+    # If user provided input, if FQDN accept only hostname and convert to lower case
+    - name: Process user input
+      ansible.builtin.set_fact:
+        host_name: "{{ prompt.user_input.split('.')[0] | lower }}"
+
 ###############################################################################
-
-###[ ZFS Passphrase Validation ]###############################################
+# [ ZFS Passphrase Validation ]################################################
 - name: Prompt for ZFS Passphrase if required and not provided Block
-  block:
-  - name: Prompt for ZFS Passphrase if required and not provided
-    pause:
-      prompt: |
-        #########################################################################
-                    A ZFS Passphrase has been configured as required
-        #########################################################################
-
-        You are required to enter a Passphrase to enable ZFS Native Encryption.
-        The passphrase must be at least 8 characters.
-
-        NOTE: You can specify the passphrase to use as an ansible parameter using
-              the extra-vars parameter, for example:
-          
-              --extra-vars='{passphrase: "mySecr3tPa55"}'
-        #########################################################################
-        
-      echo: yes
-    register: 
-      passphrase_prompt
-
-  - set_fact:
-      passphrase: "{{passphrase_prompt.user_input}}"
-      no_log: "{{no_log_secrets}}|default(false)|bool"
-
   when:
-    - prompt_for_zfs_passphrase|default(true)|bool == true
+    - prompt_for_zfs_passphrase|default(true)|bool
     - passphrase is undefined
-   
-- name: ZFS Passphrase Validation Block
   block:
-  # ZFS Native Encryption Passphrase must be 8 chars or longer
-  - fail:
-      msg: "ERROR: ZFS passphrase must be at least 8 characters."
-    when:
-      - passphrase|length|int <8
+    - name: Prompt for ZFS Passphrase if required and not provided
+      ansible.builtin.pause:
+        prompt: |
+          #########################################################################
+                      A ZFS Passphrase has been configured as required
+          #########################################################################
 
-  # Turn on encryption flags if a passphrase was set.
-  - set_fact:
-      root_pool_encryption: true
+          You are required to enter a Passphrase to enable ZFS Native Encryption.
+          The passphrase must be at least 8 characters.
 
-  - debug:
-      msg: "NOTE: Passphrase Supplied -- Root Pool Encryption Enabled"
-    when: root_pool_encryption is true
+          NOTE: You can specify the passphrase to use as an ansible parameter using
+                the extra-vars parameter, for example:
 
+                --extra-vars='{passphrase: "mySecr3tPa55"}'
+          #########################################################################
+        echo: true
+      register:
+        passphrase_prompt
+
+    - name: Prompt for ZFS Passphrase
+      ansible.builtin.set_fact:
+        passphrase: "{{ passphrase_prompt.user_input }}"
+        no_log: "{{ no_log_secrets }} | default(false) | bool"
+
+- name: ZFS Passphrase Validation Block
   when:
     - passphrase is defined
   tags:
     - always
+  block:
+    # ZFS Native Encryption Passphrase must be 8 chars or longer
+    - name: Fail on ZFS Passphrase length
+      ansible.builtin.fail:
+        msg: "ERROR: ZFS passphrase must be at least 8 characters."
+      when:
+        - passphrase|length|int <8
+
+    # Turn on encryption flags if a passphrase was set.
+    - name: Enable root pool encryption
+      ansible.builtin.set_fact:
+        root_pool_encryption: true
+
+    - name: ZFS Passphrase debug message
+      ansible.builtin.debug:
+        msg: "NOTE: Passphrase Supplied -- Root Pool Encryption Enabled"
+      when: root_pool_encryption is true
 
 # If passphrase was not set, just define it.
-- set_fact:
-    passphrase = "none"
+- name: Set passphrase to none when undefined
+  ansible.builtin.set_fact:
+    passphrase: "none"
   when: passphrase is undefined
   tags:
     - always
-###############################################################################
 
-###[ Generate Required Variables for ZFS ]#####################################
+###############################################################################
+# [ Generate Required Variables for ZFS ]######################################
 - name: Generate Required Variables Block
+  tags:
+    - always
   block:
-  # Generate values used in File System Datasets if one does not exist
-  - name: Generate UUID
-    shell:
-      cmd: |
-       UUID=$(zfs list -o name | grep -E -o "{{boot_pool_name}}/BOOT/{{distro_name}}_[^/]*{6}$" | rev | cut -c 1-6 | rev)
-       if [ -z $UUID ]; then
-         UUID=$(dd if=/dev/urandom of=/dev/stdout bs=1 count=100 2>/dev/null | tr -dc 'a-z0-9' | cut -c-6);
-       fi
-        echo $UUID
-    register:
-      UUID
+    - name: Generate disk by-id for devices
+      ansible.builtin.set_fact: # noqa yaml[line-length]
+        disk_by_id: "{{ disk_devices | map('extract', hostvars[inventory_hostname]['ansible_devices'], ['links', 'ids', 0]) | list | map('regex_replace', '^(.*)', '/dev/disk/by-id/\\g<1>') | list }}"
 
-  - name: Generate Epoch value
-    command: "date +%s"
-    register:
-      epoch
+    - name: Display disk by-id for disk_devices
+      ansible.builtin.debug:
+        msg: "{{ item }}"
+      loop:
+        "{{ disk_by_id }}"
+      when:
+        debug | default(false)
 
-  - name: Display Generated Values
-    debug:
-      msg: "UUID Generated: {{UUID.stdout}}  Epoch: {{epoch.stdout}}"
-    when:
-      debug|default(false) == true
-
-  # Generate disk by-id for disk_devices
-  - set_fact:
-      disk_by_id: "{{ disk_devices | map('extract', hostvars[inventory_hostname]['ansible_devices'], ['links', 'ids', 0]) | list | map('regex_replace', '^(.*)', '/dev/disk/by-id/\\g<1>') | list }}"
-  - name: Display disk by-id for disk_devices
-    debug:
-      msg="{{ item }}"
-    loop: 
-      "{{ disk_by_id }}"
-    when:
-      debug|default(false) == true
-
-  tags:
-    - always
 ###############################################################################
-
-###[ Perform Single Device Basic Sanity Checks ]###############################
-# If somehow a single device, has been defined as mirror or raidz then fail.
-- name: Confirm single device boot pool type defined correctly.
-  fail:
-    msg: "ERROR: Boot pool type cannot be type mirror or raidz with one device, fix it in zfs_on_root.yml - correct set_boot_pool_type 1:"
-  when:
-    - not boot_pool_type == ""
-    - disk_by_id|length|int == 1
-  tags:
-    - always
+# [ Perform Single Device Basic Sanity Checks ]################################
 
 # If somehow a single device, has been defined as mirror or raidz then fail.
-- name: Confirm single device root pool type defined correctly.
-  fail:
+- name: Confirm single device root pool type defined correctly
+  ansible.builtin.fail:
     msg: "ERROR: Root pool type cannot be type mirror/raidz/raidz2 with one device, fix it in zfs_on_root.yml - set_root_pool_type 1:"
   when:
     - not root_pool_type == ""
-    - disk_by_id|length|int == 1
+    - disk_by_id | length | int == 1
   tags:
     - always
+
 ###############################################################################
+# [ Perform Dual Device Basic Sanity Checks ]##################################
 
-###[ Perform Dual Device Basic Sanity Checks ]#################################
-- name: Dual Device Sanity Checks Block
-  block:
-  # If somehow 2 devices are not defined as a mirror then fail.
-  - name: Confirm dual device boot pool type defined correctly.
-    fail:
-      msg: "ERROR: Boot pool must be type mirror with 2 devices, fix it in zfs_on_root.yml - correct set_boot_pool_type 2:"
-
-  # If somehow 2 devices are not defined as a mirror then fail.
-  - name: Confirm dual device boot pool type defined correctly.
-    fail:
-      msg: "ERROR: Root pool must be type mirror with 2 devices, fix it in zfs_on_root.yml - correct set_root_pool_type 2:"
-
+# If somehow 2 devices are not defined as a mirror then fail.
+- name: Confirm dual device boot pool type defined correctly
+  ansible.builtin.fail:
+    msg: "ERROR: Root pool must be type mirror with 2 devices, fix it in zfs_on_root.yml - correct set_root_pool_type 2:"
   when:
-    - not boot_pool_type == "mirror"
-    - disk_by_id|length|int == 2
+    - not root_pool_type == "mirror"
+    - disk_by_id | length | int == 2
   tags:
     - always
+
 ###############################################################################
+# [ Perform RAIDZ2 Basic Sanity Checks ]#######################################
 
-###[ Perform RAIDZ2 Basic Sanity Checks ]######################################
-- name: RAIDZ2 Sanity Checks Block
-  block:
-  # If somehow raidz2 was specified and with less than 4 devices then fail
-  - name: Confirm raidz2 device boot pool type has more than 4 devices
-    fail:
-      msg: "ERROR: Boot pool must have more than 4 devices to use raidz2, fix it in zfs_on_root.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
-
-  # If somehow raidz2 was specified and with less than 4 devices then fail
-  - name: Confirm raidz2 device root pool type has more than 4 devices
-    fail:
-      msg: "ERROR: Root pool must have more than 4 devices to use raidz2, fix it in zfs_on_root.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
+# If somehow raidz2 was specified and with less than 4 devices then fail
+- name: Confirm raidz2 device root pool type has more than 4 devices
+  ansible.builtin.fail:
+    msg: "ERROR: Root pool must have more than 4 devices to use raidz2, fix it in zfs_on_root.yml - correct set_boot_pool_type {{ disk_by_id | length | int }}:"
   when:
-    - boot_pool_type == "raidz2"
-    - disk_by_id|length|int < 4
+    - root_pool_type == "raidz2"
+    - disk_by_id | length | int < 4
   tags:
     - always
-###############################################################################
 
-###[ Perform Sanity Check that 3 or more Devices are Mirror, Raidz, Raidz2 ]###
-- name: Three or More Device Sanity Check Block
-  block:
-  # If BOOT Pool is 3 or more devices and not mirror or raidz then fail
-  - name: Confirm multiple device boot type defined correctly.
-    fail:
-      msg: "ERROR: Boot pool must be type mirror or raidz with {{disk_by_id|length|int}} devices, fix it in zfs_on_root.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
-    when:
-      - (boot_pool_type != "mirror") and
-        (boot_pool_type != "raidz") and
-        (boot_pool_type != "raidz2")
+###############################################################################
+# [ Perform Sanity Check that 3 or more Devices are Mirror, Raidz, Raidz2 ]####
+
   # If ROOT Pool is 3 or more devices and not mirror or raidz then fail
-  - name: Confirm multiple device root type defined correctly.
-    fail:
-      msg: "ERROR: Root pool must be type mirror or raidz with {{disk_by_id|length|int}} devices, fix it in zfs_on_root.yml - correct set_boot_pool_type {{disk_by_id|length|int}}:"
-    when:
-      - (root_pool_type != "mirror") and 
-        (root_pool_type != "raidz") and
-        (root_pool_type != "raidz2")
+- name: Confirm multiple device root type defined correctly
+  ansible.builtin.fail:
+    msg: >
+      "ERROR: Root pool must be type mirror or raidz with {{ disk_by_id | length | int }} devices,
+      fix it in zfs_on_root.yml - correct set_boot_pool_type {{ disk_by_id | length | int }}:"
   when:
+    - (root_pool_type != "mirror") and
+      (root_pool_type != "raidz") and
+      (root_pool_type != "raidz2")
     - disk_by_id|length|int > 2
   tags:
     - always
-###############################################################################
 
-###[ Mirrored VDEVs Sanity Check ]#############################################
+###############################################################################
+# [ Mirrored VDEVs Sanity Check ]##############################################
 # If somehow 4 or more devices are defined as a mirror for mirrored vdevs
-# then number of devices must be even number, otherwise fail. 
+# then number of devices must be even number, otherwise fail.
 # (IE a 5 way mirror not supported, should be a raidz or raidz2 or not used)
-- name: Confirm mirrored vdevs for root pool has even number of devices.
-  fail:
-    msg: "ERROR: A mirror of more than 4 devices (mirrored vdevs) must use an even number of devices. A {{disk_by_id|length|int}} mirror is not supported, fix it in zfs_on_root.yml"
+
+- name: Confirm mirrored vdevs for root pool has even number of devices
+  ansible.builtin.fail:
+    msg: >
+      "ERROR: A mirror of more than 4 devices (mirrored vdevs) must use an even number of devices.
+      A {{ disk_by_id | length | int }} mirror is not supported, fix it in zfs_on_root.yml"
   when:
     - root_pool_type == "mirror"
     - disk_by_id|length|int > 4
     - disk_by_id|length|int is odd
   tags:
     - always
+
 ###############################################################################
-
-###[ UEFI Sanity Checks ]######################################################
+# [ UEFI Sanity Checks ]#######################################################
 # If boot using UEFI specified, then Ubuntu Live CD should have detected this.
-# Path /sys/firmware/efi must exist, otherwise only legacy booting can be used.
+# Path /sys/firmware/efi must exist, otherwise only legacy booting can be used
+
 - name: Confirm UEFI Environment Exists Block
-  block:
-  - name: Check if UEFI environment is detected
-    stat:
-      path: "{{efi_firmware_path}}"
-    register: efi_firmware_directory
-
-  - name: Confirmed UEFI Firmware detected
-    set_fact:
-      use_uefi_booting_msg: "Confirmed UEFI Firmware found"
-    when:
-      - efi_firmware_directory.stat.isdir is defined and efi_firmware_directory.stat.isdir
-
-  # Give Notice of UEFI switch to Legacy BIOS if no UEFI detected
-  - debug:
-      msg: "WARNING: UEFI Booting Enabled but UEFI was not detected by {{distro_name}}, switching to Legacy BIOS"
-    when:
-      - efi_firmware_directory.stat.isdir is undefined
-  
-  # If UEFI Not Detected, Drop Back to Legacy BIOS Install
-  - set_fact:
-      use_uefi_booting: false
-      use_uefi_booting_msg: "UEFI Firmware Not Detected: using Legacy BIOS Instead"
-    when:
-      - efi_firmware_directory.stat.isdir is undefined
-
   when:
-    - use_uefi_booting|default(false)|bool == true
+    - use_uefi_booting | default(false) | bool
   tags:
     - always
+  block:
+    - name: Check if UEFI environment is detected
+      ansible.builtin.stat:
+        path: "{{ efi_firmware_path }}"
+      register: efi_firmware_directory
+
+    - name: Confirmed UEFI Firmware detected
+      ansible.builtin.set_fact:
+        use_uefi_booting_msg: "Confirmed UEFI Firmware found"
+      when:
+        - efi_firmware_directory.stat.isdir is defined and efi_firmware_directory.stat.isdir
+
+    # Give Notice of UEFI switch to Legacy BIOS if no UEFI detected
+    - name: UEFI not detected debug message
+      ansible.builtin.debug:
+        msg: "WARNING: UEFI Booting Enabled but UEFI was not detected by {{ distro_name }}, switching to Legacy BIOS"
+      when:
+        - efi_firmware_directory.stat.isdir is undefined
+
+    # If UEFI Not Detected, Drop Back to Legacy BIOS Install
+    - name: UEFI not detected, switch to Legacy BIOS Install
+      ansible.builtin.set_fact:
+        use_uefi_booting: false
+        use_uefi_booting_msg: "UEFI Firmware Not Detected: using Legacy BIOS Instead"
+      when:
+        - efi_firmware_directory.stat.isdir is undefined
+
 ###############################################################################

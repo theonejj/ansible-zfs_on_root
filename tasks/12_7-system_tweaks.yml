@@ -1,0 +1,94 @@
+---
+# [ System Tweaks Block ]######################################################
+- name: System Tweaks Block
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - system_tweaks
+  block:
+    - name: Setup /tmp to use tmpfs
+      ansible.builtin.copy:
+        src: /mnt/usr/share/systemd/tmp.mount
+        dest: /mnt/etc/systemd/system/tmp.mount
+        mode: "0644"
+        remote_src: true
+
+    - name: Run chroot command enable /tmp
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c 'systemctl enable tmp.mount'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+    - name: Run chroot commands to add system groups
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      with_items:
+        - "addgroup --system lpadmin"
+        - "addgroup --system lxd"
+        - "addgroup --system sambashare"
+
+    - name: Run chroot command to install basic applications
+      ansible.builtin.command:
+        "{{ chroot_cmd }} bash -c 'apt install --yes openssh-server avahi-daemon libnss-mdns python3 python3-apt'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      when:
+        - ansible_os_family == "Debian"
+
+    - name: Copy Avahi SSH service file into place
+      ansible.builtin.copy:
+        src: "{{ live_cd_mountpoint }}/usr/share/doc/avahi-daemon/examples/ssh.service"
+        dest: "{{ live_cd_mountpoint }}/etc/avahi/services"
+        mode: "0644"
+        remote_src: true
+
+###############################################################################
+# [ ZFS Encryption Unlock Script and Unit File Block ]#########################
+- name: ZFS Encryption Unlock Script and Unit File Block
+  when:
+    - root_pool_encryption | default(false)
+    - ansible_nodename != "localhost"
+  tags:
+    - system_tweaks
+  block:
+    - name: ZFS encryption script to load the keyfile
+      ansible.builtin.template:
+        src: "zfs-multi-mount.sh.j2"
+        dest: "{{ live_cd_mountpoint }}/usr/local/bin/zfs-multi-mount.sh"
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: ZFS encryption systemd unit to load the keyfile
+      ansible.builtin.template:
+        src: "zfs-load-key.service.j2"
+        dest: "{{ live_cd_mountpoint }}/etc/systemd/system/zfs-load-key.service"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Run chroot commands to enable ZFS load key service
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      with_items:
+        - "systemctl enable zfs-load-key.service"
+
+#  - name: Install Packaged Needed to fetch and apply patch
+#    ansible.builtin.command:
+#      "{{chroot_cmd}} bash -c 'apt install --yes --no-install-recommends curl patch'"
+#    when:
+#      - ansible_nodename != "localhost"
+#      - ansible_os_family == "Debian"
+
+#  # Per ZFS on Root Guide this will create error on Hunk#2- know issue, error will be ignored
+#  - name: Run chroot command to curl and apply patch for Bug#1875577 Encrypted Swap with ZFS
+#    ansible.builtin.shell: # noqa yaml[line-length]
+#      cmd: "{{chroot_cmd}} bash -c 'curl -s https://launchpadlibrarian.net/478315221/2150-fix-systemd-dependency-loops.patch | sed \"s|/etc|/lib|;s|\\.in$||\" | (cd / ; patch -p1)'"
+#    ignore_errors: true
+#
+
+###############################################################################

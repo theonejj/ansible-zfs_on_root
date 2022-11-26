@@ -1,0 +1,77 @@
+---
+# [ Create Boot Filesystem ]###################################################
+- name: Create Boot Filesystem Block
+  when:
+    ansible_nodename != "localhost"
+  tags:
+    - config_boot_fs
+  block:
+    - name: Create EFI filesystems on all "-part1" partitions
+      ansible.builtin.command:
+        "mkdosfs -F 32 -s 1 -n EFI {{ item }}-part1"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      loop:
+        "{{ disk_by_id }}"
+
+    - name: Run chroot command to install dosfstool on Debian based hosts
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c 'apt install --yes dosfstools'"
+      when:
+        - ansible_os_family == "Debian"
+
+    - name: Run chroot command to create /boot/efi directory
+      ansible.builtin.command:
+        "{{ chroot_cmd }} bash -c 'mkdir -p /boot/efi'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+###############################################################################
+# [ Build up fstab file ]######################################################
+- name: Build fstab File Block
+  when:
+    ansible_nodename != "localhost"
+  tags:
+    - config_boot_fs
+  block:
+    # Debug Remove any existing /boot/efi references within chroot environment
+    # Entries would only exist if this task had been run previously
+    - name: Remove any existing /boot/efi references from fstab
+      ansible.builtin.replace:
+        path: "{{ live_cd_mountpoint }}/etc/fstab"
+        regexp: '(?m)^/dev/disk/by-uuid/.*/boot/efi.*\n?'
+        replace: ''
+
+    - name: Remove UNCONFIGURED message in /etc/fstab
+      ansible.builtin.blockinfile:
+        path: "{{ live_cd_mountpoint }}/etc/fstab"
+        marker: "# UNCONFIGURED FSTAB FOR BASE SYSTEM"
+        block: ""
+
+    - name: Add EFI Filesystems to /etc/fstab
+      ansible.builtin.shell:
+        cmd:
+          echo /dev/disk/by-uuid/$(blkid -s UUID -o value "{{ disk_by_id[0] }}-part1") /boot/efi vfat defaults 0 0 >>"{{ live_cd_mountpoint }}/etc/fstab"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+    - name: Debug get contents of chroot /etc/fstab
+      ansible.builtin.command:
+        "cat {{ live_cd_mountpoint }}/etc/fstab"
+      register: cmd_output
+      when:
+        debug | default(false)
+
+    - name: Debug show contents of chroot /etc/fstab
+      ansible.builtin.debug:
+        var: cmd_output['stdout']
+      when:
+        debug | default(false)
+
+    # Mount /boot/efi directory in chroot environment
+    - name: Run chroot command to mount /boot/efi directory
+      ansible.builtin.command: "{{ chroot_cmd }} bash -c 'mount /boot/efi'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+###############################################################################

@@ -1,0 +1,136 @@
+---
+# [ Single Disk Unencrypted Swap Configuration ]###############################
+- name: Single Disk Unencrypted Swap Block
+  when:
+    - ansible_nodename != "localhost"
+    - enable_swap_partitions|default(true)|bool
+    - not root_pool_encryption|default(false)|bool
+    - disk_by_id | length == 1
+  tags:
+    - config_swap
+  block:
+    - name: Run chroot commands to Create Swap Filesystem for Single Disk Unencrypted
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      with_items:
+        - "mkswap -f {{ disk_by_id[0] }}-part2"
+        - "echo /dev/disk/by-uuid/$(blkid -s UUID -o value {{ disk_by_id[0] }}-part2) none swap discard 0 0 >> /etc/fstab"
+
+    - name: Run chroot command to enable Unencrypted swap
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c 'swapon -a'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+###############################################################################
+# [ Create Multi Disk Swap Mirror or RAID ]####################################
+- name: Create Multi Disk Swap Mirror or RAID Block
+  when:
+    - ansible_nodename != "localhost"
+    - enable_swap_partitions | default(true) | bool
+    - disk_by_id | length | int > 1
+  tags:
+    - config_swap
+  block:
+    - name: Run chroot command to install mdadm for multi-disk swap
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c 'apt install --yes mdadm'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      when:
+        - ansible_os_family == "Debian"
+
+    # if more than 1 device, and boot pool is a mirror then use a mirror
+    - name: See if mirror is to be used
+      ansible.builtin.set_fact:
+        mdadm_type: "mirror"
+      when:
+        - boot_pool_type == "mirror"
+
+    # If more than 1 device, and boot bool is not a mirror, then must be raidz or raidz2
+    - name: See if raid should be used
+      ansible.builtin.set_fact:
+        mdadm_type: "{{ (boot_pool_type == 'raidz') | ternary('raid5', 'raid6') }}"
+      when:
+        - boot_pool_type != "mirror"
+
+    # Create a list of swap device partitions to use
+    - name: Create a list of swap device partitions to use
+      ansible.builtin.set_fact:
+        mdadm_device_list: "{{ mdadm_device_list | default('') }} {{ item }}-part2"
+      loop:
+        "{{ disk_by_id }}"
+
+    # The "-R" - is needed to suppress the "Continue creating array?" prompt
+    - name: Run chroot command to create mdadm device for multi-disk swap
+      ansible.builtin.command:  # noqa yaml[line-length]
+        "{{ chroot_cmd }} bash -c 'mdadm --create --verbose /dev/md0 -R --metadata=1.2 --level={{ mdadm_type }} --raid-devices={{ disk_by_id | length | int }} {{ mdadm_device_list }} --homehost={{ inventory_hostname_short }}'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+###############################################################################
+# [ Configure Multi Disk Unencrypted Swap ]####################################
+- name: Multi Disk Unencrypted Swap Block
+  when:
+    - ansible_nodename != "localhost"
+    - enable_swap_partitions | default(true) | bool
+    - not root_pool_encryption | default(false) | bool
+    - disk_by_id | length | int > 1
+  tags:
+    - config_swap
+  block:
+    - name: Run chroot command to create swap filesystem for multi-disk mdadm device
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      with_items:
+        - "mkswap -f /dev/md0"
+        - "echo /dev/disk/by-uuid/$(blkid -s UUID -o value /dev/md0) none swap discard 0 0 >> /etc/fstab"
+
+###############################################################################
+# [ Single or Multi Disk Encrypted Swap Configuration ]########################
+- name: Multi Disk Encrypted Swap Block
+  when:
+    - ansible_nodename != "localhost"
+    - enable_swap_partitions|default(true)|bool
+    - root_pool_encryption|default(false)|bool
+  tags:
+    - config_swap
+  block:
+    - name: Run chroot command to install cryptsetup on Debian based systems
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c 'apt install --yes cryptsetup'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+      when:
+        - ansible_os_family == "Debian"
+
+    # Work for Encrypted Single Disk SWAP
+    - name: Run chroot command to add single disk encrypted swap partitions to /etc/crypttab
+      ansible.builtin.shell:
+        cmd: "{{ chroot_cmd }} bash -c 'echo swap {{ disk_by_id[0] }}-part2 /dev/urandom swap,cipher=aes-xts-plain64:sha256,size=512 >> /etc/crypttab'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      when:
+        - disk_by_id | length | int == 1
+
+    # Work for Multi Disk Encrypted SWAP
+    - name: Run chroot commands to add multi-disk encrypted swap partitions to /etc/crypttab
+      ansible.builtin.shell:
+        cmd: "{{ chroot_cmd }} bash -c 'echo swap /dev/md0 /dev/urandom swap,cipher=aes-xts-plain64:sha256,size=512 >> /etc/crypttab'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      when:
+        - disk_by_id | length | int > 1
+
+    - name: Run chroot command to add swap device map to /etc/fstab (Single or Multi Disk)
+      ansible.builtin.shell:
+        cmd: "{{ chroot_cmd }} bash -c 'echo /dev/mapper/swap none swap defaults 0 0 >> /etc/fstab'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+###############################################################################

@@ -1,120 +1,107 @@
 ---
-# This configuration is designed to Ubuntu 20.04, it is not backward compatible to older versions.
+# This configuration is designed to Ubuntu 22.04, it is not backward compatible to older versions.
 
 ####### Nothing Below Here Needs to be Edited ############
 
 # Ubuntu Release name
-ubuntu_release: "focal"
+ubuntu_release: "jammy"
 distro_name: "ubuntu"
 
+# Define Partition Mapping
+boot_partition: "1"
+swap_partition: "2"
+root_partition: "3"
+
+# Define mount location within LIVE CD
+live_cd_mountpoint: "/mnt"
+
+# Define EFI Partition Size
+boot_partition_size_mb: "1024"
+
 # Boot Partition Flags
-uefi_partition_flags: "-n1:1M:+512M     -t1:EF00"
-bios_partition_flags: "-a1 -n5:24K:+1000K -t5:EF02"
+uefi_partition_flags: "-n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -t1:EF00"
+bios_partition_flags: "-a1 -n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -A{{ boot_partition }}:set:2 -t5:EF00"
 
 # Possible SWAP Partition Flags based on one device or more
-single_disk_or_mirror_swap_flags: "-n2:0:+{{ single_or_mirror_swap_partition_size_MB }}M -t2:8200"
-raidz_multi_disk_swap_flags:      "-n2:0:+{{ raidz_swap_partition_size_MB }}M -t2:FD00"
-
-# Define Boot Pool Partition Flags - single 
-single_disk_or_mirror_boot_partition_flags: "-n3:0:+{{ single_or_mirror_boot_partition_size_MB }}M -t3:BE00"
-raidz_multi_disk_boot_partition_flags:      "-n3:0:+{{ raidz_boot_partition_size_MB }}M -t3:BE00"
+single_disk_or_mirror_swap_flags: "-n{{ swap_partition }}:0:+{{ single_or_mirror_swap_partition_size_MB }}M -t{{ swap_partition }}:8200"
+raidz_multi_disk_swap_flags: "-n{{ swap_partition }}:0:+{{ raidz_swap_partition_size_MB }}M -t{{ swap_partition }}:FD00"
 
 # Define Root Pool Partition Flags - for Unencrypted or ZFS native Encryption
-root_partition_flags: "-n4:0:{{root_partition_size}}          -t4:BF00"
+root_partition_flags: "-n{{ root_partition }}:0:{{ root_partition_size }} -t{{ root_partition }}:BF00"
 
 # Define Pool Partition Suffixes
-boot_partition_name_suffix: "-part3"
-root_partition_name_suffix: "-part4"
+root_partition_name_suffix: "-part{{ root_partition }}"
 
-# Enable native ZFS root pool encryption (default false) - This will be set to true when a passphrase 
+# Enable native ZFS root pool encryption (default false) - This will be set to true when a passphrase
 # is specified as an extra variable.
 root_pool_encryption: false
 
 # Set the boot and root pool type based on number of devices given ("", "mirror", "raidz", etc.)
-boot_pool_type: "{{set_boot_pool_type[(disk_by_id|length)]|default(set_boot_pool_type['default'])}}"
-root_pool_type: "{{set_root_pool_type[(disk_by_id|length)]|default(set_root_pool_type['default'])}}"
-
-# Define Boot Pool Options
-boot_pool_options:
-  - "-o cachefile=/etc/zfs/zpool.cache"
-  - "-o ashift=12 -o autotrim=on -d"
-  - "-o feature@async_destroy=enabled"
-  - "-o feature@bookmarks=enabled"
-  - "-o feature@embedded_data=enabled"
-  - "-o feature@empty_bpobj=enabled"
-  - "-o feature@enabled_txg=enabled"
-  - "-o feature@extensible_dataset=enabled"
-  - "-o feature@filesystem_limits=enabled"
-  - "-o feature@hole_birth=enabled"
-  - "-o feature@large_blocks=enabled"
-  - "-o feature@lz4_compress=enabled"
-  - "-o feature@spacemap_histogram=enabled"
-  - "-O acltype=posixacl -O canmount=off -O compression=lz4"
-  - "-O devices=off -O normalization=formD"
-  - "-O relatime=on -O xattr=sa"
-  - "-O mountpoint=/boot -R /mnt {{boot_pool_name}}"
+# boot_pool_type: "{{ set_boot_pool_type[(disk_by_id | length)] | default(set_boot_pool_type['default']) }}"
+root_pool_type: "{{ set_root_pool_type[(disk_by_id | length)] | default(set_root_pool_type['default']) }}"
 
 # Define Root Pool Options
 root_pool_options:
-  - "-o ashift=12 -o autotrim=on {{' '+(root_pool_encryption|default(false)) | ternary(root_pool_encryption_options|join(' '), '') }}"
-  - "-O acltype=posixacl -O canmount=off -O compression=lz4"
-  - "-O dnodesize=auto -O normalization=formD -O relatime=on"
-  - "-O xattr=sa -O mountpoint=/ -R /mnt {{root_pool_name}}"
+  - "-o ashift={{ zfs_rpool_ashift }}"
+  - "-o autotrim=on"
+  - "-O acltype=posixacl"
+  - "-O canmount=off"
+  - "-O compression={{ zfs_compression }}"
+  - "-O atime=off"
+  - "-O dnodesize=auto"
+  - "-O normalization=formD"
+  - "-O relatime=on"
+  - "-O xattr=sa"
+  - "-O mountpoint=/ -R {{ live_cd_mountpoint }} {{ root_pool_name }}"
 
 # Define Root Pool Encryption Options
 root_pool_encryption_options:
-  - "-O encryption=aes-256-gcm"
-  - "-O keylocation=prompt -O keyformat=passphrase"
+  - "-o encryption=aes-256-gcm"
+  - "-o keylocation=prompt"
+  - "-o keyformat=passphrase"
 
-# Define datasets to act as containers
-boot_pool_container_options:
-  - "-o canmount=off"
-  - "-o mountpoint=none"
-  - "{{boot_pool_name}}/BOOT"
+# Define rpool zpool create parameters list
+root_pool_create_params:
+  "{{ root_pool_options | join(' ') }} {{ root_pool_type }} {{ disk_by_id | join(root_partition_name_suffix + ' ') + root_partition_name_suffix + ' ' }}"
 
 root_pool_container_options:
   - "-o canmount=off"
   - "-o mountpoint=none"
-  - "{{root_pool_name}}/ROOT"
+  - "{{ ' ' + (root_pool_encryption | default(false)) | ternary(root_pool_encryption_options | join(' '), '') }}"
+  - "{{ root_pool_name }}/ROOT"
 
-# Define Filesystem Dataset Options
-boot_dataset_options:
-  - "-o mountpoint=/boot"
-
-root_dataset_options: 
+root_pool_dataset_path: "{{ root_pool_name }}/ROOT/{{ distro_name }}"
+root_dataset_options:
   - "-o mountpoint=/"
-  - "-o com.ubuntu.zsys:bootfs=yes"
-  - "-o com.ubuntu.zsys:last-used={{epoch.stdout}}"
-
-boot_pool_dataset_path: "{{boot_pool_name}}/BOOT/{{distro_name}}_{{UUID.stdout}}"
-root_pool_dataset_path: "{{root_pool_name}}/ROOT/{{distro_name}}_{{UUID.stdout}}"
+  - "-o canmount=noauto"
 
 # Define Additional Datasets to Create
 datasets_to_create:
-- "-o com.ubuntu.zsys:bootfs=no {{root_pool_dataset_path}}/srv"
-- "-o com.ubuntu.zsys:bootfs=no -o canmount=off {{root_pool_dataset_path}}/usr"
-- "{{root_pool_dataset_path}}/usr/local"
-- "-o com.ubuntu.zsys:bootfs=no -o canmount=off {{root_pool_dataset_path}}/var"
-- "{{root_pool_dataset_path}}/var/games"
-- "{{root_pool_dataset_path}}/var/lib"
-- "{{root_pool_dataset_path}}/var/lib/AccountsService"
-- "{{root_pool_dataset_path}}/var/lib/apt"
-- "{{root_pool_dataset_path}}/var/lib/dpkg"
-- "{{root_pool_dataset_path}}/var/lib/NetworkManager"
-- "{{root_pool_dataset_path}}/var/log"
-- "{{root_pool_dataset_path}}/var/mail"
-- "{{root_pool_dataset_path}}/var/snap"
-- "{{root_pool_dataset_path}}/var/spool"
-- "{{root_pool_dataset_path}}/var/www"
-- "-o canmount=off -o mountpoint=/ {{root_pool_name}}/USERDATA"
-- "-o com.ubuntu.zsys:bootfs-datasets={{root_pool_dataset_path}} -o canmount=on -o mountpoint=/root {{root_pool_name}}/USERDATA/root_{{UUID.stdout}}"
+  - "{{ root_pool_dataset_path }}/srv"
+  - "-o canmount=off {{ root_pool_dataset_path }}/usr"
+  - "{{ root_pool_dataset_path }}/usr/local"
+  - "-o canmount=off {{ root_pool_dataset_path }}/var"
+  - "-o com.sun:auto-snapshot=false {{ root_pool_dataset_path }}/var/cache"
+  - "{{ root_pool_dataset_path }}/var/games"
+  - "-o canmount=off {{ root_pool_dataset_path }}/var/lib"
+  - "{{ root_pool_dataset_path }}/var/lib/AccountsService"
+  - "{{ root_pool_dataset_path }}/var/lib/apt"
+  - "{{ root_pool_dataset_path }}/var/lib/dpkg"
+  - "-o com.sun:auto-snapshot=false {{ root_pool_dataset_path }}/var/lib/docker"
+  - "{{ root_pool_dataset_path }}/var/lib/NetworkManager"
+  - "{{ root_pool_dataset_path }}/var/log"
+  - "{{ root_pool_dataset_path }}/var/mail"
+  - "{{ root_pool_dataset_path }}/var/snap"
+  - "{{ root_pool_dataset_path }}/var/spool"
+  - "-o com.sun:auto-snapshot=false {{ root_pool_dataset_path }}/var/tmp"
+  - "{{ root_pool_dataset_path }}/var/www"
+  # Home Directory Dataset will be kept outside of OS Dataset
+  - "-o canmount=off -o mountpoint=none -o compression=lz4 -o atime=off {{ root_pool_name }}/ROOT/home"
+  - "-o canmount=on -o mountpoint=/root {{ root_pool_name }}/ROOT/home/root"
 
-# Define GRUB Dataset
-grub_dataset_options: "-o com.ubuntu.zsys:bootfs=no"
-
-####### Variable Before are unrelated to ZFS ############
+####### Variable below are unrelated to ZFS ############
 # Define chroot command to use
-chroot_cmd: "chroot /mnt"
+chroot_cmd: "chroot {{ live_cd_mountpoint }}"
 
 # OS Prober is only needed on dual-boot configurations.
 remove_os_prober: true
@@ -135,7 +122,7 @@ lsblk_device_types: "8,179,259"
 
 # "lsblk -ndo name,mountpoint --include {{lsblk_device_types}} | grep -v '/' | cat"
 # The RO indicates if device is read-only (value 1), the awk filters to value 0 - not read-only
-lsblk_device_command: "lsblk -ndo name,mountpoint,ro --include {{lsblk_device_types}} | awk '/0$/{print $1}'"
+lsblk_device_command: "lsblk -ndo name,mountpoint,ro --include {{ lsblk_device_types }} | awk '/0$/{print $1}'"
 
 # This version shows a little more information during manual install selection
-lsblk_device_detail_command: "lsblk -ndo name,size,mountpoint,ro --include {{lsblk_device_types}} | awk '/0$/{printf \"%-8s %8s\\n\", $1,$2}'"
+lsblk_device_detail_command: "lsblk -ndo name,size,mountpoint,ro --include {{ lsblk_device_types }} | awk '/0$/{printf \"%-8s %8s\\n\", $1,$2}'"

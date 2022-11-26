@@ -1,99 +1,57 @@
 ---
-###[ Create Datasets for Filesystem ]#########################################
+# [ Create Datasets for Filesystem ]###########################################
 - name: Create Datasets for Filesystem Block
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - create_datasets
   block:
-  - name: Debug Datasets for Filesystem list
-    debug:
-      msg: "zfs create {{item}}"
-    loop: 
-      "{{ datasets_to_create }}"
-    when:
-      debug|default(false) == true
+    - name: Debug Datasets for Filesystem list
+      ansible.builtin.debug:
+        msg: "zfs create {{ item }}"
+      loop:
+        "{{ datasets_to_create }}"
+      when:
+        debug|default(false)
 
-  - name: Create Datasets for Filesystem list
-    command:
-      cmd: "zfs create {{item}}"
-    loop: 
-      "{{ datasets_to_create }}"
-    loop_control:
-      label: "{{item}}"
-  
-  - name: Set Permissions on /mnt/root
-    ansible.builtin.file:
-      path: /mnt/root
-      state: directory
-      mode: '700'
+    - name: Create Datasets for Filesystem list
+      ansible.builtin.command:
+        "zfs create {{ item }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      loop:
+        "{{ datasets_to_create }}"
+      loop_control:
+        label: "{{ item }}"
 
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - create_datasets
-###############################################################################
+    - name: Create Directories on mount points and set permissions
+      ansible.builtin.file:
+        state: directory
+        path: "{{ mount_path.path }}"
+        mode: "{{ mount_path.mode }}"
+      loop:
+        - { path: "{{ live_cd_mountpoint }}/root", mode: "700" }
+        - { path: "{{ live_cd_mountpoint }}/var/tmp", mode: "1777" }
+        - { path: "{{ live_cd_mountpoint }}/run/lock", mode: "755" }
+        - { path: "{{ live_cd_mountpoint }}/etc/zfs", mode: "755" }
+      loop_control:
+        loop_var: mount_path
+        label: "{{ mount_path.path }}"
 
-###[ Create Grub Datasets ]####################################################
-- name: Create Grub Dataset Block
-  block:
-  - name: Debug Create Grub Dataset only when root_pool_type is a mirror, raidz, raidz2, raidz3
-    debug:
-      msg: "zfs create {{grub_dataset_options}} {{boot_pool_name}}/grub"
-    when:
-      debug|default(false) == true
+    - name: Mount run directory as tmpfs # noqa command-instead-of-module
+      ansible.builtin.command:
+        "mount -t tmpfs tmpfs {{ live_cd_mountpoint }}/run"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
 
-  - name: Create Grub Dataset only when root_pool_type is a mirror, raidz, raidz2, raidz3 (anything other than empty)
-    command:
-      "zfs create {{grub_dataset_options}} {{boot_pool_name}}/grub"
-  when:
-    - root_pool_type != ""
-    - ansible_nodename != "localhost"
-  tags:
-    - create_datasets
-###############################################################################
+    - name: Installing a minimal linux system
+      ansible.builtin.command:
+        "debootstrap {{ ubuntu_release }} {{ live_cd_mountpoint }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
 
-###[ Create tmpfs on /mnt/run ]#################################################
-- name: Create tmpfs on /mnt/run Block
-  block:
-  - name: Create /mnt/run Directory
-    ansible.builtin.file:
-      path: /mnt/run
-      state: directory
-  
-  - name: Mount Temp Directoy
-    command:
-      "mount -t tmpfs tmpfs /mnt/run"
-
-  - name: Create /mnt/run/lock Directory
-    ansible.builtin.file:
-      path: /mnt/run/lock
-      state: directory
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - create_datasets
-###############################################################################
-
-###[ Install Minimal Linux ]###################################################
-- name: Installing a minimal linux system
-  command:
-    "debootstrap {{ubuntu_release}} /mnt"
-  when:
-    - ansible_nodename != "localhost"
-  tags:
-    - create_datasets
-###############################################################################
-
-###[ Copy Zpool Cache File ]###################################################
-- name: Create Directory for ZFS Pool Cache
-  ansible.builtin.file:
-    path: /mnt/etc/zfs
-    state: directory
-  tags:
-    - create_datasets
-
-- name: Copy Existing Zpool Cache File
-  ansible.builtin.copy:
-    src: /etc/zfs/zpool.cache
-    dest: /mnt/etc/zfs/
-    remote_src: yes
-  tags:
-    - create_datasets
-###############################################################################
+    - name: Disable ZFS Device Node support
+      ansible.builtin.command:
+        "zfs set devices=off {{ root_pool_name }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0

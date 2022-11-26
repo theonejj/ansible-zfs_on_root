@@ -1,39 +1,44 @@
 ---
 #
-# This role/task will detect if Ansible is running under VirtualBox and 
+# This role/task will detect if Ansible is running under VirtualBox and
 # then set a variable named "virtual_box" to true or false
 #
-  - name: Check if lspci is installed
-    ansible.builtin.stat:
-      path: /usr/bin/lspci
-    register: stat_lspci
+- name: Check if lspci is installed
+  ansible.builtin.stat:
+    path: /usr/bin/lspci
+  register: stat_lspci
+  tags:
+    - always
 
 # Determine if running under Virtual Box
-  - name: Determine if running under Virtual Box
-    block:
-      - name: Checking lspci device list
-        command: "lspci"
-        register: PCI_Devices
-        
-      # Under virtual box there will be a PCI device 
-      - set_fact:
-          virtual_box: "{{ (PCI_Devices.stdout.find('VirtualBox') == -1) |ternary(false,true) }}"
+- name: Determine if running under Virtual Box
+  when:
+    - ansible_os_family == "Debian" or
+      ansible_os_family == "Archlinux"
+    - stat_lspci.stat.exists is defined and stat_lspci.stat.exists
+  tags:
+    - always
+  block:
+    - name: Checking lspci device list
+      ansible.builtin.command: "lspci"
+      register: PCI_Devices
+      changed_when: PCI_Devices.rc == 0
 
-      - debug:
-          msg: "VirtualBox Detected: {{virtual_box}}"
+    # Under virtual box there will be a PCI device
+    - name: Check if VirtualBox is within PCI_Devices
+      ansible.builtin.set_fact:
+        virtual_box: "{{ (PCI_Devices.stdout.find('VirtualBox') == -1) | ternary(false, true) }}"
 
-    when: 
-      - ansible_os_family == "Debian" or
-        ansible_os_family == "Archlinux"
-      - stat_lspci.stat.exists is defined and stat_lspci.stat.exists
-    tags:
-      - always
+    - name: Display Debug Message
+      ansible.builtin.debug:
+        msg: "VirtualBox Detected: {{ virtual_box }}"
 
-  # If check not defined for OS Family above then fail.
-  - fail:
-      msg: "ERROR - VirtualBox Check not defined for {{ansible_os_family}}"
-    when: 
-      - ansible_os_family != "Debian" and
-        ansible_os_family != "Archlinux"
-    tags:
-      - always
+# If check not defined for OS Family above then fail.
+- name: Display failure message
+  ansible.builtin.fail:
+    msg: "ERROR - VirtualBox Check not defined for {{ ansible_os_family }}"
+  when:
+    - ansible_os_family != "Debian" and
+      ansible_os_family != "Archlinux"
+  tags:
+    - always

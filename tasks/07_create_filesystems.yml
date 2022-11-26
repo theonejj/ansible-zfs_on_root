@@ -1,43 +1,53 @@
 ---
-###[ Create Filesystem Containers ]############################################
+# [ Create Filesystem Containers ]#############################################
 - name: Create Filesystem Containers Block
-  block:
-  - name: Debug Create Boot and Root Filesystem Dataset Container
-    debug:
-      msg: "{{item}}"
-    with_items:
-      - "zfs create {{root_pool_container_options|join(' ')}}"
-      - "zfs create {{boot_pool_container_options|join(' ')}}"
-    when:
-      debug|default(false) == true
-
-  - name: Create Boot and Root Filesystem Dataset Container
-    command:
-      cmd: "{{item}}"
-    when:
-      - ansible_nodename != "localhost"
-    with_items:
-      - "zfs create {{boot_pool_container_options|join(' ')}}"
-      - "zfs create {{root_pool_container_options|join(' ')}}"
-
-  # Create Filesystem Boot and Root Containers ---------------------------------
-  - name: Debug Create Boot and Root Filesystem
-    debug:
-      msg: "{{item}}"
-    with_items:
-      - "zfs create {{root_dataset_options|join(' ')}} {{root_pool_dataset_path}}"
-      - "zfs create {{boot_dataset_options|join(' ')}} {{boot_pool_dataset_path}}"
-    when:
-      debug|default(false) == true
-
-  - name: Create Boot and Root Filesystem
-    command:
-      cmd: "{{item}}"
-    when:
-      - ansible_nodename != "localhost"
-    with_items:
-      - "zfs create {{root_dataset_options|join(' ')}} {{root_pool_dataset_path}}"
-      - "zfs create {{boot_dataset_options|join(' ')}} {{boot_pool_dataset_path}}"
-
+  when:
+    - ansible_nodename != "localhost"
   tags:
     - create_filesystems
+  block:
+    - name: Debug Create Root Filesystem Dataset Container
+      ansible.builtin.debug:
+        msg: "zfs create {{ root_pool_container_options | join(' ') }}"
+      when:
+        debug | default(false)
+
+    - name: Create Root Filesystem Dataset Container without Encryption
+      ansible.builtin.command:
+        "zfs create {{ root_pool_container_options | join(' ') }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      when:
+        - not root_pool_encryption|default(false)
+
+    - name: Create Root Filesystem Dataset Container with Encryption
+      ansible.builtin.expect:
+        command:
+          "zfs create {{ root_pool_container_options | join(' ') }}"
+        responses:
+          passphrase: "{{ passphrase }}"
+          again: "{{ passphrase }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      when:
+        - root_pool_encryption|default(false)
+
+    - name: Debug Create Root Filesystem
+      ansible.builtin.debug:
+        msg: "{{ item }}"
+      with_items:
+        - "zfs create {{ root_dataset_options | join(' ') }} {{ root_pool_dataset_path }}"
+        - "zpool set bootfs={{ root_pool_dataset_path }} {{ root_pool_name }}"
+        - "zfs mount {{ root_pool_dataset_path }}"
+      when:
+        debug | default(false)
+
+    - name: Create Root Filesystem
+      ansible.builtin.command:
+        "{{ item }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      with_items:
+        - "zfs create {{ root_dataset_options | join(' ') }} {{ root_pool_dataset_path }}"
+        - "zpool set bootfs={{ root_pool_dataset_path }} {{ root_pool_name }}"
+        - "zfs mount {{ root_pool_dataset_path }}"

@@ -1,0 +1,21 @@
+Global:
+  ManageImages: true
+  BootMountPoint: /boot/efi
+  DracutConfDir: /etc/zfsbootmenu/dracut.conf.d
+  PreHooksDir: /etc/zfsbootmenu/generate-zbm.pre.d
+  PostHooksDir: /etc/zfsbootmenu/generate-zbm.post.d
+  InitCPIO: false
+  InitCPIOConfig: /etc/zfsbootmenu/mkinitcpio.conf
+Components:
+  ImageDir: /boot/efi/EFI/zfsbootmenu
+  Versions: 3
+  Enabled: true
+  syslinux:
+    Config: /boot/efi/syslinux/syslinux.cfg
+    Enabled: true
+EFI:
+  ImageDir: /boot/efi/EFI/zfsbootmenu
+  Versions: 2
+  Enabled: false
+Kernel:
+  CommandLine: zbm.prefer={{ root_pool_name }} ro quiet loglevel=0

@@ -1,68 +1,59 @@
 ---
-###[ Review Settings with User Allow Abort ]###################################
-- pause:
+# [ Review Settings with User Allow Abort ]####################################
+- name: Review default values
+  tags:
+    - always
+  ansible.builtin.pause: # noqa yaml[line-length]
     prompt: |
       ####################################################################
-      # Please review the following defaults for: {{host_name}}
+      # Please review the following defaults for: {{ host_name }}
       ####################################################################
 
-         Default Root Password: {{default_root_password}}
-      
-      Primary Non-root Account: {{regular_user_accounts[0].user_id}}       
-                      Password: {{regular_user_accounts[0].password}}
-                     Full Name: {{regular_user_accounts[0].full_name}}
-                 Add to Groups: {{regular_user_accounts[0].groups}}
-            Accounts to Create: {{regular_user_accounts|length}}
+         Default Root Password: {{ default_root_password }}
 
-      Environment Installation: {% if command_line_only|default(false)|bool == true%}Command-line only{%else%}Full GUI Environment{% endif %}
+      Primary Non-root Account: {{ regular_user_accounts[0].user_id }}
+                      Password: {{ regular_user_accounts[0].password }}
+                     Full Name: {{ regular_user_accounts[0].full_name }}
+                 Add to Groups: {{ regular_user_accounts[0].groups }}
+            Accounts to Create: {{ regular_user_accounts | length }}
+
+      Environment Installation: {% if command_line_only | default(false) | bool == true %}Command-line only{% else %}Full GUI Environment{% endif %}
 
 
-        Create Swap Partitions: {{enable_swap_partitions}}{% if enable_swap_partitions|default(true)|bool == true %}  {% if disk_by_id|length|int > 1 %}Type: {{boot_pool_type}}
-      {% if boot_pool_type == "mirror" %}
-                     Swap Size: {{single_or_mirror_swap_partition_size_MB}} MB
-      {%else%}
-                     Swap Size: {{raidz_swap_partition_size_MB|int*(disk_by_id|length|int-1)}} MB
+        Create Swap Partitions: {{ enable_swap_partitions }}{% if enable_swap_partitions | default(true) | bool == true %}  {% if disk_by_id | length | int > 1 %}Type: {{ root_pool_type }}
+      {% if root_pool_type == "mirror" %}
+                     Swap Size: {{ single_or_mirror_swap_partition_size_MB }} MB
+      {% else %}
+                     Swap Size: {{ raidz_swap_partition_size_MB | int * (disk_by_id | length | int - 1) }} MB
       {% endif %}
-      {%else%}
-                     Swap Size: {{single_or_mirror_swap_partition_size_MB}} MB
+      {% else %}
+                     Swap Size: {{ single_or_mirror_swap_partition_size_MB }} MB
       {% endif %}
-      {% endif %}
-
-              Use UEFI Booting: {{use_uefi_booting}}
-              {{use_uefi_booting_msg|default('')}}
-
-                  Local Prefix: {{locale_prefix}}
-                     Time Zone: {{timezone_value}}
-
-        Disk Devices Specified: {{disk_by_id|length}}
-            ZFS Boot Pool Name: {{boot_pool_name}}  {% if disk_by_id|length|int > 1 %}Type: {{boot_pool_type}}
-      {% if boot_pool_type == "mirror" %}
-                Boot Pool Size: {{single_or_mirror_boot_partition_size_MB}} MB
-      {%else%}
-                Boot Pool Size: {{raidz_boot_partition_size_MB|int*(disk_by_id|length|int-1)}} MB
-      {% endif %}
-      {%else%}
-                Type: Single Device
-                Boot Pool Size: {{single_or_mirror_boot_partition_size_MB}} MB
       {% endif %}
 
-            ZFS Root Pool Name: {{root_pool_name}}  {% if disk_by_id|length|int > 1 %}Type: {{root_pool_type}}{% if (root_pool_type == "mirror") and (disk_by_id|length|int > 3) %} of {{(disk_by_id|length|int / 2)|int}} mirrored vdevs{% endif %}{% else %}          Type: Single Device{% endif %}
+              Use UEFI Booting: {{ use_uefi_booting }}
+              {{ use_uefi_booting_msg | default('') }}
 
-      {% if root_partition_size|regex_search('[0-9]+') == 0 %}                  
+                  Local Prefix: {{ locale_prefix }}
+                     Time Zone: {{ timezone_value }}
+
+        Disk Devices Specified: {{ disk_by_id | length }}
+            ZFS Root Pool Name: {{ root_pool_name }}  {% if disk_by_id | length | int > 1 %}Type: {{ root_pool_type }}{% if (root_pool_type == "mirror") and (disk_by_id | length | int > 3) %} of {{ (disk_by_id | length | int / 2) | int }} mirrored vdevs{% endif %}{% else %}          Type: Single Device{% endif %}
+
+      {% if root_partition_size | regex_search('[0-9]+') == "0" %}
                 Root Pool Size: Maximum Size Possible
       {% else %}
-             Partition Setting: {{root_partition_size }} 
+        Partition Size Setting: {{ root_partition_size }}
       {% endif %}
 
-      Use ZFS Native Encyption: {{root_pool_encryption}}
-      {% if root_pool_encryption|default(false)|bool == true %}
-         Encryption Passphrase: {{passphrase}}
-      {%else%}
-       To enable ZFS Native Encryption:
-       Add passphrase: "<your_passphrase>" to --extra-vars='{disk_devices: {{disk_devices}},host_name: "{{host_name}}",passphrase: "mys3cret"}'
+      Use ZFS Native Encryption: {{ root_pool_encryption }}
+      {% if root_pool_encryption | default(false) | bool == true %}
+          Encryption Passphrase: {{ passphrase }}
+      {% else %}
+        To enable ZFS Native Encryption:
+        Add passphrase: "<your_passphrase>" to --extra-vars='{disk_devices: {{ disk_devices }},host_name: "{{ host_name }}",passphrase: "mys3cret"}'
       {% endif %}
 
       ############ Press Ctrl-C to abort or ENTER to continue ############
-  tags:
-    - all
+
 ###############################################################################

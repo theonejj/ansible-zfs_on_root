@@ -1,65 +1,61 @@
 ---
-###[ Fix Filesystem Mount Order ]##############################################
+# [ Fix Filesystem Mount Order ]###############################################
 - name: Fix Filesystem Mount Order Block
-  block:
-
-  - name: Create zfs-list cache directory
-    file:
-      path: /mnt/etc/zfs/zfs-list.cache
-      state: directory
-      mode: '0755'
-
-  - name: Create pool cache files
-    file:
-      path: "{{item}}"
-      state: touch
-      mode: '0644'
-    with_items:
-      - "/mnt/etc/zfs/zfs-list.cache/{{boot_pool_name}}"
-      - "/mnt/etc/zfs/zfs-list.cache/{{root_pool_name}}"
-
-  - name: Run chroot command to create symbolic link zed
-    command: "{{chroot_cmd}} bash -c 'ln -s /usr/lib/zfs-linux/zed.d/history_event-zfs-list-cacher.sh /etc/zfs/zed.d'"
-
-  - name: Run chroot command to start zed service (we want PID to be able to kill zed service later)
-    command: "{{chroot_cmd}} bash -c 'zed -p /tmp/zed.pid &'"
-
-  - name: sleep 5 seconds for zed service to do its work
-    wait_for:
-      timeout: 5
-
-  - name: Checking stats on bpool cache
-    stat:
-      path: "/mnt/etc/zfs/zfs-list.cache/{{boot_pool_name}}"
-    register: filestat
-
-  - name: Run chroot command to attempt forced cache update, bpool cache was empty
-    command: "{{chroot_cmd}} bash -c 'zfs set canmount=on {{boot_pool_dataset_path}}'"
-    when:
-      - filestat.stat.size|int == 0
-
-  - name: Checking stats on rpool cache
-    stat:
-      path: "/mnt/etc/zfs/zfs-list.cache/{{root_pool_name}}"
-    register: filestat
-
-  - name: Run chroot command to attempt forced cache update, rpool cache was empty
-    command: "{{chroot_cmd}} bash -c 'zfs set canmount=on {{root_pool_dataset_path}}'"
-    when:
-      - filestat.stat.size|int == 0
-
-  - name: Run chroot command to stop ZED service
-    command: "{{chroot_cmd}} bash -c 'kill $(cat /tmp/zed.pid)'"
-
-  - name: Remove chroot based mount (/mnt) references from zfs-list.cache files
-    replace:
-      path: "/mnt/etc/zfs/zfs-list.cache/{{item}}"
-      regexp: '(?m)/mnt/?'
-      replace: '/'
-    with_items:
-      - "{{boot_pool_name}}"
-      - "{{root_pool_name}}"
-
   tags:
     - fix_mount_order
+  block:
+    - name: Create zfs-list cache directory
+      ansible.builtin.file:
+        path: "{{ live_cd_mountpoint }}/etc/zfs/zfs-list.cache"
+        state: directory
+        mode: '0755'
+
+    - name: Create pool cache files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: touch
+        mode: '0644'
+      with_items:
+        - "{{ live_cd_mountpoint }}/etc/zfs/zfs-list.cache/{{ root_pool_name }}"
+
+#    - name: Run chroot command to create symbolic link zed
+#      command: "{{chroot_cmd}} bash -c 'ln -s /usr/lib/zfs-linux/zed.d/history_event-zfs-list-cacher.sh /etc/zfs/zed.d'"
+
+    - name: Run chroot command to start zed service (we want PID to be able to kill zed service later)
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c 'zed -p /tmp/zed.pid &'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+    - name: Sleep 5 seconds for zed service to do its work
+      ansible.builtin.wait_for:
+        timeout: 5
+
+    - name: Checking stats on rpool cache
+      ansible.builtin.stat:
+        path: "{{ live_cd_mountpoint }}/etc/zfs/zfs-list.cache/{{ root_pool_name }}"
+      register: filestat
+
+    - name: Run chroot command to attempt forced cache update, rpool cache was empty
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c 'zfs set canmount=on {{ root_pool_dataset_path }} && sleep 1'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      when:
+        - filestat.stat.size|int == 0
+
+    - name: Run chroot command to stop ZED service
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c 'kill $(cat /tmp/zed.pid)'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+    - name: Remove chroot based mount (/mnt) references from zfs-list.cache files
+      ansible.builtin.replace:
+        path: "{{ live_cd_mountpoint }}/etc/zfs/zfs-list.cache/{{ item }}"
+        regexp: '(?m){{ live_cd_mountpoint }}/?'
+        replace: '/'
+      with_items:
+        - "{{ root_pool_name }}"
+
 ###############################################################################

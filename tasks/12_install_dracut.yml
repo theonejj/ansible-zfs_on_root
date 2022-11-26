@@ -1,0 +1,35 @@
+---
+# [ Install Dracut to Load ZFS ]###############################################
+- name: Install Dracut to Load ZFS Block
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - install_dracut
+  block:
+    - name: Run chroot command to install dracut # noqa Ansible [YAML]
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      with_items:
+        - "apt install --yes dracut-core zfs-dracut bsdmainutils gcc"
+        # IMPORTANT: Do NOT install initramfs-tools with dracut
+        - "apt-mark hold initramfs-tools"
+      when:
+        - ansible_os_family == "Debian"
+
+    - name: Copy dracut template to /mnt/etc/dracut.conf.d/100-zol.conf
+      ansible.builtin.template:
+        src: 100-zol.conf.j2
+        dest: "{{ live_cd_mountpoint }}/etc/dracut.conf.d/100-zol.conf"
+        owner: "root"
+        group: "root"
+        mode: "0644"
+
+    # Fix zfs dracut - https://github.com/openzfs/zfs/issues/13398
+    # Need gcc to get libgcc_s.so for dracut_install to work
+    - name: Fix "/**/" to "/*/*/" within /usr/lib/dracut/modules.d/90zfs/module-setup.sh
+      ansible.builtin.replace:
+        path: "{{ live_cd_mountpoint }}/usr/lib/dracut/modules.d/90zfs/module-setup.sh"
+        regexp: '\/\*\*\/'
+        replace: '/*/*/'

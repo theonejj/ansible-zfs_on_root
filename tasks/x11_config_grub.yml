@@ -38,22 +38,3 @@
     - config_grub
 ###############################################################################
 
-###[ Remove os-prober ]########################################################
-# os-prober is only needed on dual-boot systems.
-- name: Removing os-prober
-  command: "{{chroot_cmd}} bash -c 'dpkg --purge os-prober'"
-  when:
-    - remove_os_prober|default(false)|bool == true
-  tags:
-    - config_grub
-###############################################################################
-
-###[ Set Root Password ]#######################################################
-- name: Run chroot command to set default root password
-  expect:
-    command: "{{chroot_cmd}} passwd"
-    responses:
-      (?i)password: "{{ default_root_password }}"
-  tags:
-    - config_grub
-###############################################################################

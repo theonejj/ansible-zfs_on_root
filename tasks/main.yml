@@ -11,7 +11,7 @@
 ######################################################################################################
 
 - name: Include Task Files
-  include_tasks: "{{task_names}}"
+  ansible.builtin.include_tasks: "{{ task_names }}"
   tags: ["always"]
   loop:
     - 01_test_virtualbox.yml
@@ -24,23 +24,26 @@
     - 07_create_filesystems.yml
     - 08_create_datasets.yml
     - 09_config_system.yml
-    - 10_config_boot_filesystem.yml
-    - 11_config_grub.yml
-    - 12_config_swap.yml
-    - 12-5_system_tweaks.yml
-    - 13_install_grub.yml
+    - 10_install_zfs.yml
+    - 11_config_boot_filesystem.yml
+    - 12_install_dracut.yml
+    - 12_3-install_refind.yml
+    - 12_4-install_syslinux.yml
+    - 12_5-install_zfsbootmenu.yml
+    - 12_6-config_swap.yml
+    - 12_7-system_tweaks.yml
+    - 13_first_boot_prep.yml
     - 14_fix_filesystem_mount_order.yml
-    - 15_first_boot_prep.yml
-    - 15-5_unmount_chroot.yml
+    - 15_unmount_chroot.yml
     - 16_restart_remote.yml
-    - 16-5_grub_uefi_multi_disk.yml
     - 17_create_regular_user.yml
-    - 18_full_software_install.yml
-    - 18-5_disable_ipv6.yml
-    - 19_restart_remote_final.yml
-    - 20_enable_dropbear.yml
-    - 21_final_cleanup.yml
-    - 22_update_sshd_settings.yml
+#    - 16-5_grub_uefi_multi_disk.yml
+#    - 18_full_software_install.yml
+#    - 18-5_disable_ipv6.yml
+#    - 19_restart_remote_final.yml
+#    - 20_enable_dropbear.yml
+#    - 21_final_cleanup.yml
+#    - 22_update_sshd_settings.yml
   loop_control:
-    label: "{{task_names}}"
+    label: "{{ task_names }}"
     loop_var: task_names

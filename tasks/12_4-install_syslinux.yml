@@ -1,0 +1,31 @@
+---
+# [ Install Syslinx Boot Loader ]##############################################
+- name: Install Syslinux Boot Loader Block
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - install_syslinux
+  block:
+    - name: Run chroot command to install Syslinux Boot Loader
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      with_items:
+        - "mkdir -p /boot/efi/syslinux"
+        - "apt install --yes syslinux syslinux-common extlinux dosfstools unzip"
+        - "cp -r /usr/lib/syslinux/modules/bios/* /boot/efi/syslinux"
+        # Install extlinux
+        - "extlinux --install /boot/efi/syslinux"
+      when:
+        - ansible_os_family == "Debian"
+
+    - name: Run chroot comand to install the syslinux GPTMBR data on each disk device
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c 'dd bs=440 count=1 conv=notrunc if=/usr/lib/syslinux/mbr/gptmbr.bin of={{ item }}'"
+      register: cmd_output
+      changed_when:
+        cmd_output.rc == 0
+      ignore_errors: true
+      loop:
+        "{{ disk_by_id }}"

@@ -1,28 +1,56 @@
 ---
-###[ Wipe Partitions of Selected Device ]######################################
+# ###[ Wipe Partitions of Selected Device ]######################################
+
 - name: Wipe Partitions of Selected Devices Block
-  block:
-  - name: Insure Swap Partitions are Not Used
-    command: "swapoff --all"
-
-  - name: Wipe filesystem and partition table information
-    command: "wipefs --all --force {{ item }}"
-    loop: 
-      "{{ disk_by_id }}"
-    loop_control:
-      label: "{{ disk_by_id }}"
-
-  - name: Wait for kernel notification of changes to be processed
-    command: "udevadm settle"
-
-  - name: Notify Kernel of Updated Partitions
-    command:
-      "partprobe"
-    when:
-      - disable_partprobe|default(false)|bool == false
-
   when:
     ansible_nodename != "localhost"
   tags:
     - clear_partition_tables_from_devices
-###############################################################################
+  block:
+    - name: Insure Swap Partitions are Not Used
+      ansible.builtin.command: "swapoff --all"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+    - name: Remove ZFS labels from previous usage
+      ansible.builtin.command: "zpool labelclear -f {{ item }}"
+      register: cmd_output
+      changed_when:
+        cmd_output.rc == 0
+      ignore_errors: true
+      loop:
+        "{{ disk_by_id }}"
+
+    - name: Wipe filesystem information
+      ansible.builtin.command: "wipefs --all --force {{ item }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      loop:
+        "{{ disk_by_id }}"
+
+    - name: Zap all partition table information
+      ansible.builtin.command: "sgdisk --zap-all {{ item }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      loop:
+        "{{ disk_by_id }}"
+
+    - name: Clear out all partition data; GPT header; protective MBR, etc
+      ansible.builtin.command: "sgdisk --clear {{ item }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      loop:
+        "{{ disk_by_id }}"
+
+    - name: Wait for kernel notification of changes to be processed
+      ansible.builtin.command: "udevadm settle"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+    - name: Notify Kernel of Updated Partitions
+      ansible.builtin.command:
+        "partprobe"
+      when:
+        - disable_partprobe|default(false)|bool
+
+# #############################################################################

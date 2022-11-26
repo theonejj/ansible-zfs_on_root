@@ -1,46 +1,43 @@
 ---
-###[ Create Regular / Non-root User ]##########################################
+# [ Create Regular / Non-root Users ]##########################################
 - name: Create Regular User Block
-  block:
-
-  - name: Create ZFS data set for home directory of regular user
-    community.general.zfs:
-      name: "{{root_pool_name}}/USERDATA/{{item.user_id}}_{{UUID.stdout}}"
-      state: present 
-      extra_zfs_properties:
-        com.ubuntu.zsys:bootfs-datasets: "{{root_pool_dataset_path}}"
-        canmount: on
-        mountpoint: "/home/{{item.user_id}}"
-    loop_control:
-      label: "{{ item.user_id}}"
-    loop: "{{regular_user_accounts}}"
-    register: home_dirs
-    notify: Create skeleton home directory structure 
-
-  - name: Create Regular User
-    user:
-      name: "{{ item.user_id}}"
-      groups: "{{ item.groups}}"
-      home: "/home/{{item.user_id}}"
-      password: "{{ item.password|password_hash('sha512') }}"
-      update_password: on_create
-      shell: "{{item.shell}}"
-      create_home: no
-      state: present
-    loop_control:
-      label: "{{ item.user_id}}"
-    loop: "{{regular_user_accounts}}"
-    register: accounts
-    notify: Force change password
-  
   when:
     - ansible_nodename != "localhost"
   tags:
-    - create_regular_user
+    - create_regular_users
+  block:
+    - name: Create ZFS data set for home directory of regular user
+      community.general.zfs: # noqa yaml[truthy]
+        name: "{{ root_pool_name }}/ROOT/home/{{ item.user_id }}"
+        state: present
+        extra_zfs_properties:
+          canmount: on
+          mountpoint: "/home/{{ item.user_id }}"
+      loop_control:
+        label: "{{ item.user_id }}"
+      loop: "{{ regular_user_accounts }}"
+      register: home_dirs
+      notify: Create skeleton home directory structure
+
+    - name: Create Regular User
+      ansible.builtin.user:
+        name: "{{ item.user_id }}"
+        groups: "{{ item.groups }}"
+        home: "/home/{{ item.user_id }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        update_password: on_create
+        shell: "{{ item.shell }}"
+        create_home: false
+        state: present
+      loop_control:
+        label: "{{ item.user_id }}"
+      loop: "{{ regular_user_accounts }}"
+      register: accounts
+      notify: Force change password
 
 - name: Flush handlers
-  meta: flush_handlers
+  ansible.builtin.meta: flush_handlers
   tags:
-    - create_regular_user
+    - create_regular_users
 
 ###############################################################################

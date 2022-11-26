@@ -9,14 +9,14 @@ no_log_secrets: true
 # User Settings
 ###############################################################################
 
-# This is a temporary root password used during the build process.  
+# This is a temporary root password used during the build process.
 # Root password will be disabled during the final stages.
 # The non-root user account will have sudo privileges
 default_root_password: "change!me"
 
 # Define non-root user account(s) to create (home drives will be its own dataset)
 # Each user will be required to change password upon first login
-regular_user_accounts: 
+regular_user_accounts:
   - user_id: "rich"
     password: "change!me"
     full_name: "Richard Durso"
@@ -38,6 +38,9 @@ disable_partprobe: true
 # Create Swap Partitions
 enable_swap_partitions: false
 
+# rEFInd Boot Menu Timeout by default is 20 seconds.
+refind_boot_menu_timeout: "10"
+
 # Disable IPv6 if you do not use it.  The "disable_settings" will be applied to
 # "conf_file"
 ipv6:
@@ -48,30 +51,17 @@ ipv6:
     - "net.ipv6.conf.default.disable_ipv6 = 1"
     - "net.ipv6.conf.lo.disable_ipv6 = 1"
   apply_cmd: "sysctl -p"
-  
+
 # NOTE: For hibernation you need at least as much swap as the system RAM
 #       Hibernation does not work with encrypted swap.
 # Swap partition size when a single device or set_boot_pool_type is mirror
-single_or_mirror_swap_partition_size_MB: "4096"
+single_or_mirror_swap_partition_size_mb: "4096"
 
 # Partition size, per device, when multiple devices are used
 # If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in
 # MB (#devices-1*size_MB)
 # The more devices used, the smaller these values can be to get the same size.
-raidz_swap_partition_size_MB: "1024"
-
-###############################################################################
-# A Boot Pool should be in the 1024MB to 2048MB size (larger is fine).
-# Smaller sizes can cause issue later when kernels are upgraded.
-
-# Boot Partition size when a single device or set_boot_pool_type is mirror
-single_or_mirror_boot_partition_size_MB: "2048"
-
-# Partition size, per device, when multiple devices are used
-# If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in
-# MB (#devices-1*size_MB)
-# The more devices used, the smaller these values can be to get the same size.
-raidz_boot_partition_size_MB: "768"
+raidz_swap_partition_size_mb: "1024"
 
 ###############################################################################
 # The root pool by default will consume all remaining disk space on the devices
@@ -84,7 +74,7 @@ raidz_boot_partition_size_MB: "768"
 # partition per device.
 
 # Examples:
-# "+256G" will create partitions 256Gib in size
+# "+256G" will create partition 256Gib in size
 # "-200M" will use all available space, minus 200Mib
 # "0" (zero) use all available space
 root_partition_size: "0"
@@ -99,7 +89,7 @@ command_line_only: true
 
 # Prompt for Native ZFS Encryption Passphrase.  if true, then prompt for
 # passphrase if not provided.
-prompt_for_zfs_passphrase: true
+prompt_for_zfs_passphrase: false
 
 # Define the local pre-fix to enable in /etc/locale.gen
 locale_prefix: "en_US.UTF-8"
@@ -111,16 +101,6 @@ timezone_value: "America/New_York"
 # ZFS Specific Adjustable Settings
 ###############################################################################
 
-# Define the boot pool type based on number of devices.
-#  - If you want 3 devices to be a 3 way mirror change it, etc.
-#  - Raidz will be the default if something below is not defined.
-set_boot_pool_type:
-  1: ""
-  2: "mirror"
-  3: "raidz"
-  4: "raidz"
-  default: "raidz"
-
 # Define the root pool type based on number of devices.
 #  - If you want 3 devices to be a 3 way mirror change it, etc.
 #  - If even number 2,4,6,8, etc of type mirror, then mirrored vdevs will be used.
@@ -129,7 +109,7 @@ set_boot_pool_type:
 #  - Raidz will be the default if something below is not defined.
 #  - NOTE: A raidz2 requires 4 or more devices.
 set_root_pool_type:
-  1: ""
+  1: ""         # single device
   2: "mirror"
   3: "raidz"
   4: "mirror"
@@ -137,11 +117,15 @@ set_root_pool_type:
   6: "mirror"
   default: "raidz"
 
-# Define Pool Names
-# The boot pool name MUST be "bpool", requires /etc/grub.d/10_linux_zfs modifications
-# to change it
-boot_pool_name: "bpool"
-root_pool_name: "rpool"
+# Define Pool Names - can be set to whatever you like.
+# Short hostname is default, this is like "rpool" in the previous methods.
+root_pool_name: "{{ host_name }}"
+
+# Define ZFS ashift value to use
+zfs_rpool_ashift: 12
+
+# Define ZFS Compression to enable
+zfs_compression: "lz4"
 
 ###############################################################################
 # The following SSHD Settings will be applied at final_cleanup
@@ -170,7 +154,7 @@ apply_dropbear_settings:
 
 # Define the full path to public key(s) you want to include in Dropbear
 # NOTE: RSA based authentication is advised over ecdsa and dss.
-#       To create key:  ssh-keygen -o -a 100 -b 3072 -t rsa -f ~/.ssh/dropbear_rsa  
+#       To create key:  ssh-keygen -o -a 100 -b 3072 -t rsa -f ~/.ssh/dropbear_rsa
 rsa_public_key_for_dropbear:
   - "/home/rich/.ssh/dropbear_rsa.pub"
 

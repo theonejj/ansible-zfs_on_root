@@ -1,24 +1,66 @@
 ---
-# [ Create Boot Filesystem ]###################################################
-- name: Create Boot Filesystem Block
+# [ Setup Boot Partition as mdadm mirror for multi-disk setups ]###############
+- name: Create Boot Partition Mirror Block
   when:
-    ansible_nodename != "localhost"
+    - ansible_nodename != "localhost"
+    - disk_by_id | length | int > 1
   tags:
     - config_boot_fs
   block:
-    - name: Create EFI filesystems on all "-part1" partitions
-      ansible.builtin.command:
-        "mkdosfs -F 32 -s 1 -n EFI {{ item }}-part1"
-      register: cmd_output
-      changed_when: cmd_output.rc == 0
+    # Create name of boot device
+    - name: Create name of boot device
+      ansible.builtin.set_fact:
+        boot_dev_name: "/dev/md/{{ inventory_hostname_short }}:efi"
+
+    # Create a list of device partitions to use
+    - name: Create a list of device partitions to use
+      ansible.builtin.set_fact:
+        mdadm_device_list: "{{ mdadm_device_list | default('') }} {{ item }}-part1"
       loop:
         "{{ disk_by_id }}"
 
-    - name: Run chroot command to install dosfstool on Debian based hosts
+    # The "-R" - is needed to suppress the "Continue creating array?" prompt
+    - name: Run chroot command to create mdadm device for multi-disk boot partition
+      ansible.builtin.command:  # noqa yaml[line-length]
+        cmd: "mdadm --create --verbose -R --metadata=1.0 --force --level=mirror --raid-devices={{ disk_by_id | length | int }} --homehost={{ inventory_hostname_short }} --name=efi  --assume-clean {{ boot_dev_name }} {{ mdadm_device_list }}"
+        creates: "{{ boot_dev_name }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+###############################################################################
+# [ Create Boot Partition for single disk setups ]#############################
+- name: Create Boot Filesystem Block
+  when:
+    - ansible_nodename != "localhost"
+    - disk_by_id | length | int == 1
+  tags:
+    - config_boot_fs
+  block:
+    # Create name of boot device
+    - name: Create name of boot device
+      ansible.builtin.set_fact:
+        boot_dev_name: "{{ disk_by_id[0] }}-part1"
+
+###############################################################################
+# [ Create Boot EFI Directory ]################################################
+- name: Create Boot Filesystem Block
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - config_boot_fs
+  block:
+
+    - name: Run chroot command to install dosfstool
       ansible.builtin.command:
         cmd: "{{ chroot_cmd }} bash -c 'apt install --yes dosfstools'"
       when:
         - ansible_os_family == "Debian"
+
+    - name: Create EFI filesystem on boot device
+      ansible.builtin.command:
+        cmd: "mkdosfs -F 32 -s 1 -n BOOT_EFI {{ boot_dev_name }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
 
     - name: Run chroot command to create /boot/efi directory
       ansible.builtin.command:
@@ -30,7 +72,7 @@
 # [ Build up fstab file ]######################################################
 - name: Build fstab File Block
   when:
-    ansible_nodename != "localhost"
+    - ansible_nodename != "localhost"
   tags:
     - config_boot_fs
   block:
@@ -51,13 +93,13 @@
     - name: Add EFI Filesystems to /etc/fstab
       ansible.builtin.shell:
         cmd:
-          echo /dev/disk/by-uuid/$(blkid -s UUID -o value "{{ disk_by_id[0] }}-part1") /boot/efi vfat defaults 0 0 >>"{{ live_cd_mountpoint }}/etc/fstab"
+          echo /dev/disk/by-uuid/$(blkid -s UUID -o value "{{ boot_dev_name }}") /boot/efi vfat nofail,x-systemd.device-timeout=1,x-systemd.after=zfs-mount.service 0 1 >>"{{ live_cd_mountpoint }}/etc/fstab"
       register: cmd_output
       changed_when: cmd_output.rc == 0
 
     - name: Debug get contents of chroot /etc/fstab
       ansible.builtin.command:
-        "cat {{ live_cd_mountpoint }}/etc/fstab"
+        cmd: "cat {{ live_cd_mountpoint }}/etc/fstab"
       register: cmd_output
       when:
         debug | default(false)
@@ -70,7 +112,8 @@
 
     # Mount /boot/efi directory in chroot environment
     - name: Run chroot command to mount /boot/efi directory
-      ansible.builtin.command: "{{ chroot_cmd }} bash -c 'mount /boot/efi'"
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c 'mount /boot/efi'"
       register: cmd_output
       changed_when: cmd_output.rc == 0
 

@@ -1,0 +1,115 @@
+---
+# [ Update to Ubuntu Desktop if needed]####################################
+- name: Update to Ubuntu Desktop Block
+  when:
+    - ansible_nodename != "localhost"
+    - ansible_os_family == "Debian"
+    - not command_line_only | default(false) | bool
+  tags:
+    - final_setup
+    - update_2_desktop
+  block:
+    - name: Installing full GUI environment
+      ansible.builtin.apt:
+        name: ubuntu-desktop
+        install_recommends: true
+
+    - name: Disable initial setup dialog screen
+      community.general.files.ini_file:
+        path: /etc/gdm3/custom.conf
+        section: daemon
+        option: InitialSetupEnable
+        value: "false"
+        create: false
+
+    - name: Removing original netplan configuration
+      ansible.builtin.file:
+        path: /etc/netplan/01-netcfg.yaml
+        state: absent
+
+    - name: Copy netplan with Network Manager template to /etc/netplan/01-network-manager-all.yaml
+      ansible.builtin.template:
+        src: netplan-network-manager.j2
+        dest: /etc/netplan/01-network-manager-all.yaml
+        owner: root
+        group: root
+        mode: '0644'
+
+###############################################################################
+# [ Disable IPv6 Networking ]##################################################
+- name: Disable IPv6 Networking Block
+  when:
+    - ipv6.disable | default(false) | bool
+    - ansible_nodename != "localhost"
+  tags:
+    - final_setup
+    - disable_ipv6
+  block:
+    - name: Disable IPv6 Networking
+      ansible.builtin.lineinfile:
+        path: "{{ ipv6.conf_file }}"
+        line: "{{ item }}"
+        state: present
+      loop: "{{ ipv6.disable_settings }}"
+      loop_control:
+        label: "{{ item }}"
+
+    - name: Apply Updated IPv6 Setting
+      ansible.builtin.command:
+        cmd: "{{ ipv6.apply_cmd }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+###############################################################################
+# [ Final Setup ]##############################################################
+- name: Final Setup Block
+  when:
+    - ansible_nodename != "localhost"
+  tags:
+    - final_setup
+  block:
+    # Set apt/dpkg to automagically snap the system datasets on install/remove
+    - name: Copy apt 30pre-snap to /etc/apt/apt.conf.d/30pre-snap
+      ansible.builtin.template:
+        src: apt_30pre-snap.j2
+        dest: /etc/apt/apt.conf.d/30pre-snap
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Update timezone setting
+      ansible.builtin.command:
+        cmd: "timedatectl set-timezone {{ timezone_value }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+    - name: Disable root password
+      ansible.builtin.user:
+        name: 'root'
+        password: '*'
+
+    # [ Switch Log Compression to ZFS Compression ]############################
+    - name: Locate Existing Log Files
+      ansible.builtin.find:
+        paths: /etc/logrotate.d
+        patterns: "*"
+      register: files_matched
+
+    - name: Switch to ZFS Log Compression
+      ansible.builtin.shell:
+        cmd: "if grep -Eq '(^|[^#y])compress' {{ item.path }} ; then sed -i -r 's/(^|[^#y])(compress)/\\1#\\2/' {{ item.path }}; fi"
+      with_items: "{{ files_matched.files }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      loop_control:
+        label: "{{ item.path }}"
+
+    # [ Create System Snapshot Before Reboot ]#################################
+    # If a base_install snapshot does not exist, create one
+    - name: Create base_install snapshot
+      ansible.builtin.shell:
+        cmd: 'zfs get type {{ root_pool_dataset_path }}@base_install || zfs snapshot {{ root_pool_dataset_path }}@base_install'
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
+###############################################################################

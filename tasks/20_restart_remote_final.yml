@@ -1,0 +1,47 @@
+---
+# [ Final Reboot of Remote System ]###########################################
+- name: Final Reboot of Remote System Block
+  tags:
+    - restart_remote_final
+  block:
+    - name: Final Remote Restart
+      ansible.builtin.pause: # noqa yaml[line-length]
+        prompt: |
+
+          ##########################################################
+          # {{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }} will be rebooted.
+          ##########################################################
+
+          {% if root_pool_encryption | default(false) | bool %}When prompted for passphrase for '{{ root_pool_name }}', use: {{ passphrase }}
+          {% endif %}
+
+          IMPORTANT:  Copy the SSH for your non-root user NOW! After the next reboot
+                      SSH based password logins may NOT work. {% if enable_dropbear_support | bool %}(Required for Dropbear connection){% endif %}
+
+          ssh-copy-id -i ~/.ssh/<public_key> {{ regular_user_accounts[0].user_id }}@{{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}
+
+          When completed, press ENTER to wrap up this installation:
+
+          * Root password is now disabled.
+          * Login as "{{ regular_user_accounts[0].user_id }}" and use sudo instead).
+            Password: {{ regular_user_accounts[0].password }}  (You will be forced to change this password)
+          * Ansible password is now disabled, only SSH key connection allowed.
+
+            NOTE: {% if command_line_only | default(false) | bool %}System will remain command-line only.{% else %}Reboot will include a full GUI Desktop Environment.
+            {% endif %}
+
+          {% if enable_dropbear_support | bool %}
+          * Dropbear has been installed and configured, example connection:
+            ssh -i ~/.ssh/<public_key> -p 222 {{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}
+          {% endif %}
+
+            NOTE: You will likely have to remove "{{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}" from your ~/.ssh/known_hosts
+
+          Press ENTER to reboot {{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}
+
+    - name: Commencing Reboot, will take a few minutes....
+      ansible.builtin.reboot:
+        pre_reboot_delay: 30
+        reboot_timeout: 3600
+
+###############################################################################

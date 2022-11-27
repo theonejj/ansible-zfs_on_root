@@ -18,9 +18,8 @@ live_cd_mountpoint: "/mnt"
 # Define EFI Partition Size
 boot_partition_size_mb: "1024"
 
-# Boot Partition Flags
-uefi_partition_flags: "-n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -t1:EF00"
-bios_partition_flags: "-a1 -n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -A{{ boot_partition }}:set:2 -t5:EF00"
+# Boot Partition Flags - Partition type is EF00 on single device, FD00 on multiple devices
+uefi_partition_flags: "-a1 -n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -A{{ boot_partition }}:set:2 -t{{ boot_partition }}:{{ (disk_by_id | length > 1) | ternary('FD00', 'EF00') }}" # noqa yaml[line-length]
 
 # Possible SWAP Partition Flags based on one device or more
 single_disk_or_mirror_swap_flags: "-n{{ swap_partition }}:0:+{{ single_or_mirror_swap_partition_size_MB }}M -t{{ swap_partition }}:8200"
@@ -37,7 +36,6 @@ root_partition_name_suffix: "-part{{ root_partition }}"
 root_pool_encryption: false
 
 # Set the boot and root pool type based on number of devices given ("", "mirror", "raidz", etc.)
-# boot_pool_type: "{{ set_boot_pool_type[(disk_by_id | length)] | default(set_boot_pool_type['default']) }}"
 root_pool_type: "{{ set_root_pool_type[(disk_by_id | length)] | default(set_root_pool_type['default']) }}"
 
 # Define Root Pool Options

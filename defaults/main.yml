@@ -158,6 +158,3 @@ apply_dropbear_settings:
   # Allow dracut / dropbear use main user authorized_keys for access
   # Note that login to dropbear is "root" regardless of which authorized_keys is used
   public_key_for_dropbear: "/home/{{ regular_user_accounts[0].user_id }}/.ssh/authorized_keys"
-
-# Shell Restrictions placed on each rsa_public_key_for_dropbear entry
-dropbear_user_restriction: 'no-port-forwarding,no-agent-forwarding,no-x11-forwarding'

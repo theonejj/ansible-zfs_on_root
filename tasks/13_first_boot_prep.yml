@@ -45,7 +45,7 @@
       with_items:
         - "[ -d /proc/acpi ] && apt-get -qq --yes install acpi acpid && systemctl enable acpid"
 
-    - name: Add nicer Nicer PS1 USER prompt
+    - name: Add nicer PS1 USER prompt
       ansible.builtin.lineinfile: # noqa yaml[line-length]
         path: "{{ item }}"
         line: 'PS1="${debian_chroot:+($debian_chroot)}\[\$(tput setaf 2)\]\u@\[\$(tput bold)\]\[\$(tput setaf 5)\]\h\[\$(tput sgr0)\]\[\$(tput setaf 7)\]:\[\$(tput bold)\]\[\$(tput setaf 4)\]\w\[\$(tput setaf 7)\]\\$ \[\$(tput sgr0)\]"'
@@ -55,7 +55,7 @@
         - "{{ live_cd_mountpoint }}/etc/bash.bashrc"
         - "{{ live_cd_mountpoint }}/etc/skel/.bashrc"
 
-    - name: Add nicer Nicer PS1 ROOT prompt
+    - name: Add nicer PS1 ROOT prompt
       ansible.builtin.lineinfile: # noqa yaml[line-length]
         path: "{{ live_cd_mountpoint }}/root/.bashrc"
         line: "{{ item }}"
@@ -70,6 +70,7 @@
         cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
       register: cmd_output
       changed_when: cmd_output.rc == 0
+      no_log: "{{ no_log_secrets | default(true) }}"
       with_items:
         - "echo '{{ passphrase }}' > /etc/zfs/zroot.key"
         - "chmod 600 /etc/zfs/zroot.key"
@@ -97,17 +98,6 @@
         - "dracut -v -f --regenerate-all"
         # generate-zbm only there if we built from scratch, not using downloaded image
         - "[ -e /usr/bin/generate-zbm ] && generate-zbm --debug"
-
-    # If a base_install snapshot does not exist, create
-    - name: Run chroot commands to create base_install snapshot
-      ansible.builtin.command:
-        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
-      register: cmd_output
-      changed_when: cmd_output.rc == 0
-      with_items:
-        - "(zfs get type {{ root_pool_dataset_path }}@base_install) || zfs snapshot {{ root_pool_dataset_path }}@base_install"
-      when:
-        - root_pool_encryption | default(false)
 
     - name: Removing os-prober (only needed on dual-boot systems)
       ansible.builtin.command: "{{ chroot_cmd }} bash -c 'dpkg --purge os-prober'"

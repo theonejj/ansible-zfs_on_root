@@ -9,17 +9,19 @@ _NOTE: This Ansible role is not structured as rigid as a typical Ansible role sh
 Originally based on the OpenZFS 'ZFS on Root' Guide, but no longer. Now with many enhancements:
 
 * Uses ZFS Boot Menu / rEFInd / Syslinux to manage boot environments
+  * Menu driven roll-back to previous snapshots
+  * Automatic snapshot creation upon apt/dpkg install or remove
 * No GRUB Boot Loader!
-* No separation of `bpool` and `rpool` just a single 'rpool' is needed
+* No separation of `bpool` and `rpool` just a single `rpool` is needed
 * Predefine rules for ZFS `rpool` pools types (mirror, raidz1, raidz2, multiple mirror vdevs) based on number of devices available
 * Swap partitions can be enabled
   * Multi-disk swap partitions automatically setup with `mdadm`
   * If encryption is enabled, LUKS is used to encrypt Swap partitions
 * Native ZFS Encryption Support
-* UEFI and Legacy Boot Partitions
-* Multiple non-root user account creation
+* UEFI and Legacy Booting supported (can even switch between them)
+* Multiple non-root user account creation (each user gets own ZFS dataset)
 * Customized SSH Configuration Options
-* DropBear support for unlocking remote ZFS encrypted pools
+* DropBear support for unlocking ZFS encrypted pool remotely
 
 ---
 
@@ -70,11 +72,10 @@ This provides a configurable way to define how the ZFS installation will look li
 
 ### Optional ZFS Native Encryption
 
-[ZFS Native Encryption](docs/zfs-encryption-settings.md) (aes-256-gcm) can be enabled for the root pool. If create swap partition option is enabled, then the swap partition will also be encrypted. The boot pool can not be encrypted natively and this script does not use LUKS encryption. From the [OpenZFS overview](https://openzfs.github.io/openzfs-docs/Getting%20Started/Ubuntu/Ubuntu%2020.04%20Root%20on%20ZFS.html#encryption):
+[ZFS Native Encryption](docs/zfs-encryption-settings.md) (aes-256-gcm) can be enabled for the root pool. If create swap partition option is enabled, then the swap partition will also be encrypted. From the [OpenZFS overview](https://openzfs.github.io/openzfs-docs/Getting%20Started/Ubuntu/Ubuntu%2020.04%20Root%20on%20ZFS.html#encryption):
 
-* ZFS native encryption encrypts the data and most metadata in the root pool. It does not encrypt dataset or snapshot names or properties.
-* The boot pool is not encrypted at all, but it only contains the bootloader, kernel, and initrd. (Unless you put a password in /etc/fstab, the initrd is unlikely to contain sensitive data.)
-* The system cannot boot without the passphrase being entered at the console. [Dropbear with Busybox](docs/dropbear-busybox-settings.md) support can be enabled to allow remote SSH access at boot to enter passphrase remotely.
+* ZFS native encryption encrypts the data and _most_ metadata in the root pool. It does not encrypt dataset names, snapshot names or properties.
+* The system cannot boot without the passphrase being entered at the console. [Dropbear](docs/dropbear-settings.md) support can be enabled to allow remote SSH access at boot to enter passphrase remotely.
 
 ### SSHD Configuration Settings
 
@@ -188,7 +189,7 @@ regular_user_accounts:
 * Review [Root Pool & Partition Settings](docs/root-partition-settings.md)
 * Review [ZFS Native Encryption Settings](docs/zfs-encryption-settings.md)
 * Review [Custom SSHD Configuration Settings](docs/custom-sshd-settings.md)
-* Review [DropBear with Busybox Settings](docs/dropbear-busybox-settings.md)
+* Review [DropBear Settings](docs/dropbear-settings.md)
 
 #### UEFI or Legacy BIOS
 
@@ -386,7 +387,6 @@ Helper tasks, basic sanity checks and mandatory tasks are already marked as `alw
 ---
 
 ## Known Issues
-
 
 ### Issue #1 - Multi-disk SWAP using `mdadm` is not mounted as `/dev/md0` and thus no swap space
 

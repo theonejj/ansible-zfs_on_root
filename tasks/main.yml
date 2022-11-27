@@ -38,12 +38,8 @@
     - 16_restart_remote.yml
     - 17_create_regular_user.yml
     - 18_enable_dropbear.yml
-#    - 16-5_grub_uefi_multi_disk.yml
-#    - 18_full_software_install.yml
-#    - 18-5_disable_ipv6.yml
-#    - 19_restart_remote_final.yml
-#    - 21_final_cleanup.yml
-#    - 22_update_sshd_settings.yml
+    - 19_final_setup.yml
+    - 20_restart_remote_final.yml
   loop_control:
     label: "{{ task_names }}"
     loop_var: task_names

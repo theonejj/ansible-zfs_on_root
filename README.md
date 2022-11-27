@@ -84,9 +84,9 @@ Some of the [SSHD configuration](docs/custom-sshd-settings.md) options can be de
 
 When a computer is rebooted with ZFS native encryption enabled then someone needs to be at the console to enter the passphrase for the root pool encryption.  
 
-* You can enable the option to install [Dropbear](https://en.wikipedia.org/wiki/Dropbear_(software)) with [Busybox](https://en.wikipedia.org/wiki/BusyBox) to provide a lightweight SSH process as part of the initramfs during the boot process.  
+* You can enable the option to install [Dropbear](https://en.wikipedia.org/wiki/Dropbear_(software)) to provide a lightweight SSH process as part of the initramfs during the boot process.  
 * This allows you to remotely SSH to the console to provide the root pool passphrase to allow the machine to continue to boot.  
-* You can customize the port, which RSA keys are allowed to connect and adjust several options.  The default settings are fairly secure and a bit more secure than most guides.
+* You can customize the port, which ECDA or RSA keys are allowed to connect and adjust several options.
 
 ---
 
@@ -378,6 +378,7 @@ This is the list and order of execution for all tags defined for this playbook:
       - unmount_chroot
       - reboot_remote
       - create_regular_users
+      - install_dropbear
 ```
 
 Helper tasks, basic sanity checks and mandatory tasks are already marked as `always` and will always be processed to setup the base ansible working environment reading configuration files, setting variables, etc... nothing special you need to do.

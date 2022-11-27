@@ -17,7 +17,8 @@
         label: "{{ item.user_id }}"
       loop: "{{ regular_user_accounts }}"
       register: home_dirs
-      notify: Create skeleton home directory structure
+      notify:
+        - Create skeleton home directory structure
 
     - name: Create Regular User
       ansible.builtin.user:
@@ -33,7 +34,8 @@
         label: "{{ item.user_id }}"
       loop: "{{ regular_user_accounts }}"
       register: accounts
-      notify: Force change password
+      notify:
+        - Force change password
 
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers

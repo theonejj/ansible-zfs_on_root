@@ -143,20 +143,21 @@ apply_sshd_settings:
 # Dropbear support allows for small SSH service to be included in initram to
 # allow for remote connection to enter the ZFS Native Encryption Password.
 #
-# NOTE: Dropbear's private keys will reside on the unencrypted boot volume.
-#       Someone with physical access to the server would be able to discover the
-#       private keys.
-enable_dropbear_with_busybox_support: true
+enable_dropbear_support: true
 apply_dropbear_settings:
-  NO_START: "0"
-  DROPBEAR_PORT: "2222"
-  DROPBEAR_EXTRA_ARGS: "-s -j -k -I 60 -c /bin/unlock"
-
-# Define the full path to public key(s) you want to include in Dropbear
-# NOTE: RSA based authentication is advised over ecdsa and dss.
-#       To create key:  ssh-keygen -o -a 100 -b 3072 -t rsa -f ~/.ssh/dropbear_rsa
-rsa_public_key_for_dropbear:
-  - "/home/rich/.ssh/dropbear_rsa.pub"
+  # Automatic (dhcp) or static IP assignment for zfsbootmenu remote access
+  # "dhcp", "dhcp,dhcp6", "dhcp6", or "static"
+  remoteaccess_ip_config: "dhcp"
+  # Remote access static IP address to connect to ZFSBootMenu
+  # Only used with "static", not used for dhcp or dhcp6 automatic IP configuration
+  remoteaccess_ip: "192.168.0.222"
+  # Remote access subnet mask
+  # Only used with "static", not used for dhcp or dhcp6 automatic IP configuration
+  remoteaccess_netmask: "255.255.255.0"
+  # Define the full path to public key(s) you want to include in Dropbear
+  # Allow dracut / dropbear use main user authorized_keys for access
+  # Note that login to dropbear is "root" regardless of which authorized_keys is used
+  public_key_for_dropbear: "/home/{{ regular_user_accounts[0].user_id }}/.ssh/authorized_keys"
 
 # Shell Restrictions placed on each rsa_public_key_for_dropbear entry
 dropbear_user_restriction: 'no-port-forwarding,no-agent-forwarding,no-x11-forwarding'

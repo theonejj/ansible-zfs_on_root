@@ -37,38 +37,6 @@
       with_items:
         - "apt-get -qq --yes dist-upgrade"
 
-    # [ Upgrade to Ubuntu Server Environment ]#################################
-#    - name: Run chroot command to build command-line only Ubuntu Server environment
-#      ansible.builtin.command:
-#        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
-#      register: cmd_output
-#      changed_when: cmd_output.rc == 0
-#      with_items:
-#        - "apt-get -qq --yes install ubuntu-server gdisk man zip"
-#      when:
-#        - command_line_only | default(false) | bool
-
-    # [ Upgrade to full GUI Desktop ]##########################################
-#    - name: Run chroot command to build full GUI Desktop environment
-#      ansible.builtin.command:
-#        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
-#      register: cmd_output
-#      changed_when: cmd_output.rc == 0
-#      with_items:
-#        - "apt-get -qq --yes install ubuntu-desktop gdisk man zip"
-#      when:
-#        - not command_line_only | default(false) | bool
-
-#    - name: Disable initial setup dialog screen
-#      community.general.files.ini_file:
-#        path: "{{ live_cd_mountpoint }}/etc/gdm3/custom.conf"
-#        section: daemon
-#        option: InitialSetupEnable
-#        value: "false"
-#        create: false
-#      when:
-#        - not command_line_only | default(false) | bool
-
     - name: Run chroot commands to enable acpid if detected
       ansible.builtin.command:
         cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
@@ -151,25 +119,3 @@
         command: "{{ chroot_cmd }} bash -c 'passwd'"
         responses:
           (?i)password: "{{ default_root_password }}"
-
-###############################################################################
-
-#    - name: Copy create user script to /root
-#      ansible.builtin.template:
-#        src: add_user.j2
-#        dest: "{{ live_cd_mountpoint }}/root/add_user.sh"
-#        owner: root
-#        group: root
-#        mode: '0700'
-
-    # This script documents all the partition flags and sizes used in case needed for drive
-    # replacement in the future.
-#    - name: Generate Partition Helper Script in  /root/partition_drive_helper.sh
-#      ansible.builtin.template:
-#        src: partition_drive_helper.j2
-#        dest: /mnt/root/partition_drive_helper.sh
-#        owner: root
-#        group: root
-#        mode: '0700'
-
-###############################################################################

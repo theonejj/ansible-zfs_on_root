@@ -8,8 +8,8 @@
   block:
     - name: Setup /tmp to use tmpfs
       ansible.builtin.copy:
-        src: /mnt/usr/share/systemd/tmp.mount
-        dest: /mnt/etc/systemd/system/tmp.mount
+        src: "{{ live_cd_mountpoint }}/usr/share/systemd/tmp.mount"
+        dest: "{{ live_cd_mountpoint }}/etc/systemd/system/tmp.mount"
         mode: "0644"
         remote_src: true
 
@@ -28,6 +28,12 @@
         - "addgroup --system lpadmin"
         - "addgroup --system lxd"
         - "addgroup --system sambashare"
+
+    - name: Create /etc/skel/.ssh directory
+      ansible.builtin.file:
+        path: "{{ live_cd_mountpoint }}/etc/skel/.ssh"
+        mode: "0700"
+        state: directory
 
     - name: Run chroot command to install basic applications
       ansible.builtin.command:

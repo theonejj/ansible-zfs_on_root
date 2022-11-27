@@ -25,6 +25,6 @@
 
     - name: Export all ZFS Pools
       ansible.builtin.command:
-        "zpool export -a"
+        cmd: "zpool export -a"
       register: cmd_output
       changed_when: cmd_output.rc == 0

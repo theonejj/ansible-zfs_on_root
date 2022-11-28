@@ -61,6 +61,27 @@
       changed_when: cmd_output.rc == 0
 
 ###############################################################################
+# [ Apply SSHD Settings ]######################################################
+- name: Update SSHD Settings Block
+  tags:
+    - update_sshd_settings
+  block:
+    - name: Update SSHD Settings
+      ansible.builtin.replace:
+        path: /etc/ssh/sshd_config
+        regexp: "^(#? ?)?{{ item.key }} +(yes|no|none|any|prohibit-password|[0-9]+|[0-9]+m)"
+        replace: "{{ item.key }} {{ item.value }}"
+        validate: "/usr/sbin/sshd -t -f %s"
+      loop: "{{ apply_sshd_settings | dict2items }}"
+      register: update_sshd
+
+    - name: Restart SSHD Server
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
+      when: update_sshd.changed
+
+###############################################################################
 # [ Final Setup ]##############################################################
 - name: Final Setup Block
   when:

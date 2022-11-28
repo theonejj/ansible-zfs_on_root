@@ -272,8 +272,6 @@
 # Path /sys/firmware/efi must exist, otherwise only legacy booting can be used
 
 - name: Confirm UEFI Environment Exists Block
-  when:
-    - use_uefi_booting | default(false) | bool
   tags:
     - always
   block:
@@ -288,18 +286,10 @@
       when:
         - efi_firmware_directory.stat.isdir is defined and efi_firmware_directory.stat.isdir
 
-    # Give Notice of UEFI switch to Legacy BIOS if no UEFI detected
-    - name: UEFI not detected debug message
-      ansible.builtin.debug:
-        msg: "WARNING: UEFI Booting Enabled but UEFI was not detected by {{ distro_name }}, switching to Legacy BIOS"
-      when:
-        - efi_firmware_directory.stat.isdir is undefined
-
     # If UEFI Not Detected, Drop Back to Legacy BIOS Install
     - name: UEFI not detected, switch to Legacy BIOS Install
       ansible.builtin.set_fact:
-        use_uefi_booting: false
-        use_uefi_booting_msg: "UEFI Firmware Not Detected: using Legacy BIOS Instead"
+        use_uefi_booting_msg: "UEFI Firmware Not Detected, using Legacy BIOS instead"
       when:
         - efi_firmware_directory.stat.isdir is undefined
 

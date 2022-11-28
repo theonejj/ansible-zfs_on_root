@@ -109,3 +109,4 @@
         command: "{{ chroot_cmd }} bash -c 'passwd'"
         responses:
           (?i)password: "{{ default_root_password }}"
+      no_log: "{{ no_log_secrets | default(true) }}"

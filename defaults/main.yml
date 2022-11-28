@@ -35,11 +35,18 @@ domain_name: "localdomain"
 # says it is 512 bytes."
 disable_partprobe: true
 
-# Create Swap Partitions
-enable_swap_partitions: false
-
 # rEFInd Boot Menu Timeout by default is 20 seconds.
 refind_boot_menu_timeout: "10"
+
+# For Full GUI Desktop installation (set to false) or command-line only server
+# environment (set to true)
+command_line_only: true
+
+# Define the local pre-fix to enable in /etc/locale.gen
+locale_prefix: "en_US.UTF-8"
+
+# Define the timezone to be placed in /etc/timezone
+timezone_value: "America/New_York"
 
 # Disable IPv6 if you do not use it.  The "disable_settings" will be applied to
 # "conf_file"
@@ -52,18 +59,29 @@ ipv6:
     - "net.ipv6.conf.lo.disable_ipv6 = 1"
   apply_cmd: "sysctl -p"
 
-# NOTE: For hibernation you need at least as much swap as the system RAM
-#       Hibernation does not work with encrypted swap.
-# Swap partition size when a single device or set_boot_pool_type is mirror
+###############################################################################
+# Swap Partition Settings
+###############################################################################
+# Create Swap Partitions
+enable_swap_partitions: false
+
+# Swap partition size when one or two devices are used
 single_or_mirror_swap_partition_size_mb: "4096"
 
-# Partition size, per device, when multiple devices are used
-# If set_boot_pool_type is raidz, then is will be a mdm raid5 of this size in
-# MB (#devices-1*size_MB)
-# The more devices used, the smaller these values can be to get the same size.
+# Swap partition size, per device, when three or more devices are used.
+# Estimated size in MB is:  #devices-1 * size_MB
 raidz_swap_partition_size_mb: "1024"
 
 ###############################################################################
+# Root Pool Settings
+###############################################################################
+# Define Pool Names - can be set to whatever you like.
+# Short hostname is default, this is like "rpool" in the previous methods.
+root_pool_name: "{{ host_name }}"
+
+# Define ZFS default compression to enable
+zfs_compression: "lz4"
+
 # The root pool by default will consume all remaining disk space on the devices
 # limited by the free space of the smallest device specified.  For example a
 # mirror between a 512GB and 256GB device cannot be larger than the capacity of
@@ -79,23 +97,9 @@ raidz_swap_partition_size_mb: "1024"
 # "0" (zero) use all available space
 root_partition_size: "0"
 
-###############################################################################
-# Use Grub with UEFI (will do Grub with Legacy BIOS if false)
-use_uefi_booting: true
-
-# For Full GUI Desktop installation (set to false) or command-line only server
-# environment (set to true)
-command_line_only: true
-
 # Prompt for Native ZFS Encryption Passphrase.  if true, then prompt for
 # passphrase if not provided.
 prompt_for_zfs_passphrase: false
-
-# Define the local pre-fix to enable in /etc/locale.gen
-locale_prefix: "en_US.UTF-8"
-
-# Define the timezone to be placed in /etc/timezone
-timezone_value: "America/New_York"
 
 ###############################################################################
 # ZFS Specific Adjustable Settings
@@ -117,16 +121,11 @@ set_root_pool_type:
   6: "mirror"
   default: "raidz"
 
-# Define Pool Names - can be set to whatever you like.
-# Short hostname is default, this is like "rpool" in the previous methods.
-root_pool_name: "{{ host_name }}"
-
 # Define ZFS ashift value to use
 zfs_rpool_ashift: 12
 
-# Define ZFS Compression to enable
-zfs_compression: "lz4"
-
+###############################################################################
+# SSH Settings
 ###############################################################################
 # The following SSHD Settings will be applied at final_cleanup
 # IMPORTANT: Only some basic settings which can be search and replaced using
@@ -139,6 +138,8 @@ apply_sshd_settings:
   PermitRootLogin: "prohibit-password"
   PubkeyAuthentication: "yes"
 
+###############################################################################
+# Dropbear Settings
 ###############################################################################
 # Dropbear support allows for small SSH service to be included in initram to
 # allow for remote connection to enter the ZFS Native Encryption Password.

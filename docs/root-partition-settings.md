@@ -2,11 +2,28 @@
 
 [Back to README.md](../README.md)
 
+## Define the ZFS Pool Name
+
+This is the default name to be assigned to the ZFS pool.  Some people really can't sleep well at night if their ZFS pools don't have the perfect name.
+
+```yaml
+# Define Pool Names - can be set to whatever you like.
+# Short hostname is default, this is like "rpool" in the previous methods.
+root_pool_name: "{{ host_name }}"
+```
+
+Based on the name above then:
+
+* User data will be stored in ZFS Dataset: `host_name/ROOT/home`
+* Operating System is within ZFS Dataset: `host_name/ROOT/ubuntu`
+
+NOTE: The Operating System dataset has automatically snapshots created when `apt` or `dpkg` installs or removes packages. This allows the OS to be rolled back to previous snapshots without impacting user data.
+
 ## Root Partition Size
 
 * By default the root partition size will decided by ZFS at pool creation to use the largest possible value.  
   * If devices of different size are used then the size of the RPOOL pool will be limited to the space left on the smallest device.
-* You can specify a specific partition size for the rpool on each device in the storage pool. This is useful if you want a standard size RPOOL on each computer.
+* You can specify a specific partition size for the rpool on each device in the storage pool. This is useful if you want a standard size partitions on each computer.
 * Or you can specify how much space NOT to use leaving a specific amount of unallocated space for some other use.
 
   ```yaml
@@ -61,5 +78,16 @@ Define ZFS Root Pool Type Rules. Similar rules apply here as applied to the [boo
     6: "mirror"
     default: "raidz"
   ```
+
+## Ashift Value
+
+The ZFS `ashift` value for modern devices with 512 byte or 4K sector size should be `12`.  Some flash devices could see better performance with `13` as internally they might be 8K devices.  Many devices simply lie about what they truly are due compatibility reasons.
+
+```yml
+# Define ZFS ashift value to use
+zfs_rpool_ashift: 12
+```
+
+* If `ashift` is too high, you lose a bit of space if you have a massive amount of very small files. If it’s too low, you get write amplification and performance degradation.
 
 [Back to README.md](../README.md)

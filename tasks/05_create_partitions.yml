@@ -16,23 +16,11 @@
       changed_when: cmd_output.rc == 0
       loop:
         "{{ disk_by_id }}"
-      when:
-        - use_uefi_booting|default(false)|bool
 
-    # This is only created for legacy BIOS Booting only
-    - name: Create BIOS Boot Loader Partitions for Legacy Boot
-      ansible.builtin.command:
-        "sgdisk {{ bios_partition_flags }} {{ item }}"
-      register: cmd_output
-      changed_when: cmd_output.rc == 0
-      loop:
-        "{{ disk_by_id }}"
-      when:
-        - not use_uefi_booting|default(false)|bool
-
+    # 1 or 2 devices = single or mirror flags, 3 or more use raid flags
     - name: Create SWAP Partitions
       ansible.builtin.command:
-        "sgdisk {{ (boot_pool_type == 'raidz') | ternary(raidz_multi_disk_swap_flags, single_disk_or_mirror_swap_flags) }} {{ item }}"
+        "sgdisk {{ (disk_by_id | length | int > 2) | ternary(raidz_multi_disk_swap_flags, single_disk_or_mirror_swap_flags) }} {{ item }}"
       register: cmd_output
       changed_when: cmd_output.rc == 0
       loop:

@@ -22,8 +22,8 @@ boot_partition_size_mb: "1024"
 uefi_partition_flags: "-a1 -n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -A{{ boot_partition }}:set:2 -t{{ boot_partition }}:{{ (disk_by_id | length > 1) | ternary('FD00', 'EF00') }}" # noqa yaml[line-length]
 
 # Possible SWAP Partition Flags based on one device or more
-single_disk_or_mirror_swap_flags: "-n{{ swap_partition }}:0:+{{ single_or_mirror_swap_partition_size_MB }}M -t{{ swap_partition }}:8200"
-raidz_multi_disk_swap_flags: "-n{{ swap_partition }}:0:+{{ raidz_swap_partition_size_MB }}M -t{{ swap_partition }}:FD00"
+single_disk_or_mirror_swap_flags: "-n{{ swap_partition }}:0:+{{ single_or_mirror_swap_partition_size_mb }}M -t{{ swap_partition }}:8200"
+raidz_multi_disk_swap_flags: "-n{{ swap_partition }}:0:+{{ raidz_swap_partition_size_mb }}M -t{{ swap_partition }}:FD00"
 
 # Define Root Pool Partition Flags - for Unencrypted or ZFS native Encryption
 root_partition_flags: "-n{{ root_partition }}:0:{{ root_partition_size }} -t{{ root_partition }}:BF00"
@@ -94,7 +94,7 @@ datasets_to_create:
   - "-o com.sun:auto-snapshot=false {{ root_pool_dataset_path }}/var/tmp"
   - "{{ root_pool_dataset_path }}/var/www"
   # Home Directory Dataset will be kept outside of OS Dataset
-  - "-o canmount=off -o mountpoint=none -o compression=lz4 -o atime=off {{ root_pool_name }}/ROOT/home"
+  - "-o canmount=off -o mountpoint=none -o compression={{ zfs_compression }} -o atime=off {{ root_pool_name }}/ROOT/home"
   - "-o canmount=on -o mountpoint=/root {{ root_pool_name }}/ROOT/home/root"
 
 ####### Variable below are unrelated to ZFS ############

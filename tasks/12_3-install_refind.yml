@@ -34,9 +34,7 @@
       register: cmd_output
       changed_when: cmd_output.rc == 0
       with_items:
-        - "[ -e /boot/efi/EFI/BOOT ] && mvrefind /boot/efi/EFI/BOOT /boot/efi/EFI/refind"
-      when:
-        - not use_uefi_booting|default(false)|bool
+        - "[ -e /boot/efi/EFI/BOOT ] && mvrefind /boot/efi/EFI/BOOT /boot/efi/EFI/refind || true"
 
     - name: Reduce rEFIND boot menu timeout from 20 seconds to 10
       ansible.builtin.replace:

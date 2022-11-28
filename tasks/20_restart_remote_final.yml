@@ -12,7 +12,7 @@
           # {{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }} will be rebooted.
           ##########################################################
 
-          {% if root_pool_encryption | default(false) | bool %}When prompted for passphrase for '{{ root_pool_name }}', use: {{ passphrase }}
+          {% if root_pool_encryption | default(false) | bool %}When prompted for passphrase for '{{ root_pool_name }}', use: {{ (no_log_secrets | default(true)) | ternary("**********", passphrase) }}
           {% endif %}
 
           IMPORTANT:  Copy the SSH for your non-root user NOW! After the next reboot
@@ -24,7 +24,7 @@
 
           * Root password is now disabled.
           * Login as "{{ regular_user_accounts[0].user_id }}" and use sudo instead).
-            Password: {{ regular_user_accounts[0].password }}  (You will be forced to change this password)
+            Password: {{ (no_log_secrets | default(true)) | ternary("**********", regular_user_accounts[0].password) }}  (You will be forced to change this password)
           * Ansible password is now disabled, only SSH key connection allowed.
 
             NOTE: {% if command_line_only | default(false) | bool %}System will remain command-line only.{% else %}Reboot will include a full GUI Desktop Environment.

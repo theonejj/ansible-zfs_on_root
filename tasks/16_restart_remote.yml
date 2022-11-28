@@ -13,10 +13,10 @@
           ##########################################################
 
             When prompted for passphrase for {{ root_pool_name }}:
-            Encryption Passphrase: {{ passphrase }}
+            Encryption Passphrase: {{ (no_log_secrets | default(true)) | ternary("**********", passphrase) }}
 
             No need to login at this point, but if you need it:
-            Root Password: {{ default_root_password }}
+            Root Password: {{ (no_log_secrets | default(true)) | ternary("**********", default_root_password) }}
 
             NOTE: If system boots back into LiveCD Environment, you may
                   have to manually eject CD, it is not needed anymore.

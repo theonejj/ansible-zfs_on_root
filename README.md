@@ -27,11 +27,13 @@ Originally based on the OpenZFS 'ZFS on Root' Guide, but no longer. Now with man
 
 ## TL;DR
 
-* THIS IS WORK IN PROGRESS / NOT COMPLETE
-* This Ansible based process is intended to be used against bare-metal systems or virtual machines (just needs SSH access to get started)
-* This uses ENTIRE disk(s) and wipes partitions on the specified disks, any existing data on these partitions on the target system will be lost
+* THIS IS WORK IN PROGRESS: There are no known significant issues.
+  * I've built many test systems using various combinations, but not every combination has been tested.  If you find a problem, please open a Github issue in this repository.
+
+* This Ansible based process is intended to be used against bare-metal systems or virtual machines (just needs SSH access to get started). This is intended for initial installation ONLY, this is not for applying changes over time -- you should make those changes via some other playbook.
+* This process uses ENTIRE disk(s) and wipes partitions on the specified disks, any existing data on these partitions on the target system will be lost.
 * Review the `defaults/main.yml` to set temporary passwords,  non-root user account(s) and basic rules on boot partition sizes, swap partitions, etc.
-* Defaults to building a headless server environment, however a full graphical desktop can be enabled
+* Defaults to building a headless server environment, however a full graphical desktop can be enabled.
 
 ---
 
@@ -153,6 +155,15 @@ The `defaults/main.yml` contains most setting that can be changed.
 
 You are  defining reasonable defaults.  Individual hosts that need something a little different can be set in the inventory file or you can use any other method that Ansible support for defining variables.
 
+#### Disable Logging Secrets
+
+Ansible tasks that reference secrets (password or passphrase) may show them on the screen as well as settings summary screens.  Showing passwords can be enabled if that would help troubleshooting.
+
+```yml
+# Don't log secret like ZFS on Root Password when running playbook
+no_log_secrets: true
+```
+
 #### Define Temporary Root Password
 
 This temporary root password is only used during the build process.  The ability for root to use a password will be disabled towards the final stages.
@@ -170,7 +181,7 @@ default_root_password: "change!me"
 
 #### Define the Non-Root Account(s)
 
- Define your standard privileged account(s).  The root account password will be disabled at the end, the privileged account(s) defined here must have `sudo` privilege to perform root activities.  Additional accounts can be defined.
+ Define your standard privileged account(s).  The root account password will be disabled at the end, the privileged account(s) defined here must have `sudo` privilege to perform root activities. You will be forced to change this password upon first login. (Additional accounts can be defined).
 
 ```yaml
 # Define non-root user account(s) to create (home drives will be its own dataset)
@@ -185,74 +196,12 @@ regular_user_accounts:
 
 ### Additional Settings to Review
 
+* Review [Computer Configuration Settings](docs/computer-config-settings.md)
 * Review [SWAP Partition Settings](docs/swap-partition-settings.md)
 * Review [Root Pool & Partition Settings](docs/root-partition-settings.md)
 * Review [ZFS Native Encryption Settings](docs/zfs-encryption-settings.md)
 * Review [Custom SSHD Configuration Settings](docs/custom-sshd-settings.md)
 * Review [DropBear Settings](docs/dropbear-settings.md)
-
-#### UEFI or Legacy BIOS
-
-Select if UEFI or Legacy BIOS is needed. When available UEFI will be used, if not available it will automatically fallback to BIOS.  If you never want to use UEFI then set this to false.
-
-```yaml
-###############################################################################
-# Use Grub with UEFI (will do Grub with Legacy BIOS if false)
-use_uefi_booting: true
-```
-
-#### CLI or Full Desktop
-
-Select if Full Graphical Desktop or Command Line Server only.
-
-```yaml
-# For Full GUI Desktop installation (set to false) or command-line only server environment (set to true)
-command_line_only: true
-```
-
-#### Define Locale and Timezone
-
-Set your locale and timezone information.
-
-```yaml
-# Define the local pre-fix to enable in /etc/locale.gen
-locale_prefix: "en_US"
-
-# Define the timezone to be placed in /etc/timezone
-timezone_value: "America/New_York"
-```
-
-#### Disable IPv6 Networking
-
-By default IPv6 networking will be disabled.  If you have a need for it, you can set `ipv6.disable: false`
-
-```yml
-# Disable IPv6 if you do not use it.  The "disable_settings" will be applied to
-# "conf_file"
-ipv6:
-  disable: true
-  conf_file: "/etc/sysctl.d/99-sysctl.conf"
-  disable_settings:
-    - "net.ipv6.conf.all.disable_ipv6 = 1"
-    - "net.ipv6.conf.default.disable_ipv6 = 1"
-    - "net.ipv6.conf.lo.disable_ipv6 = 1"
-  apply_cmd: "sysctl -p"
-```
-
-#### Define the ZFS Pool Names
-
-These are the default names typically used on Ubuntu systems.  Other systems use other names.  Some people really can't sleep well at night if the pools don't have the perfect name.
-
- _NOTE: Within the ZFS on Root recommendations for Ubuntu 20.04, the `boot` pool name is no longer arbitrary. The boot pool name of `bpool` is required. The `rpool` name can be altered._
-
-```yaml
-# Define Pool Names - can be set to whatever you like.
-# Short hostname is default, this is like "rpool" in the previous methods.
-root_pool_name: "{{ host_name }}"
-```
-
-* User data will be stored in ZFS Dataset: `host_name/ROOT/home`
-* Operating System is within ZFS Dataset: `host_name/ROOT/ubuntu`
 
 ### Additional Configuration Files
 
@@ -380,6 +329,8 @@ This is the list and order of execution for all tags defined for this playbook:
       - reboot_remote
       - create_regular_users
       - install_dropbear
+      - final_setup
+      - restart_remote_final
 ```
 
 Helper tasks, basic sanity checks and mandatory tasks are already marked as `always` and will always be processed to setup the base ansible working environment reading configuration files, setting variables, etc... nothing special you need to do.
@@ -388,68 +339,7 @@ Helper tasks, basic sanity checks and mandatory tasks are already marked as `alw
 
 ## Known Issues
 
-### Issue #1 - Multi-disk SWAP using `mdadm` is not mounted as `/dev/md0` and thus no swap space
-
-```bash
-$ cat /proc/swaps 
-Filename                             Type       Size    Used    Priority
-
-$ free -mh | grep Swap
-Swap:         0B          0B       0B
-```
-
-If there is anything incorrect with the configuration file `/etc/mdadm/mdadm.conf` the kernel will attempt to assemble the array and mount it as something like `/dev/md127` the swap is configured to be at `/dev/md0` and will not work until this is corrected.
-
-#### Workaround for Issue #1
-
-Confirm the device name of the incorrect mdadm device with:
-
-```bash
-cat /proc/mdstat 
-
-md127 : active (auto-read-only) raid5 sda2[0] sdc2[3] sdb2[1]
-      2093056 blocks super 1.2 level 5, 512k chunk, algorithm 2 [3/3] [UUU]
-```
-
-Stop the incorrectly named device:
-
-```bash
-sudo mdadm -S /dev/md127
-```
-
-Assemble Array with correct name `/dev/md0` include the device names listed above, they will always end with a `2` based on how ZFS on Root sets up partitions.
-
-```bash
-mdadm -Av --update=name --run /dev/md0 /dev/sda2 /dev/sdb2 /dev/sdc2
-```
-
-Confirm the mdadm device name is now correctly showing `md0`:
-
-```bash
-cat /proc/mdstat 
-
-md0 : active raid5 sda2[0] sdc2[3] sdb2[1]
-  2093056 blocks super 1.2 level 5, 512k chunk, algorithm 2 [3/3] [UUU]
-```
-
-This updates the mdadm configuration file. This needs to be added to the kernel initramfs image as follows:
-
-```bash
-update-initramfs -c -k all
-```
-
-* Reboot the system
-
-SWAP space should now be functional:
-
-```bash
-$ cat /proc/swaps 
-Filename                                Type            Size    Used    Priority
-/dev/dm-0                               partition       2093052 0       -2
-
-$ free -mh | grep Swap
-Swap:         2.0Gi          0B       2.0Gi
-```
+* None.
 
 ---
 

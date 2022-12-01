@@ -10,7 +10,7 @@
     # Create name of boot device
     - name: Create name of boot device
       ansible.builtin.set_fact:
-        boot_dev_name: "/dev/md/{{ inventory_hostname_short }}:efi"
+        boot_dev_name: "/dev/md/BOOT_EFI"
 
     # Create a list of device partitions to use
     - name: Create a list of device partitions to use
@@ -52,13 +52,13 @@
 
     - name: Run chroot command to install dosfstool
       ansible.builtin.command:
-        cmd: "{{ chroot_cmd }} bash -c 'apt install --yes dosfstools'"
+        cmd: "{{ chroot_cmd }} bash -c 'apt-get install --yes dosfstools'"
       when:
         - ansible_os_family == "Debian"
 
     - name: Create EFI filesystem on boot device
       ansible.builtin.command:
-        cmd: "mkdosfs -F 32 -s 1 -n BOOT_EFI {{ boot_dev_name }}"
+        cmd: "mkfs.vfat -v -F 32 -s 1 -n BOOT_EFI {{ boot_dev_name }}"
       register: cmd_output
       changed_when: cmd_output.rc == 0
 

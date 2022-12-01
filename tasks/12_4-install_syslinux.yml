@@ -13,7 +13,7 @@
       changed_when: cmd_output.rc == 0
       with_items:
         - "mkdir -p /boot/efi/syslinux"
-        - "apt install --yes syslinux syslinux-common extlinux dosfstools unzip"
+        - "apt-get install --yes syslinux syslinux-common extlinux dosfstools unzip"
         - "cp -r /usr/lib/syslinux/modules/bios/* /boot/efi/syslinux"
         # Install extlinux
         - "extlinux --install /boot/efi/syslinux"

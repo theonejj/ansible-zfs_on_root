@@ -12,7 +12,7 @@
       register: cmd_output
       changed_when: cmd_output.rc == 0
       with_items:
-        - "apt install --yes dracut-core zfs-dracut bsdmainutils gcc"
+        - "apt-get install --yes dracut-core zfs-dracut bsdmainutils gcc"
         # IMPORTANT: Do NOT install initramfs-tools with dracut
         - "apt-mark hold initramfs-tools"
       when:

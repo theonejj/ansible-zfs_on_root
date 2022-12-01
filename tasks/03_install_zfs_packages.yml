@@ -39,7 +39,7 @@
   block:
     - name: Install ZFS packages (assumes Live CD Environment)
       ansible.builtin.apt:
-        name: ['debootstrap', 'gdisk', 'zfs-initramfs', 'mdadm']
+        name: ['debootstrap', 'gdisk', 'zfs-initramfs', 'dosfstools', 'mdadm']
         state: present
         update_cache: true
         cache_valid_time: 3600

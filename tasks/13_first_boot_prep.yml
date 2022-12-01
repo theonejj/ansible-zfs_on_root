@@ -97,7 +97,7 @@
       with_items:
         - "dracut -v -f --regenerate-all"
         # generate-zbm only there if we built from scratch, not using downloaded image
-        - "[ -e /usr/bin/generate-zbm ] && generate-zbm --debug"
+        - "[ -e /usr/bin/generate-zbm ] && generate-zbm --debug || true"
 
     - name: Removing os-prober (only needed on dual-boot systems)
       ansible.builtin.command: "{{ chroot_cmd }} bash -c 'dpkg --purge os-prober'"

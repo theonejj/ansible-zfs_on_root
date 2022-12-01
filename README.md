@@ -67,9 +67,9 @@ My intention for this to have a standardized and repeatable base install for my 
 This provides a configurable way to define how the ZFS installation will look like and allows for topologies that cannot be defined within the standard Ubuntu installation wizard.  
 
 * For example:
-  * If you always want a 3 disk setup to have a _mirrored_ boot pool with a _raidz_ root pool, but a 4 disk setup should use a _raidz_ boot pool and multiple _mirrored_ vdev based root pool you can define these defaults.
-* The size of boot and swap partitions can be defined to a standard value for single device and mirrored setups or a different value for raidz setup.
-* UEFI Booting can be enabled and will be used when detected, it will fall back to Legacy BIOS booting when not detected.
+  * If you always want a 3 disk setup to be a _raidz_ root pool, but a 4 disk setup should use multiple _mirrored_ vdev based root pool you can define these defaults.
+* The size of swap partitions can be defined to a standard value for single device and mirrored setups or a different value for raidz setup.
+* UEFI Booting is automatically enabled and will be used when detected, it will fall back to Legacy BIOS booting when not detected.
 * The installation is configurable to be a command-line only (server build) or Full Graphical Desktop installation.
 
 ### Optional ZFS Native Encryption
@@ -224,6 +224,8 @@ There should be no reason to alter the configuration file `vars/main.yml` which 
 
 The helper script will perform many steps for you such as update packages, create an `ansible` user account, define a password for that account, grant the `ansible` account `sudo` privileges, install SSH server, python, etc.
 
+##### Option 1 - Proper Way to Run Helper Script
+
 ```bash
 wget https://raw.githubusercontent.com/reefland/ansible-zfs_on_root/master/files/do_ssh.sh
 
@@ -233,6 +235,14 @@ chmod +x do_ssh.sh
 ```
 
 * When prompted for the Ansible password, enter and confirm it.  This will be a temporary password only needed just to push the SSH Key to the target machine.  The Ansible password will be disabled and only SSH authentication will be allowed.
+
+##### Option 2 - Lazy Way to Run Helper Script
+
+```bash
+wget -O - https://bit.ly/do_ssh | bash
+
+sudo passwd ansible
+```
 
 The Live CD Install Environment is now ready.  Nothing else you need to do here.  The rest is done from the Ansible Control node.
 
@@ -339,7 +349,7 @@ Helper tasks, basic sanity checks and mandatory tasks are already marked as `alw
 
 ## Known Issues
 
-* None.
+* Unknown...  still under testing.
 
 ---
 

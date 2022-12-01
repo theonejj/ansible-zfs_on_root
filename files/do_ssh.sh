@@ -6,7 +6,7 @@
 
 ANSIBLE_USER=ansible
 
-sudo apt-add-repository universe && sudo apt update
+# sudo apt-add-repository universe && sudo apt update
 
 # Create ansible account and a home directory to store SSH keys
 echo

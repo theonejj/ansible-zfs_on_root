@@ -45,7 +45,7 @@ sudo swapoff -a
 gsettings set org.gnome.desktop.media-handling automount false
 
 # See if we are in a terminal or pipe
-if [ -t 1 ] ; then
+if [[ ! -p /dev/stdin ]]; then
   # In terminal ask user to define remote user password
   echo
   echo "-----------------------------------------------------------------------------"

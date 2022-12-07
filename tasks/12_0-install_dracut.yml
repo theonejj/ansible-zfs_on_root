@@ -12,7 +12,7 @@
       register: cmd_output
       changed_when: cmd_output.rc == 0
       with_items:
-        - "apt-get install --yes dracut-core zfs-dracut bsdmainutils gcc"
+        - "apt-get install --yes dracut-core zfs-dracut bsdmainutils bsdextrautils gcc"
         # IMPORTANT: Do NOT install initramfs-tools with dracut
         - "apt-mark hold initramfs-tools"
       when:
@@ -20,7 +20,7 @@
 
     - name: Copy dracut template to /mnt/etc/dracut.conf.d/100-zol.conf
       ansible.builtin.template:
-        src: 100-zol.conf.j2
+        src: dracut_100-zol.conf.j2
         dest: "{{ live_cd_mountpoint }}/etc/dracut.conf.d/100-zol.conf"
         owner: "root"
         group: "root"

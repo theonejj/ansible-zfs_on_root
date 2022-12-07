@@ -1,5 +1,7 @@
 ---
-# [ Install ZFS ]##############################################################
+# [ Install ZFS and Kernel ]###################################################
+# If optional kernel hardware enablement feature is enabled, will be used here.
+
 - name: Install ZFS into chroot Block
   when:
     - ansible_nodename != "localhost"

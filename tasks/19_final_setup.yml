@@ -64,6 +64,7 @@
 # [ Apply SSHD Settings ]######################################################
 - name: Update SSHD Settings Block
   tags:
+    - final_setup
     - update_sshd_settings
   block:
     - name: Update SSHD Settings

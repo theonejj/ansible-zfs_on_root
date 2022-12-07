@@ -8,7 +8,7 @@
 
     - name: Install Dracut-Network and Dropbear
       ansible.builtin.apt:
-        name: ['dracut-network', 'dropbear-bin', 'git']
+        name: ['dracut-network', 'dropbear-bin']
         state: present
       when:
         - ansible_os_family == "Debian"
@@ -18,12 +18,26 @@
         path: "/tmp/dracut-crypt-ssh"
         state: absent
 
-    - name: Clone dracut-crypt-ssh repository
-      ansible.builtin.git: # noqa latest[git]
-        repo: 'https://github.com/dracut-crypt-ssh/dracut-crypt-ssh.git'
-        dest: "/tmp/dracut-crypt-ssh"
-        clone: true
-        update: true
+    - name: Create Fresh dracut-crypt-ssh directory
+      ansible.builtin.file:
+        path: "/tmp/dracut-crypt-ssh"
+        state: directory
+        mode: "0755"
+
+    - name: Fetch dracut-crypt-ssh repository tarball
+      ansible.builtin.shell: # noqa command-instead-of-shell
+        cmd: "{{ item }}"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      with_items:
+        - "cd /tmp/dracut-crypt-ssh && curl -L https://github.com/dracut-crypt-ssh/dracut-crypt-ssh/tarball/master | tar xz --strip=1"
+
+    # Comment out all lines containing: inst "$moddir"/helper/
+    - name: Modify dracut module module-setup.sh
+      ansible.builtin.replace:
+        path: "/tmp/dracut-crypt-ssh/modules/60crypt-ssh/module-setup.sh"
+        regexp: '(^.*inst "\$moddir"\/helper\/.*$)'
+        replace: '#\1'
 
     - name: Create dracut module 60crypt-ssh directory
       ansible.builtin.file:
@@ -38,13 +52,6 @@
         remote_src: true
         mode: "0755"
 
-    # Comment out all lines containing: inst "$moddir"/helper/
-    - name: Modify dracut module module-setup.sh
-      ansible.builtin.replace:
-        path: "/usr/lib/dracut/modules.d/60crypt-ssh/module-setup.sh"
-        regexp: '(^.*inst "\$moddir"\/helper\/.*$)'
-        replace: '#\1'
-
     # [ Setup Host Keys ]######################################################
     - name: Create /etc/dropbear/ directory for host keys
       ansible.builtin.file:
@@ -52,19 +59,16 @@
         mode: "0755"
         state: directory
 
-    - name: Create ecdsa host keys in PEM format
+    - name: Create host keys in PEM format
       ansible.builtin.command:
-        cmd: 'ssh-keygen -t ecdsa -m PEM -f /etc/dropbear/ssh_host_ecdsa_key -N ""'
-        creates: /etc/dropbear/ssh_host_ecdsa_key
+        cmd: 'ssh-keygen -t {{ item }} -m PEM -f /etc/dropbear/ssh_host_{{ item }}_key -N ""'
+        creates: "/etc/dropbear/ssh_host_{{ item }}_key"
       register: cmd_output
       changed_when: cmd_output.rc == 0
-
-    - name: Create rsa host keys in PEM format
-      ansible.builtin.command:
-        cmd: 'ssh-keygen -t rsa -m PEM -f /etc/dropbear/ssh_host_rsa_key -N ""'
-        creates: /etc/dropbear/ssh_host_rsa_key
-      register: cmd_output
-      changed_when: cmd_output.rc == 0
+      with_items:
+        - "rsa"
+        - "ecdsa"
+        - "ed25519"
 
     # [ Setup Dracut networking ]##############################################
     - name: Create /etc/cmdline.d directory
@@ -131,14 +135,12 @@
         group: "root"
         mode: "0644"
 
-#    - name: Stop and Disable Dropbear Service
-#      ansible.builtin.systemd:
-#        name: dropbear
-#        enabled: false
-#        state: stopped
-
-    - name: Generate ZFS Boot Menu
+    - name: Run chroot commands for Dracut Generate
       ansible.builtin.command:
-        cmd: 'generate-zbm --debug'
+        cmd: "{{ item }}"
       register: cmd_output
       changed_when: cmd_output.rc == 0
+      with_items:
+        - "dracut -v -f --regenerate-all"
+        # generate-zbm only there if we built from scratch, not using downloaded image
+        - "generate-zbm --debug"

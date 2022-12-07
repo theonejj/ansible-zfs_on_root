@@ -26,7 +26,7 @@
     - 09_config_system.yml
     - 10_install_zfs.yml
     - 11_config_boot_filesystem.yml
-    - 12_install_dracut.yml
+    - 12_0-install_dracut.yml
     - 12_3-install_refind.yml
     - 12_4-install_syslinux.yml
     - 12_5-install_zfsbootmenu.yml

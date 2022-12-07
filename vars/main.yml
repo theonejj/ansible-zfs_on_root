@@ -6,20 +6,20 @@
 # Ubuntu Release name
 ubuntu_release: "jammy"
 distro_name: "ubuntu"
+ubuntu_version: "22.04"
 
 # Define Partition Mapping
 boot_partition: "1"
 swap_partition: "2"
 root_partition: "3"
 
-# Define mount location within LIVE CD
-live_cd_mountpoint: "/mnt"
-
-# Define EFI Partition Size
-boot_partition_size_mb: "1024"
+# Define EFI System Partition (ESP) Size in MB
+boot_partition_size_mb: "512"
 
 # Boot Partition Flags - Partition type is EF00 on single device, FD00 on multiple devices
 uefi_partition_flags: "-a1 -n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -A{{ boot_partition }}:set:2 -t{{ boot_partition }}:{{ (disk_by_id | length > 1) | ternary('FD00', 'EF00') }}" # noqa yaml[line-length]
+# uefi_partition_flags: "-a1 -n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -A{{ boot_partition }}:set:2 -t{{ boot_partition }}:EF00"
+# uefi_partition_flags: "-n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -t{{ boot_partition }}:EF00"
 
 # Possible SWAP Partition Flags based on one device or more
 single_disk_or_mirror_swap_flags: "-n{{ swap_partition }}:0:+{{ single_or_mirror_swap_partition_size_mb }}M -t{{ swap_partition }}:8200"
@@ -97,9 +97,32 @@ datasets_to_create:
   - "-o canmount=off -o mountpoint=none -o compression={{ zfs_compression }} -o atime=off {{ root_pool_name }}/ROOT/home"
   - "-o canmount=on -o mountpoint=/root {{ root_pool_name }}/ROOT/home/root"
 
-####### Variable below are unrelated to ZFS ############
+###############################################################################
+# [ Variable below are unrelated to ZFS ]######################################
+
+# Define mount location within LIVE CD
+live_cd_mountpoint: "/mnt"
+
 # Define chroot command to use
 chroot_cmd: "chroot {{ live_cd_mountpoint }}"
+
+# EFI Boot Mountpoint
+efi_boot_mountpoint: "/boot/efi"
+
+# Path for EFI directory
+efi_boot_path: "{{ efi_boot_mountpoint }}/EFI"
+
+# Path for ZFSBootMenu
+zfs_boot_menu_path: "{{ efi_boot_path }}/zfsbootmenu"
+
+# Path for rEFInd
+refind_path: "{{ efi_boot_path }}/refind"
+
+# efi pathname for rEFInd within startup.nsh file (reversed slashes expected)
+refind_efi_pathname: 'EFI\refind\refind_x64.efi'
+
+# Path for syslinx BIOS bootloader
+syslinx_path: "{{ efi_boot_mountpoint }}/syslinux"
 
 # OS Prober is only needed on dual-boot configurations.
 remove_os_prober: true

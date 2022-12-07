@@ -1,20 +1,20 @@
 Global:
   ManageImages: true
-  BootMountPoint: /boot/efi
+  BootMountPoint: {{ efi_boot_mountpoint }}
   DracutConfDir: /etc/zfsbootmenu/dracut.conf.d
   PreHooksDir: /etc/zfsbootmenu/generate-zbm.pre.d
   PostHooksDir: /etc/zfsbootmenu/generate-zbm.post.d
   InitCPIO: false
   InitCPIOConfig: /etc/zfsbootmenu/mkinitcpio.conf
 Components:
-  ImageDir: /boot/efi/EFI/zfsbootmenu
+  ImageDir: {{ zfs_boot_menu_path }}
   Versions: 3
   Enabled: true
   syslinux:
-    Config: /boot/efi/syslinux/syslinux.cfg
+    Config: {{ syslinx_path }}/syslinux.cfg
     Enabled: true
 EFI:
-  ImageDir: /boot/efi/EFI/zfsbootmenu
+  ImageDir: {{ zfs_boot_menu_path }}
   Versions: 2
   Enabled: false
 Kernel:

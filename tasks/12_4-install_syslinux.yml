@@ -12,15 +12,15 @@
       register: cmd_output
       changed_when: cmd_output.rc == 0
       with_items:
-        - "mkdir -p /boot/efi/syslinux"
+        - "mkdir -p {{ syslinx_path }}"
         - "apt-get install --yes syslinux syslinux-common extlinux dosfstools unzip"
-        - "cp -r /usr/lib/syslinux/modules/bios/* /boot/efi/syslinux"
+        - "cp -r /usr/lib/syslinux/modules/bios/* {{ syslinx_path }}"
         # Install extlinux
-        - "extlinux --install /boot/efi/syslinux"
+        - "extlinux --install {{ syslinx_path }}"
       when:
         - ansible_os_family == "Debian"
 
-    - name: Run chroot comand to install the syslinux GPTMBR data on each disk device
+    - name: Run chroot command to install the syslinux GPTMBR data on each disk device
       ansible.builtin.command:
         cmd: "{{ chroot_cmd }} bash -c 'dd bs=440 count=1 conv=notrunc if=/usr/lib/syslinux/mbr/gptmbr.bin of={{ item }}'"
       register: cmd_output

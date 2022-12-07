@@ -14,14 +14,14 @@
       with_items:
         - "DEBIAN_FRONTEND=noninteractive apt-get install --yes refind"
         - "refind-install"
-        - "mkdir -p /boot/efi/EFI/zfsbootmenu"
+        - "mkdir -p {{ zfs_boot_menu_path }}"
       when:
         - ansible_os_family == "Debian"
 
     - name: Copy rEFInd template to /mnt/boot/efi/EFI/zfsbootmenu/refind_linux.conf
       ansible.builtin.template:
         src: refind_linux.conf.j2
-        dest: "{{ live_cd_mountpoint }}/boot/efi/EFI/zfsbootmenu/refind_linux.conf"
+        dest: "{{ live_cd_mountpoint }}{{ zfs_boot_menu_path }}/refind_linux.conf"
         owner: "root"
         group: "root"
         mode: "0644"
@@ -34,11 +34,11 @@
       register: cmd_output
       changed_when: cmd_output.rc == 0
       with_items:
-        - "[ -e /boot/efi/EFI/BOOT ] && mvrefind /boot/efi/EFI/BOOT /boot/efi/EFI/refind || true"
+        - "[ -e {{ efi_boot_path }}/BOOT ] && mvrefind {{ efi_boot_path }}/BOOT {{ refind_path }} || true"
 
-    - name: Reduce rEFIND boot menu timeout from 20 seconds to 10
+    - name: Reduce rEFIND boot menu timeout from 20 seconds to new value
       ansible.builtin.replace:
-        path: "{{ live_cd_mountpoint }}/boot/efi/EFI/refind/refind.conf"
+        path: "{{ live_cd_mountpoint }}{{ refind_path }}/refind.conf"
         regexp: '^timeout .*'
         replace: 'timeout {{ refind_boot_menu_timeout }}'
 

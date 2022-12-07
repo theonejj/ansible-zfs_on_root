@@ -64,7 +64,7 @@
 
     - name: Run chroot command to create /boot/efi directory
       ansible.builtin.command:
-        "{{ chroot_cmd }} bash -c 'mkdir -p /boot/efi'"
+        "{{ chroot_cmd }} bash -c 'mkdir -p {{ efi_boot_mountpoint }}'"
       register: cmd_output
       changed_when: cmd_output.rc == 0
 
@@ -113,7 +113,7 @@
     # Mount /boot/efi directory in chroot environment
     - name: Run chroot command to mount /boot/efi directory
       ansible.builtin.command:
-        cmd: "{{ chroot_cmd }} bash -c 'mount /boot/efi'"
+        cmd: "{{ chroot_cmd }} bash -c 'mount {{ efi_boot_mountpoint }}'"
       register: cmd_output
       changed_when: cmd_output.rc == 0
 

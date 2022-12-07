@@ -11,7 +11,7 @@
     # This is created for UEFI booting
     - name: Create UEFI Boot Loader Partitions
       ansible.builtin.command:
-        "sgdisk {{ uefi_partition_flags }} {{ item }}"
+        cmd: "sgdisk {{ uefi_partition_flags }} {{ item }}"
       register: cmd_output
       changed_when: cmd_output.rc == 0
       loop:
@@ -20,26 +20,32 @@
     # 1 or 2 devices = single or mirror flags, 3 or more use raid flags
     - name: Create SWAP Partitions
       ansible.builtin.command:
-        "sgdisk {{ (disk_by_id | length | int > 2) | ternary(raidz_multi_disk_swap_flags, single_disk_or_mirror_swap_flags) }} {{ item }}"
+        cmd: "sgdisk {{ (disk_by_id | length | int > 2) | ternary(raidz_multi_disk_swap_flags, single_disk_or_mirror_swap_flags) }} {{ item }}"
       register: cmd_output
       changed_when: cmd_output.rc == 0
       loop:
         "{{ disk_by_id }}"
       when:
-        - enable_swap_partitions|default(true)|bool
+        - enable_swap_partitions | default(true) | bool
 
     - name: Create Root Pool Partitions
       ansible.builtin.command:
-        "sgdisk {{ root_partition_flags }} {{ item }}"
+        cmd: "sgdisk {{ root_partition_flags }} {{ item }}"
       register: cmd_output
       changed_when: cmd_output.rc == 0
       loop:
         "{{ disk_by_id }}"
 
+    - name: Pause for 5 seconds to settle
+      ansible.builtin.pause:
+        seconds: 5
+
     - name: Notify Kernel of Updated Partitions
       ansible.builtin.command:
-        "partprobe"
+        cmd: "partprobe"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
       when:
-        - not disable_partprobe|default(false)|bool
+        - not disable_partprobe | default(false) | bool
 
 ###############################################################################

@@ -2,6 +2,7 @@
 # [ Review Settings with User Allow Abort ]####################################
 - name: Review default values
   tags:
+    - confirm_defaults
     - always
   ansible.builtin.pause: # noqa yaml[line-length]
     prompt: |

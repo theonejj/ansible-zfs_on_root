@@ -66,6 +66,7 @@
       register: cmd_output
       changed_when: cmd_output.rc == 0
       with_items:
+        # The dropbear.conf will look for these 3 keys
         - "rsa"
         - "ecdsa"
         - "ed25519"

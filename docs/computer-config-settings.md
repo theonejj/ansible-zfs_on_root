@@ -1,5 +1,7 @@
 # Computer Configuration Settings
 
+[Back to README.md](../README.md)
+
 ## UEFI or Legacy BIOS
 
 Does not matter if UEFI or Legacy BIOS is used. When available UEFI will be used, if not available it will automatically fallback to BIOS.  You should be easily able to move between these options.
@@ -31,6 +33,16 @@ Select if Full Graphical Desktop or Command Line Server only.
 command_line_only: true
 ```
 
+## Enable Ubuntu LTS Hardware Enablement Kernel
+
+This provides newer kernels than the default LTS kernel.
+
+```yml
+# The Ubuntu LTS enablement (also called HWE or Hardware Enablement) stacks
+# provide newer kernel and X support for existing Ubuntu LTS releases.
+enable_ubuntu_lts_hwe: false
+```
+
 ## Define Locale and Timezone
 
 Set your locale and timezone information.
@@ -58,6 +70,18 @@ ipv6:
     - "net.ipv6.conf.default.disable_ipv6 = 1"
     - "net.ipv6.conf.lo.disable_ipv6 = 1"
   apply_cmd: "sysctl -p"
+```
+
+### Disable Partprobe
+
+`partprobe` is used to let the kernel know that partition tables have been updated.  It is required when partitions are created or deleted. It should always be enabled, but can be disabled if required.
+
+```yml
+# "Partprobe" is used to let the kernel know that partition tables have changed.
+# Sometimes it gets in the way with weird messaged such as:
+# "The driver descriptor says the physical block size is 2048 bytes, but Linux
+# says it is 512 bytes."
+disable_partprobe: false
 ```
 
 [Back to README.md](../README.md)

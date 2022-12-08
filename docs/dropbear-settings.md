@@ -27,9 +27,9 @@ apply_dropbear_settings:
 * The `remoteaccess_ip_config` selects if you want Dropbear to request a DHCP address or you wish to supply a static IP address
   * If a static address is selected, then set `remoteaccess_ip` and `remoteaccess_netmask` to the appropriate values
 
-### Dropbear RSA Keys
+### Dropbear Keys
 
-ECSDA or RSA public keys are authorized to connect to Dropbear are defined below.
+The ED25519, ECSDA, or RSA public keys authorized to connect to Dropbear are defined below.
 
 ```yaml
   # Define the full path to public key(s) you want to include in Dropbear
@@ -39,6 +39,13 @@ ECSDA or RSA public keys are authorized to connect to Dropbear are defined below
 ```
 
 The default value shown above, states that any authorized key defined by the first non-root user as specified in [Define the Non-Root Account(s)](../README.md#define-the-non-root-accounts) will be allowed to connect to Dropbear.
+
+If you add or remove key(s) from this user and have that reflected in Dropbear, then run:
+
+```shell
+sudo dracut -v -f --regenerate-all
+sudo generate-zbm --debug
+```
 
 ### Manual Execution or Refresh Settings
 
@@ -66,7 +73,9 @@ Now try logging into the machine, with:   "ssh '<user_name>@<remote_host_name>'"
 and check to make sure that only the key(s) you wanted were added.
 ```
 
-* You should now be able to perform a standard ssh login to the remote system with this key, it will not prompt for a password and you should get the banner and user command prompt:
+### Test SSH Key Pair is Valid
+
+* You should now be able to perform a standard ssh login to the remote system with this key, it will NOT prompt for a password and you should get the banner and user command prompt:
 
 ```shell
 $ ssh -i ~/.ssh/dropbear_ed25519 <remote_host_name>
@@ -83,7 +92,7 @@ To check for new updates run: sudo apt update
 <user_name>@<remote_host_name>:~$
 ```
 
-Upon rebooting the remote system, you can connect to Dropbear as follows. This example uses a ECSDA key to connect as root (no matter what key you connect with, you must always connect as the root user).
+Upon rebooting the remote system, you can connect to Dropbear as follows. This example uses a ED25519 key to connect as root (no matter what key you connect with, you must always connect as the root user).
 
 ```bash
 $ ssh -i ~/.ssh/dropbear_ed25519 -p 222 root@<remote_host_name>
@@ -97,14 +106,40 @@ zfsbootmenu ~ >
 You will then be prompted to enter the ZFS encryption passphrase:
 
 ```shell
-Enter passphrase for '<remote_host_name>/ROOT':
+Enter passphrase for '{root_pool_name}/ROOT':
 ```
 
 * Enter your passphrase to unlock the ZFS pool.
 * If entered incorrectly you will be given additional attempts.
 
-You will then be presented with the ZFSBootMenu to select what to boot or rollback the system to a previous ZFS snapshot, etc.  Once a selection is made connection is closed and system boot sequence proceeds.  The Dropbear SSH service will not be running once the system has booted.
+You will then be presented with the ZFSbootMenu to select what to boot or rollback the system to a previous ZFS snapshot, etc.  Once a selection is made connection is closed and system boot sequence proceeds.  The Dropbear SSH service will not be running once the system has booted.
 
-* NOTE: SSH clients have started to drop support for RSA keys.  The `-o PubKeyAcceptedKeyTypes=+ssh-rsa` is required on such clients otherwise you will get an access denied trying to connect.
+* NOTE: SSH clients have started to drop support for RSA keys.  The `-o PubKeyAcceptedKeyTypes=+ssh-rsa` is required on such clients otherwise you will get an access denied trying to connect, such as:
+
+```shell
+ssh -i ~/.ssh/dropbear_rsa -o PubKeyAcceptedKeyTypes=+ssh-rsa -p 222 root@<remote_host_name>
+```
+
+### Changing the Dropbear Banner Text
+
+The default contents of the Dropbear banner as used by Ansible is defined in `templates/dracut_banner.txt.j2` and can be customized as you like.  
+
+This template will be rendered and placed at `/etc/zfsbootmenu/dracut.conf.d/banner.txt` on the target system.  You can make modifications to this file directly as well. If you modify this file then you need to regenerate the initramfs image via:
+
+```shell
+sudo dracut -v -f --regenerate-all
+sudo generate-zbm --debug
+```
+
+### Dropbear Configuration File
+
+The default contents of the Dropbear configuration file as used by Ansible is defined in `templates/dracut_dropbear.conf.j2` and can be customized.
+
+This template will be rendered and placed at `/etc/zfsbootmenu/dracut.conf.d/dropbear.conf` on the target system. You can make modifications to this file directly as well. If you modify this file then you need to regenerate the initramfs image via:
+
+```shell
+sudo dracut -v -f --regenerate-all
+sudo generate-zbm --debug
+```
 
 [Back to README.md](../README.md)

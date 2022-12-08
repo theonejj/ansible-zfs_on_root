@@ -8,10 +8,13 @@ _NOTE: This Ansible role is not structured as rigid as a typical Ansible role sh
 
 Originally based on the OpenZFS 'ZFS on Root' Guide, but no longer. Now with many enhancements:
 
-* Uses ZFS Boot Menu / rEFInd / Syslinux to manage boot environments
-  * Menu driven roll-back to previous snapshots
+* Uses ZFSbootMenu / rEFInd / Syslinux to manage boot environments
+  * rEFInd provides graphical boot loader menu and roll-back to previous kernels on UEFI systems
+  * Syslinux provides boot loader menu for Legacy BIOS systems
+  * ZFSbootMenu provides menu driven roll-back to previous ZFS snapshots
   * Automatic snapshot creation upon apt/dpkg install or remove
 * No GRUB Boot Loader!
+* All ESP (boot) partitions are `mdadm` mirror across all devices
 * No separation of `bpool` and `rpool` just a single `rpool` is needed
 * Predefine rules for ZFS `rpool` pools types (mirror, raidz1, raidz2, multiple mirror vdevs) based on number of devices available
 * Swap partitions can be enabled
@@ -89,7 +92,8 @@ When a computer is rebooted with ZFS native encryption enabled then someone need
 
 * You can enable the option to install [Dropbear](https://en.wikipedia.org/wiki/Dropbear_(software)) to provide a lightweight SSH process as part of the initramfs during the boot process.  
 * This allows you to remotely SSH to the console to provide the root pool passphrase to allow the machine to continue to boot.  
-* You can customize the port, which ECDA or RSA keys are allowed to connect and adjust several options.
+* Dropbear will default to port 222.
+* RSA, ECDSA, or ED25519 keys can be used to connect to Dropbear (no passwords allowed)
 
 ---
 
@@ -142,7 +146,7 @@ All of these are optional, if not provided you will be prompted to enter values 
   * Default rules will make 2 devices a mirror, 3 will use a raidz1, 4 will join two mirrored vdevs into a pool (you can redefine these)
 * `root_partition_size:` allows you to specify the partition size to be used for the root pool.  
   * This is per disk device partition size (not a specification of overall pool size)
-  * By default it will allocate all remaining disk space (zero value)
+  * By default it will allocate all remaining disk space (implies `0` [zero])
   * You can specify a specific size (positive number) such as `120G` or `+120G`
   * Or state how much space not to use (negative number) such as `-512M`
 * `domain_name:` under `vars:` sets the domain name that will be used for each host created.  If an individual host needs a different domain name then just add a `domain_name:` under that host.
@@ -182,6 +186,8 @@ default_root_password: "change!me"
 #### Define the Non-Root Account(s)
 
  Define your standard privileged account(s).  The root account password will be disabled at the end, the privileged account(s) defined here must have `sudo` privilege to perform root activities. You will be forced to change this password upon first login. (Additional accounts can be defined).
+
+NOTE: The `~/.ssh/authorized_keys` for the 1st user will be allowed to connect to Dropbear (if enabled)
 
 ```yaml
 # Define non-root user account(s) to create (home drives will be its own dataset)
@@ -243,6 +249,8 @@ wget -O - https://bit.ly/do_ssh | bash
 
 sudo passwd ansible
 ```
+
+* The `-O` after `wget` is a capital letter `O` (not a zero).
 
 The Live CD Install Environment is now ready.  Nothing else you need to do here.  The rest is done from the Ansible Control node.
 
@@ -345,11 +353,33 @@ This is the list and order of execution for all tags defined for this playbook:
 
 Helper tasks, basic sanity checks and mandatory tasks are already marked as `always` and will always be processed to setup the base ansible working environment reading configuration files, setting variables, etc... nothing special you need to do.
 
+### Grouping Tags
+
+A reasonable way to build a system in stages using a group of tags instead of calling them individually:
+
+```text
+--tags="install-zfs-packages, clear_partition_tables_from_devices, create_partitions, create_pools"
+--tags="create_filesystems, create_datasets, config_system, install_zfs"
+--tags="config_boot_fs, install_dracut, install_refind, install_syslinux"
+--tags="install_zfsbootmenu, config_swap, system_tweaks, first_boot_prep"
+--tags="fix_mount_order, unmount_chroot, reboot_remote"
+--tags="create_regular_users, install_dropbear"
+```
+
+### Skipping Tags
+
+Specific tags can also be skipped.  For example, if you do not wish to see the manual confirmation page each time; and would rather the playbook just execute directly. Then use:
+
+```text
+--skip-tags="confirm_defaults"
+```
+
 ---
 
 ## Known Issues
 
-* Unknown...  still under testing.
+* Nothing happens after 1st reboot? See if [UEFI BIOS Bugs / Glitches / Issues](./docs/uefi-bugs-issues.md) helps.
+* `mdadm` error [super1.x cannot open / Device or resource busy](./docs/mdadm-error-cannot-open.md) during `config_boot_fs` tag processing
 
 ---
 
@@ -364,7 +394,7 @@ Here is a brief [overview with additional information](docs/root-pools-multi-mir
 ## Helper Scripts
 
 * [do_ssh.sh](docs/do_ssh_helper_script.md) - Makes a LiveCD environment accessible to Ansible via SSH.
-* [partition_drive_helper.sh](docs/partition_drive_helper_script.md) - documents disk partitions values used and will help you go from a blank replacement device to a fully repaired system.
+* NOT UPDATED YET - for 20.04 still: [partition_drive_helper.sh](docs/partition_drive_helper_script.md) - documents disk partitions values used and will help you go from a blank replacement device to a fully repaired system.
 
 ---
 

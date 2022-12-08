@@ -37,6 +37,8 @@ ansible-playbook -i inventory.yml ./zfs_on_root.yml --extra-vars='{debug: on}' -
 ansible-playbook -vvvv -i inventory.yml ./zfs_on_root.yml --extra-vars='{debug: on}' -l <remote_host_name>
 ```
 
+* `-vvvv` is VERY verbose (and slower). You can start with just `-v` and add more `v` to increase verbosity if needed.
+
 To do multiple of these at the same time:
 
 ```bash

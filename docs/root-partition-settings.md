@@ -14,16 +14,18 @@ root_pool_name: "{{ host_name }}"
 
 Based on the name above then:
 
-* User data will be stored in ZFS Dataset: `host_name/ROOT/home`
-* Operating System is within ZFS Dataset: `host_name/ROOT/ubuntu`
+* User data will be stored in ZFS Dataset: `{host_name}/ROOT/home`
+* Operating System is within ZFS Dataset: `{host_name}/ROOT/ubuntu`
 
 NOTE: The Operating System dataset has automatically snapshots created when `apt` or `dpkg` installs or removes packages. This allows the OS to be rolled back to previous snapshots without impacting user data.
 
 ## Root Partition Size
 
 * By default the root partition size will decided by ZFS at pool creation to use the largest possible value.  
-  * If devices of different size are used then the size of the RPOOL pool will be limited to the space left on the smallest device.
-* You can specify a specific partition size for the rpool on each device in the storage pool. This is useful if you want a standard size partitions on each computer.
+  * If devices of different size are used then the size of the root pool will be limited to the space left on the smallest device.
+  * For example: if the smallest device has 250GiB for the root pool, then all devices that are part of the root pool will only contribute 250Gib towards the pool.  All of these devices (VDEVs in ZFS terms) must be the same.
+    * All remaining space not used will remain unallocated. If in the future when the smallest device is replaced.  Then partition sizes can be adjusted and the ZFS pool can be expanded to use the additional space.
+* You can specify a specific partition size for the root pool on each device in the storage pool. This is useful if you want a standard size partitions on each computer.
 * Or you can specify how much space NOT to use leaving a specific amount of unallocated space for some other use.
 
   ```yaml
@@ -46,20 +48,32 @@ NOTE: The Operating System dataset has automatically snapshots created when `apt
 
 * If you decided to have unallocated space left, the remaining storage space will be after the last partition created. This simplifies making additional partitions later or expanding expanding partitions later.
 
+## Prompt for ZFS Passphrase
+
+ZFS Native Encryption is enabled by simply specifiying a passphrase to use for encryption. If you plan to always use encryption then set this to `true`. Ansible will prompt you for the passphrase if you forget to provide it via the command line.  If this is `false` and no passphrase is provided via the command line to ansible, then ZFS native encryption will not be used.
+
+```yml
+# Prompt for Native ZFS Encryption Passphrase.  if true, then prompt for
+# passphrase if not provided.
+prompt_for_zfs_passphrase: false
+```
+
 ---
 
-## Root Partition Type Rules
+## ZFS Specific Adjustable Settings
 
-Define ZFS Root Pool Type Rules. Similar rules apply here as applied to the [boot pool](boot-partition-settings.md). Key differences:
+Define ZFS Root Pool Type Rules:
 
 * Any EVEN number of devices (2, 4, 6, 8..), specified to be a `mirror` will be a [mirrored vdev pair](root-pools-multi-mirrored-vdevs.md) (which is awesome!)
-  * This is the recommended way to configure ZFS with many devices instead of using `raidz`
-  * This is higher performance and much fastest recovery from a single disk failure
+  * This is the recommended way to configure ZFS with many devices instead of using `raidz`.
+  * This is higher performance and much fastest recovery from a single disk failure.
   * This topology is not available from Ubuntu installer or with the OpenZFS HowTo method.
 
   * If you don't want this, then use `raidz` or `raidz2` type
 * Any ODD number of devices should be a `raidz` or `raidz2` type
-  * A `raidz2` can be tried with 4 or more devices, but `raidz2` is not recommended.
+  * A `raidz2` can be tried with 4 or more devices.
+
+* You can add additional entries to meet your requirements.  Anything not defined below will be be treated as `raidz1` pool.
 
   ```yaml
   # Define the root pool type based on number of devices.

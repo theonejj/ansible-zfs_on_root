@@ -15,20 +15,12 @@
           {% if root_pool_encryption | default(false) | bool %}When prompted for passphrase for '{{ root_pool_name }}', use: {{ (no_log_secrets | default(true)) | ternary("**********", passphrase) }}
           {% endif %}
 
-          IMPORTANT:  Copy the SSH for your non-root user NOW! After the next reboot
-                      SSH based password logins may NOT work. {% if enable_dropbear_support | bool %}(Required for Dropbear connection){% endif %}
-
-          ssh-copy-id -i ~/.ssh/<public_key> {{ regular_user_accounts[0].user_id }}@{{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}
-
-          When completed, press ENTER to wrap up this installation:
+          Press ENTER to reboot:
 
           * Root password is now disabled.
-          * Login as "{{ regular_user_accounts[0].user_id }}" and use sudo instead).
-            Password: {{ (no_log_secrets | default(true)) | ternary("**********", regular_user_accounts[0].password) }}  (You will be forced to change this password)
-          * Ansible password is now disabled, only SSH key connection allowed.
-
-            NOTE: {% if command_line_only | default(false) | bool %}System will remain command-line only.{% else %}Reboot will include a full GUI Desktop Environment.
-            {% endif %}
+          * Ansible password is disabled, only SSH key connection allowed.
+          * ZFS Snapshots for apt and dpkg are enabled.
+          * ZFS snapshot for base installation "@base_install" created.
 
           {% if enable_dropbear_support | bool %}
           * Dropbear has been installed and configured, example connection:

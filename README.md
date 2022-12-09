@@ -346,6 +346,7 @@ This is the list and order of execution for all tags defined for this playbook:
       - unmount_chroot
       - reboot_remote
       - create_regular_users
+      - copy_ssh_keys_notice
       - install_dropbear
       - final_setup
       - restart_remote_final
@@ -363,7 +364,7 @@ A reasonable way to build a system in stages using a group of tags instead of ca
 --tags="config_boot_fs, install_dracut, install_refind, install_syslinux"
 --tags="install_zfsbootmenu, config_swap, system_tweaks, first_boot_prep"
 --tags="fix_mount_order, unmount_chroot, reboot_remote"
---tags="create_regular_users, install_dropbear"
+--tags="create_regular_users, copy_ssh_keys_notice, install_dropbear, final_setup, restart_remote_final"
 ```
 
 ### Skipping Tags
@@ -395,6 +396,12 @@ Here is a brief [overview with additional information](docs/root-pools-multi-mir
 
 * [do_ssh.sh](docs/do_ssh_helper_script.md) - Makes a LiveCD environment accessible to Ansible via SSH.
 * NOT UPDATED YET - for 20.04 still: [partition_drive_helper.sh](docs/partition_drive_helper_script.md) - documents disk partitions values used and will help you go from a blank replacement device to a fully repaired system.
+
+---
+
+## Emergency chroot Recovery
+
+If your system is unable to boot, then boot from the Ubuntu Live CD to create a `chroot` environment where you can decrypt and mount your ZFS pools, mount boot partitions and have an interactive shell to inspect, troubleshoot, apply updates, etc.  You should be comfortable with [Emergency chroot Recovery](./docs/chroot-recovery.md) process.
 
 ---
 

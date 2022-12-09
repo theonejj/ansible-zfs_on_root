@@ -13,8 +13,7 @@
       changed_when: cmd_output.rc == 0
       with_items:
         - "apt-get install --yes dracut-core zfs-dracut bsdmainutils bsdextrautils gcc"
-        # IMPORTANT: Do NOT install initramfs-tools with dracut
-        - "apt-mark hold initramfs-tools"
+        - "apt-mark hold {{ packages_to_mark_hold | join(' ') }}"
       when:
         - ansible_os_family == "Debian"
 

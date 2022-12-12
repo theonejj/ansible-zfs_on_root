@@ -90,6 +90,17 @@
   tags:
     - final_setup
   block:
+
+    - name: Install any remaining packages defined
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+        install_recommends: false
+      loop:
+        - additional_install_packages
+      when:
+        - ansible_os_family == "Debian"
+
     # Set apt/dpkg to automagically snap the system datasets on install/remove
     - name: Copy apt 30pre-snap to /etc/apt/apt.conf.d/30pre-snap
       ansible.builtin.template:

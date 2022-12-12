@@ -63,6 +63,12 @@ ipv6:
 # says it is 512 bytes."
 disable_partprobe: false
 
+# Define additional packages to install once the build has completed.
+additional_install_packages:
+  - udisk2
+  - pciutils
+  - net-tools
+
 ###############################################################################
 # Swap Partition Settings
 ###############################################################################

@@ -16,9 +16,7 @@ root_partition: "3"
 # Define EFI System Partition (ESP) Size in MB
 boot_partition_size_mb: "512"
 
-# Boot Partition Flags - Partition type is EF00 on single device, FD00 on multiple devices
-uefi_partition_flags: "-a1 -n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -A{{ boot_partition }}:set:2 -t{{ boot_partition }}:{{ (disk_by_id | length > 1) | ternary('FD00', 'EF00') }}" # noqa yaml[line-length]
-# uefi_partition_flags: "-a1 -n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -A{{ boot_partition }}:set:2 -t{{ boot_partition }}:EF00"
+uefi_partition_flags: "-a1 -n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -A{{ boot_partition }}:set:2 -t{{ boot_partition }}:EF00"
 # uefi_partition_flags: "-n{{ boot_partition }}:1M:+{{ boot_partition_size_mb }}M -t{{ boot_partition }}:EF00"
 
 # Possible SWAP Partition Flags based on one device or more

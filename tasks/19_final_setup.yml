@@ -93,11 +93,9 @@
 
     - name: Install any remaining packages defined
       ansible.builtin.apt:
-        name: "{{ item }}"
+        pkg: "{{ additional_install_packages }}"
         state: present
         install_recommends: false
-      loop:
-        - additional_install_packages
       when:
         - ansible_os_family == "Debian"
 

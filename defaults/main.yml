@@ -65,9 +65,17 @@ disable_partprobe: false
 
 # Define additional packages to install once the build has completed.
 additional_install_packages:
-  - udisk2
+  - man
+  - udisks2
   - pciutils
   - net-tools
+  - ethtool
+  - fonts-ubuntu-console
+  - htop
+  - pollinate
+  - fwupd
+  - needrestart
+  - unattended-upgrades
 
 ###############################################################################
 # Swap Partition Settings

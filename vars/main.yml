@@ -73,6 +73,8 @@ root_dataset_options:
   - "-o mountpoint=/"
   - "-o canmount=noauto"
 
+root_pool_home_dataset_path: "{{ root_pool_name }}/ROOT/home"
+
 # Define Additional Datasets to Create
 datasets_to_create:
   - "{{ root_pool_dataset_path }}/srv"
@@ -94,8 +96,8 @@ datasets_to_create:
   - "-o com.sun:auto-snapshot=false {{ root_pool_dataset_path }}/var/tmp"
   - "{{ root_pool_dataset_path }}/var/www"
   # Home Directory Dataset will be kept outside of OS Dataset
-  - "-o canmount=off -o mountpoint=none -o compression={{ zfs_compression }} -o atime=off {{ root_pool_name }}/ROOT/home"
-  - "-o canmount=on -o mountpoint=/root {{ root_pool_name }}/ROOT/home/root"
+  - "-o canmount=off -o mountpoint=none -o compression={{ zfs_compression }} -o atime=off {{ root_pool_home_dataset_path }}"
+  - "-o canmount=on -o mountpoint=/root {{ root_pool_home_dataset_path }}/root"
 
 ###############################################################################
 # [ Variable below are unrelated to ZFS ]######################################

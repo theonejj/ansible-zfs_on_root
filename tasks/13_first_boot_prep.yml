@@ -28,6 +28,14 @@
         group: "{{ ansible_user }}"
         remote_src: true
 
+    - name: Copy create user script to /root
+      ansible.builtin.template:
+        src: add_user.sh.j2
+        dest: "{{ live_cd_mountpoint }}/root/add_user.sh"
+        owner: "root"
+        group: "root"
+        mode: "0700"
+
     # [ Start Upgrading install ]##############################################
     - name: Run chroot commands to run distr-upgrade
       ansible.builtin.command:

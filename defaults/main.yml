@@ -76,6 +76,7 @@ additional_install_packages:
   - fwupd
   - needrestart
   - unattended-upgrades
+  - lz4
 
 ###############################################################################
 # Swap Partition Settings

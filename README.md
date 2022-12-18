@@ -25,6 +25,7 @@ Originally based on the OpenZFS 'ZFS on Root' Guide, but no longer. Now with man
 * Multiple non-root user account creation (each user gets own ZFS dataset)
 * Customized SSH Configuration Options
 * DropBear support for unlocking ZFS encrypted pool remotely
+* Support for Apt-Cacher-NG proxy for cached packages
 
 ---
 
@@ -131,6 +132,10 @@ all:
       vars:
         # Define the default domain these hosts will use
         domain_name: "localdomain"
+
+        # Define URL for Apt-Cacher-NG Package Cache
+        # apt_http_proxy: "http://192.168.0.243:3142"
+        # apt_https_proxy: false
 ```
 
 * `zfs_on_root_install_group:` block lists the hostname(s) that you intend to boot the Live CD on and perform a ZFS on Root installation.
@@ -150,6 +155,8 @@ All of these are optional, if not provided you will be prompted to enter values 
   * You can specify a specific size (positive number) such as `120G` or `+120G`
   * Or state how much space not to use (negative number) such as `-512M`
 * `domain_name:` under `vars:` sets the domain name that will be used for each host created.  If an individual host needs a different domain name then just add a `domain_name:` under that host.
+* `apt_http_proxy` and `apt_https_proxy` can be used to specify where to find Apt-Cacher-NG instance available on your network
+  * Apt-Cacher-NG will cache downloaded `apt` packages reducing your internet bandwidth needs for packages
 
 ---
 

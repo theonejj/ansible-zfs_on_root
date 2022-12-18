@@ -36,6 +36,7 @@ sudo apt install --yes openssh-server vim python3 python3-apt mdadm
 if [[ $? -ne 0 ]]; then
   echo
   echo "ERROR: installing required packages failed."
+  exit
 fi
 
 # Disable swap partitions, we don't want them in use when partitions are removed.

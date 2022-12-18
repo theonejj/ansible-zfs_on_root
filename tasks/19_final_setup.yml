@@ -15,7 +15,7 @@
         install_recommends: true
 
     - name: Disable initial setup dialog screen
-      community.general.files.ini_file:
+      community.general.ini_file:
         path: /etc/gdm3/custom.conf
         section: daemon
         option: InitialSetupEnable

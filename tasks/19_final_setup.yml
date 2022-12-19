@@ -61,6 +61,36 @@
       changed_when: cmd_output.rc == 0
 
 ###############################################################################
+# [Install SMTP msmtp-mailer Client ]##########################################
+# https://galaxy.ansible.com/chriswayg/msmtp-mailer
+- name: Install MSMTP Mailer Client Block
+  when:
+    - msmtp.enabled | default(false) | bool
+  tags:
+    - always
+    - final_setup
+    - install_msmtp
+  block:
+    - name: Install MSMTP Mailer Client
+      ansible.builtin.include_role:
+        name: chriswayg.msmtp-mailer
+        apply:
+          tags:
+            - mail
+      vars:
+        msmtp_default_account: "{{ msmtp.msmtp_default_account }}"
+        msmtp_domain: "{{ msmtp.msmtp_domain }}"
+        msmtp_accounts: "{{ msmtp.accounts }}"
+        msmtp_alias_default: "{{ msmtp.msmtp_alias_default }}"
+        msmtp_alias_root: "{{ msmtp.msmtp_alias_root | default(msmtp.msmtp_alias_default) }}"
+        smtp_alias_cron: "{{ msmtp.msmtp_alias_cron | default(msmtp.msmtp_alias_default) }}"
+        msmtp_log: "file"
+        msmtp_logfile: /var/log/msmtp.log
+        msmtprc_owner: "root"
+        msmtprc_group: "root"
+        msmtprc_mode: "0600"
+
+###############################################################################
 # [ Apply SSHD Settings ]######################################################
 - name: Update SSHD Settings Block
   tags:
@@ -134,29 +164,6 @@
       changed_when: cmd_output.rc == 0
       loop_control:
         label: "{{ item.path }}"
-
-    # Install SMTP msmtp-mailer Client
-    # https://galaxy.ansible.com/chriswayg/msmtp-mailer
-    - name: Install MSMTP Mailer Client
-      ansible.builtin.include_role:
-        name: chriswayg.msmtp-mailer
-        apply:
-          tags:
-            - mail
-      vars:
-        msmtp_default_account: "{{ msmtp.msmtp_default_account }}"
-        msmtp_domain: "{{ msmtp.msmtp_domain }}"
-        msmtp_accounts: "{{ msmtp.accounts }}"
-        msmtp_alias_default: "{{ msmtp.msmtp_alias_default }}"
-        msmtp_alias_root: "{{ msmtp.msmtp_alias_root | default(msmtp.msmtp_alias_default) }}"
-        smtp_alias_cron: "{{ msmtp.msmtp_alias_cron | default(msmtp.msmtp_alias_default) }}"
-        msmtprc_owner: "root"
-        msmtprc_group: "root"
-        msmtprc_mode: "0600"
-      when:
-        - msmtp.enabled | default(false) | bool
-      tags:
-        - always
 
     # [ Create System Snapshot Before Reboot ]#################################
     # If a base_install snapshot does not exist, create one

@@ -10,6 +10,14 @@
 # If the required "disk_devices", or "host_name" is not specified, you will be prompted to enter it.
 ######################################################################################################
 
+# [ Load up the secret files ]#####################################################################
+- name: Include Secret Files
+  ansible.builtin.include_vars: "{{ item }}"
+  tags: ["always"]
+  loop:
+    - secrets/main.yml
+  no_log: "{{ no_log_secrets | default(true) }}"
+
 - name: Include Task Files
   ansible.builtin.include_tasks: "{{ task_names }}"
   tags: ["always"]

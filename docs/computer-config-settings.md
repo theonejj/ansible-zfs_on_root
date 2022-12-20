@@ -112,6 +112,7 @@ additional_install_packages:
 Multiple email accounts can be defined, along with a default account to use.  Below shows a `gmail.com` configuration.  
 
 * Values for `from`, `user` and `password` are defined within `vars/secrets/main.yml`.
+* See [MSMTP Configuration Settings](msmtp-settings.md) for more details.
 
 ```yaml
 msmtp:
@@ -138,7 +139,7 @@ msmtp:
 To send a test email once configured:
 
 ```shell
-echo test message | sudo mailx -s "Test from $HOSTNAME" <somebody>@gmail.com
+echo "test message" | sudo mailx -s "Test from $HOSTNAME" <somebody>@gmail.com
 ```
 
 * Logs: `/var/log/msmtp.log`

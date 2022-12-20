@@ -31,10 +31,12 @@ Originally based on the OpenZFS 'ZFS on Root' Guide, but no longer. Now with man
 
 ## TL;DR
 
-* THIS IS WORK IN PROGRESS: There are no known significant issues.
-  * I've built many test systems using various combinations, but not every combination has been tested.  If you find a problem, please open a Github issue in this repository.
+* While this is a WORK IN PROGRESS, I've built many systems using various combinations.
+  * However not every combination has been tested.  If you find a problem, please open a Github issue in this repository.
+  * Review [known issues](README.md#known-issues) for workarounds.
 
-* This Ansible based process is intended to be used against bare-metal systems or virtual machines (just needs SSH access to get started). This is intended for initial installation ONLY, this is not for applying changes over time -- you should make those changes via some other playbook.
+* This Ansible based process is intended to be used against bare-metal systems or virtual machines (just needs SSH access to get started).
+  * This is intended for initial installation ONLY, this is not for applying changes over time -- you should make those changes via some other playbook / change control system.
 * This process uses ENTIRE disk(s) and wipes partitions on the specified disks, any existing data on these partitions on the target system will be lost.
 * Review the `defaults/main.yml` to set temporary passwords,  non-root user account(s) and basic rules on boot partition sizes, swap partitions, etc.
 * Defaults to building a headless server environment, however a full graphical desktop can be enabled.
@@ -215,10 +217,11 @@ regular_user_accounts:
 * Review [ZFS Native Encryption Settings](docs/zfs-encryption-settings.md)
 * Review [Custom SSHD Configuration Settings](docs/custom-sshd-settings.md)
 * Review [DropBear Settings](docs/dropbear-settings.md)
+* Review [MSMTP client for SMTP Email notifications](docs/msmtp-settings.md)
 
 ### Additional Configuration Files
 
-There should be no reason to alter the configuration file `vars/main.yml` which defines all the details and flags to construct partitions, root and boot pools, all the dataset that will be created.  If this type of information interests you, this is where you will find it... but don't change anything unless you understand what you are looking at.
+There should be no reason to alter the configuration file `vars/main.yml` which defines all the details and flags to construct partitions, root pools, and how all the dataset will be created.  If this type of information interests you, this is where you will find it... but don't change anything unless you understand what you are looking at.
 
 ---
 
@@ -307,7 +310,7 @@ ansible-playbook -i inventory.yml ./zfs_on_root.yml -l <remote_host_name>
 
 * [Additional Examples with Playbook Variables](docs/playbook-examples.md)
 
-After a few minutes, if all goes well you will have a reasonably decent standardized configuring to be a base system ready to be used and modified for any other specific role.  Please see below about the expected `rpool busy` error that will required your manual intervention.
+After a few minutes, if all goes well you will have a reasonably decent standardized configuring to be a base system ready to be used and modified for any other specific role.
 
 The first thing I do once this Playbook completes is apply the [Customized Message of the Day](https://github.com/reefland/ansible-motd-zfs-smartd) Ansible Playbook for a login screen with a bit of bling.
 
@@ -317,7 +320,7 @@ The first thing I do once this Playbook completes is apply the [Customized Messa
 
 As an alternative to running the entire playbook at one time, it can be run sections at a time using the ansible `tags` as defined below.  This method can be used to troubleshoot issues and replay steps if you have a way of rolling back previous failures. Failures can be rolled back either manually or via snapshots in Virtualbox or equivalent.
 
-To run just one stage via tags, all the Ansible Playbook examples from above can be used with the addition of including tags:
+To run just one step via tags, all the [Ansible Playbook examples](docs/playbook-examples.md) can be used with the addition of including `--tags`:
 
 ```bash
 ansible-playbook -i inventory ./zfs_on_root.yml --extra-vars='{disk_devices: [sda, sdb], host_name: testlinux}' -l <remote_host_name> --tags="install-zfs-packages"
@@ -402,7 +405,7 @@ Here is a brief [overview with additional information](docs/root-pools-multi-mir
 ## Helper Scripts
 
 * [do_ssh.sh](docs/do_ssh_helper_script.md) - Makes a LiveCD environment accessible to Ansible via SSH.
-* NOT UPDATED YET - for 20.04 still: [partition_drive_helper.sh](docs/partition_drive_helper_script.md) - documents disk partitions values used and will help you go from a blank replacement device to a fully repaired system.
+* TODO: NOT UPDATED YET - for 20.04 still: [partition_drive_helper.sh](docs/partition_drive_helper_script.md) - documents disk partitions values used and will help you go from a blank replacement device to a fully repaired system.
 
 ---
 

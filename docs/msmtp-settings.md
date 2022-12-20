@@ -86,7 +86,6 @@ If using a GMAIL account, you would create an "App Password" (like a token) with
       password: "{{ secret_msmtp_auth_password | default('not defined within vars/secrets/main.yml') }}"
   ```
 
-
 To send a test email once configured:
 
 ```shell

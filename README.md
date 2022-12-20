@@ -64,6 +64,23 @@ Originally based on the OpenZFS 'ZFS on Root' Guide, but no longer. Now with man
 
 ---
 
+## What is rEFInd and ZFSbootMenu?
+
+**rEFInd** is a graphical boot manager replacement used instead of GRUB.  GRUB is not ZFS aware.
+
+![rEFInd Boot Menu Image](./docs/refind_boot_menu.png)
+
+* Can be themed and customized as well!
+
+**ZFSbootManager** allows you to select which "boot environment" to use, this can be a previous ZFS Snapshot. See [Project Home Page](https://github.com/zbm-dev/zfsbootmenu) for details.
+
+![ZFS Boot Menu Image](./docs/zfsbootmenu.png)
+
+* Can browses, clone and promote ZFS snapshots to new boot environments.
+* Snapshots will automatically be taken before each `apt` or `dpkg` update.
+
+---
+
 ## WHY use THIS instead of Ubuntu's Installation Wizard
 
 My intention for this to have a standardized and repeatable base install for my occasional one off builds.  However being based on Ansible this can be used to make batches of servers or desktops needing ZFS on Root installations.

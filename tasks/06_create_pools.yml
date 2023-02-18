@@ -45,14 +45,14 @@
     - name: Debug Create Mirrored vdev ZFS Root Pool
       ansible.builtin.debug:
         msg: >
-          zpool create -f {{ root_pool_options | join(' ') }} {{ root_pool_type }}
+          zpool create -f {{ root_pool_options | join(' ') }} {{ root_pool_type }} \
                           {{ two_root_pool_devices | join(root_partition_name_suffix + ' ') + root_partition_name_suffix + ' ' }}"
       when:
         - debug|default(false)
 
     - name: Create Mirrored vdev ZFS Root Pool
       ansible.builtin.command: >
-        zpool create -f {{ root_pool_options | join(' ') }} {{ root_pool_type }}
+        zpool create -f {{ root_pool_options | join(' ') }} {{ root_pool_type }} \
                         {{ two_root_pool_devices | join(root_partition_name_suffix + ' ') + root_partition_name_suffix + ' ' }}
       register: cmd_output
       changed_when: cmd_output.rc == 0
@@ -70,8 +70,8 @@
 
     - name: Attaching remaining vdev mirrors to Root Pool
       ansible.builtin.command: >
-        zpool add -f {{ root_pool_name }} {{ root_pool_type }} {{ disk_by_id[item | int] }}
-                    {{ root_partition_name_suffix }} {{ disk_by_id[item | int + 1] }}{{ root_partition_name_suffix }}
+        zpool add -f {{ root_pool_name }} {{ root_pool_type }} "{{ disk_by_id[item | int] }}{{ root_partition_name_suffix }}" \
+          "{{ disk_by_id[item | int + 1] }}{{ root_partition_name_suffix }}"
       with_sequence: start=2 stride=2 end="{{ device_count }}"
       register: cmd_output
       changed_when: cmd_output.rc == 0

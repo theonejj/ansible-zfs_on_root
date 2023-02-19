@@ -4,7 +4,7 @@ DefaultDependencies=no
 Before=zfs-mount.service
 Before=systemd-user-sessions.service
 After=zfs-import.target
-OnFailure=emergency.target
+OnFailure=
 
 [Service]
 Type=oneshot

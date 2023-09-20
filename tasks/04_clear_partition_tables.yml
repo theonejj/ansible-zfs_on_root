@@ -14,8 +14,9 @@
       changed_when: cmd_output.rc == 0
 
     - name: Unmount any mdadm disks that might have been automounted and Stop all found mdadm arrays
-      ansible.builtin.shell: # noqa yaml[line-length]
-        cmd: find /dev -iname md* -type b -exec bash -c "umount {} > /dev/null 2>&1 ; mdadm --stop --force {} > /dev/null 2>&1 ; mdadm --remove {} > /dev/null 2>&1" \;
+      ansible.builtin.shell: |
+        find /dev -iname md* -type b -exec bash -c \
+        "umount {} > /dev/null 2>&1 ; mdadm --stop --force {} > /dev/null 2>&1 ; mdadm --remove {} > /dev/null 2>&1" \;
       register: cmd_output
       changed_when:
         cmd_output.rc == 0
@@ -23,7 +24,7 @@
 
     - name: Remove ZFS labels from previous usage
       ansible.builtin.command:
-        cmd: "zpool labelclear -f {{ item }}"
+        cmd: "zpool labelclear -f {{ item }}-part3"
       register: cmd_output
       changed_when:
         cmd_output.rc == 0
@@ -75,13 +76,3 @@
     - name: Pause for 5 seconds to settle
       ansible.builtin.pause:
         seconds: 5
-
-    - name: Notify Kernel of Updated Partitions
-      ansible.builtin.command:
-        cmd: "partprobe"
-      register: cmd_output
-      changed_when: cmd_output.rc == 0
-      when:
-        - not disable_partprobe | default(false) | bool
-
-# #############################################################################

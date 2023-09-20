@@ -12,13 +12,13 @@
           # COPY SSH KEYS to {{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}
           ##########################################################
 
-          * Login as "{{ regular_user_accounts[0].user_id }}" to set a password.
-            Password: {{ (no_log_secrets | default(true)) | ternary("**********", regular_user_accounts[0].password) }}  (You will be forced to change this password)
+          * Login as "{{ regular_user_accounts[0].user_id }}" to set a password (You will be forced to change this password)
+            Password: {{ (no_log_secrets | default(true)) | ternary("**********", regular_user_accounts[0].password) }}
 
           IMPORTANT:  Then copy the SSH key for your non-root user NOW! After the next
                       reboot, SSH based password logins may NOT work.
 
-          ssh-copy-id -i ~/.ssh/<public_key> {{ regular_user_accounts[0].user_id }}@{{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}
+          ssh-copy-id -i ~/.ssh/<public_key>.pub {{ regular_user_accounts[0].user_id }}@{{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}
 
           {% if enable_dropbear_support | bool %}
           Your SSH keys need to be placed on the system to be included within Dropbear

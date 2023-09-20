@@ -20,6 +20,7 @@
 
       Environment Installation: {% if command_line_only | default(false) | bool %}Command-line only{% else %}Full GUI Environment{% endif %}
 
+             Ubuntu HWE Kernel: {{ enable_ubuntu_lts_hwe }}
         Create Swap Partitions: {{ enable_swap_partitions }}
       {% if enable_swap_partitions | default(true) | bool%}
       {% if disk_by_id | length | int == 1 %}

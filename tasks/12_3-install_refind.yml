@@ -13,8 +13,9 @@
       changed_when: cmd_output.rc == 0
       with_items:
         - "DEBIAN_FRONTEND=noninteractive apt-get install --yes refind"
-        - "refind-install"
+        - "refind-install --yes"
         - "mkdir -p {{ zfs_boot_menu_path }}"
+        - "mkdir -p {{ refind_path }}"
       when:
         - ansible_os_family == "Debian"
 
@@ -41,6 +42,35 @@
         path: "{{ live_cd_mountpoint }}{{ refind_path }}/refind.conf"
         regexp: '^timeout .*'
         replace: 'timeout {{ refind_boot_menu_timeout }}'
+
+    - name: Copy Logo Images and Icons
+      ansible.builtin.copy:
+        src: "files/{{ item.source }}"
+        dest: "{{ live_cd_mountpoint }}/{{ item.dest }}"
+        owner: "root"
+        group: "root"
+        mode: "0644"
+      with_items:
+        - { source: "logo.jpg", dest: "{{ refind_path }}/" }
+        - { source: "os_linux.png", dest: "{{ refind_path }}/icons/"}
+      when:
+        - refind_boot_menu_logo  | default(false)
+
+    - name: Enable banner_scale for Logo Images
+      ansible.builtin.replace:
+        path: "{{ live_cd_mountpoint }}{{ refind_path }}/refind.conf"
+        regexp: '^#banner_scale (.*$)'
+        replace: 'banner_scale \1'
+      when:
+        - refind_boot_menu_logo  | default(false)
+
+    - name: Set Banner Logo Images
+      ansible.builtin.replace:
+        path: "{{ live_cd_mountpoint }}{{ refind_path }}/refind.conf"
+        regexp: '^#banner hostname.bmp(.*$)'
+        replace: 'banner logo.jpg'
+      when:
+        - refind_boot_menu_logo  | default(false)
 
     - name: Copy startup script with multiple disks template to /mnt/boot/efi/startup.nsh
       ansible.builtin.template:

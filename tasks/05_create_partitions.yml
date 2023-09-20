@@ -36,16 +36,12 @@
       loop:
         "{{ disk_by_id }}"
 
+    - name: Wait for kernel notification of changes to be processed
+      ansible.builtin.command:
+        cmd: "udevadm settle"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+
     - name: Pause for 5 seconds to settle
       ansible.builtin.pause:
         seconds: 5
-
-    - name: Notify Kernel of Updated Partitions
-      ansible.builtin.command:
-        cmd: "partprobe"
-      register: cmd_output
-      changed_when: cmd_output.rc == 0
-      when:
-        - not disable_partprobe | default(false) | bool
-
-###############################################################################

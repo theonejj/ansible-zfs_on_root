@@ -92,8 +92,10 @@
 
 #  # Per ZFS on Root Guide this will create error on Hunk#2- know issue, error will be ignored
 #  - name: Run chroot command to curl and apply patch for Bug#1875577 Encrypted Swap with ZFS
-#    ansible.builtin.shell: # noqa yaml[line-length]
-#      cmd: "{{chroot_cmd}} bash -c 'curl -s https://launchpadlibrarian.net/478315221/2150-fix-systemd-dependency-loops.patch | sed \"s|/etc|/lib|;s|\\.in$||\" | (cd / ; patch -p1)'"
+#    ansible.builtin.shell:
+#      cmd: >
+#        {{chroot_cmd}} bash -c
+#        'curl -s https://launchpadlibrarian.net/478315221/2150-fix-systemd-dependency-loops.patch | sed \"s|/etc|/lib|;s|\\.in$||\" | (cd / ; patch -p1)'"
 #    ignore_errors: true
 #
 

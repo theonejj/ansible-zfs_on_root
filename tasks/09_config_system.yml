@@ -21,8 +21,9 @@
 
     # Update Netplan Network file - not tested on multiple adapters, might break
     - name: Get Network adapter name on Ubuntu
-      ansible.builtin.shell:
-        "nmcli device status | grep 'ethernet' | grep 'connected' | cut -d' ' -f1"
+      ansible.builtin.shell: |
+        set -o pipefail
+        nmcli device status | grep 'ethernet' | grep 'connected' | cut -d' ' -f1
       changed_when: nic_name.rc == 0
       register:
         nic_name

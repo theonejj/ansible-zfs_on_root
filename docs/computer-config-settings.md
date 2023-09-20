@@ -72,18 +72,6 @@ ipv6:
   apply_cmd: "sysctl -p"
 ```
 
-### Disable Partprobe
-
-`partprobe` is used to let the kernel know that partition tables have been updated.  It is required when partitions are created or deleted. It should always be enabled, but can be disabled if required.
-
-```yaml
-# "Partprobe" is used to let the kernel know that partition tables have changed.
-# Sometimes it gets in the way with weird messaged such as:
-# "The driver descriptor says the physical block size is 2048 bytes, but Linux
-# says it is 512 bytes."
-disable_partprobe: false
-```
-
 ## Additional Installed Packages
 
 These are the packages to be be applied to the towards the end of the build process to be included as part of the base system installation.

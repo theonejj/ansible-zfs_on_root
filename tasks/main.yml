@@ -41,7 +41,7 @@
     - 12_6-config_swap.yml
     - 12_7-system_tweaks.yml
     - 13_first_boot_prep.yml
-    - 14_fix_filesystem_mount_order.yml
+    # - 14-not-used
     - 15_unmount_chroot.yml
     - 16_restart_remote.yml
     - 17_create_regular_user.yml

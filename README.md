@@ -6,7 +6,7 @@ _NOTE: This Ansible role is not structured as rigid as a typical Ansible role sh
 
 ---
 
-Originally based on the OpenZFS 'ZFS on Root' Guide, but no longer. Now with many enhancements:
+Originally based on the [OpenZFS ZFS on Root](https://openzfs.github.io/openzfs-docs/Getting%20Started/Ubuntu/Ubuntu%2022.04%20Root%20on%20ZFS.html) Guide, but no longer!! Now with many enhancements:
 
 * Uses ZFSbootMenu / rEFInd / Syslinux to manage boot environments
   * rEFInd provides graphical boot loader menu and roll-back to previous kernels on UEFI systems
@@ -22,6 +22,7 @@ Originally based on the OpenZFS 'ZFS on Root' Guide, but no longer. Now with man
   * If encryption is enabled, LUKS is used to encrypt Swap partitions
 * Native ZFS Encryption Support
 * UEFI and Legacy Booting supported (can even switch between them)
+* Support for [Ubuntu Hardware Enablement](https://ubuntu.com/kernel/lifecycle) (newer kernel and hardware support)
 * Multiple non-root user account creation (each user gets own ZFS dataset)
 * Customized SSH Configuration Options
 * DropBear support for unlocking ZFS encrypted pool remotely
@@ -45,14 +46,14 @@ Originally based on the OpenZFS 'ZFS on Root' Guide, but no longer. Now with man
 
 ## Environments Tested
 
-* Ubuntu 22.04.1 Live CD Boot on Bare Metal or within VirtualBox
+* Ubuntu 22.04.x Live CD Boot on Bare Metal or within VirtualBox
 
 ---
 
 ## Requirements
 
 * [Ansible](https://www.ansible.com/) (Built with Ansible Core 2.12 or newer)
-* [Ubuntu 22.04.1 "Jammy" Live CD](https://ubuntu.com/download/desktop/) (22.04 LTS Desktop - DO NOT use server images)
+* [Ubuntu 22.04.x "Jammy" Live CD](https://ubuntu.com/download/desktop/) (22.04 LTS Desktop - DO NOT use server images)
   * _NOTE: you can configure for command-line only server build even when using the desktop image._
 * Computers that have less than 2 GiB of memory run ZFS slowly. 4 GiB of memory is recommended for normal performance in basic workloads.
 

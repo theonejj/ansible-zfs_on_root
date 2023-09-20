@@ -7,9 +7,13 @@
 #           Should you need to replace a drive or add new drives, you would
 #           likely want to partition them in the same way as your existing 
 #           drives.
+#
+#           TO-DO:  Needs to add suppport for -part1 in mdadm array repair.
+#           probably close to how swap mdadm repair works. UNTESTED.
+#
 # AUTHOR     : Richard J. Durso
-# DATE       : 06/26/2022
-# VERSION    : 0.32
+# DATE       : 12/13/2022
+# VERSION    : 0.40
 #############################################################################
 
 # ---------------------------------------------------------------------------
@@ -35,20 +39,16 @@ DISK_DEVICE=/dev/disk/by-id/PUT_YOUR_DEVICE_NAME_HERE
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-ZFS_BPOOL_NAME={{boot_pool_name}}
 ZFS_RPOOL_NAME={{root_pool_name}}
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-BIOS_PARTITION="-part1"
-SWAP_PARTITION="-part2"
-BOOT_PARTITION="{{boot_partition_name_suffix}}"
+BIOS_PARTITION="-part{{ boot_partition }}"
+SWAP_PARTITION="-part{{ swap_partition}}"
 ROOT_PARTITION="{{root_partition_name_suffix}}"
 MDADM_SWAP_DEVICE="/dev/md0"
 UEFI_PARTITION_FLAGS="{{ uefi_partition_flags }}"
-BIOS_PARTITION_FLAGS="{{ bios_partition_flags }}"
-SWAP_PARTITION_FLAGS="{{(boot_pool_type == 'raidz')|ternary(raidz_multi_disk_swap_flags, single_disk_or_mirror_swap_flags)}}"
-BOOT_POOL_PARTITION_FLAGS="{{(boot_pool_type == 'raidz')|ternary(raidz_multi_disk_boot_partition_flags,single_disk_or_mirror_boot_partition_flags)}}"
+SWAP_PARTITION_FLAGS="{{(root_pool_type == 'raidz')|ternary(raidz_multi_disk_swap_flags, single_disk_or_mirror_swap_flags)}}"
 ROOT_POOL_PARTITION_FLAGS="{{ root_partition_flags }}"
 # ---------------------------------------------------------------------------
 
@@ -74,9 +74,6 @@ __usage() {
 
   To CREATE partitions on an empty device:
   ${0##*/} -p
-
-  To CHECK and UPDATE /etc/fstab entry
-  ${0##*/} -f
 
   To REPLACE devices in ZFS Pools (replace old partitions with new ones):
   ${0##*/} -r
@@ -213,10 +210,6 @@ __create_disk_partitions() {
     sgdisk ${UEFI_PARTITION_FLAGS} ${DISK_DEVICE}
     if [ $? -ne 0 ]; then return 1; fi
 
-    echo "Creating BIOS Boot Partition"
-    sgdisk ${BIOS_PARTITION_FLAGS} ${DISK_DEVICE}
-    if [ $? -ne 0 ]; then return 1; fi
-
     {% if enable_swap_partitions|default(true)|bool == true %}
     echo "Creating Swap Partition"
     sgdisk ${SWAP_PARTITION_FLAGS} ${DISK_DEVICE}
@@ -224,10 +217,6 @@ __create_disk_partitions() {
     {% else %}
     # NOTE: SWAP Partitions Were not enabled, thus not created.
     {% endif %}
-
-    echo "Creating Boot Pool Partition"
-    sgdisk ${BOOT_POOL_PARTITION_FLAGS} ${DISK_DEVICE}
-    if [ $? -ne 0 ]; then return 1; fi
 
     echo "Creating Root Pool Partition"
     sgdisk ${ROOT_POOL_PARTITION_FLAGS} ${DISK_DEVICE}
@@ -247,112 +236,6 @@ __create_efi_filesystem() {
   sleep 2
   mkdosfs -F 32 -s 1 -n EFI ${DISK_DEVICE}${BIOS_PARTITION}
   return $?
-}
-# ---------------------------------------------------------------------------
-
-# ---[ Check if /etc/fstab is clean or needs to be updated ]-----------------
-__check_fstab_file() {
-  # UUID of new device
-  local UUID=$(blkid -s UUID -o value ${DISK_DEVICE}${BIOS_PARTITION})
-  local RET_VAL=1  # Assume itr will return an error
-
-  if [[ -z $UUID ]]; then
-    # No UUID partition partition 1 no created??
-    echo ERROR: Unable to detect UUID for ${DISK_DEVICE}${BIOS_PARTITION}
-    echo 
-    echo Check that partitions have been created before attempting to update /etc/fstab file.
-    echo
-  else
-    # See if this UUID Exists in /etc/fstab
-    if grep -q "^UUID=${UUID}" /etc/fstab; then
-      echo
-      echo Device ${DISK_DEVICE} 
-      echo With UUID: ${UUID} is found in /etc/fstab, no action needed.
-      echo
-      echo Entry found:
-      grep "^UUID=${UUID}" /etc/fstab
-      RET_VAL=0
-    else
-      echo
-      echo Device ${DISK_DEVICE} 
-      echo With UUID: ${UUID} is not found in /etc/fstab
-      
-      local TMP_UUID_FILE=/tmp/fstab_uuids.txt
-
-      # Create a temp copy all existing UUID entries within /etc/fstab
-      cat /etc/fstab | grep "^UUID=.*/boot/efi.*" > $TMP_UUID_FILE
-
-      # Loop through devices with a "-part1"
-      for device in $(ls -l /dev/disk/by-id | awk "/${BIOS_PARTITION}/{print \$9}")
-      do
-        DEVICE_UUID=$(blkid -s UUID -o value /dev/disk/by-id/${device})
-        
-        # Only look at DEVICE_UUID different than new device
-        if [ "$DEVICE_UUID" != "$UUID" ]; then
-          # Remove existing devices, what's left should be the one to replace
-          sed -i "/$DEVICE_UUID/d" $TMP_UUID_FILE
-        fi
-      done
-
-      # If zero byte file, then no new device has been added
-      if [ -s $TMP_UUID_FILE ]; then
-
-        # Make sure only one line left in temp check file
-        local LINES_LEFT=$(cat $TMP_UUID_FILE | wc -l)
-
-        if [ "$ENABLE_FSTAB_FILE_UPDATES" == "TRUE" ]; then
-          if [ $LINES_LEFT -ne 1 ]; then
-            echo
-            echo "ERROR: More than possible entry to update detected."
-            echo
-            cat $TMP_UUID_FILE
-            echo 
-            echo "This script can not determine which needs to be updated."
-            echo "NO CHANGES HAVE BEEN MADE."
-          else
-            OLD_UUID=$(cat $TMP_UUID_FILE | awk '/^UUID=.* /{print $1}')
-            echo 
-            echo "Attempting /etc/fstab update of ${OLD_UUID} to ${UUID}"
-            echo 
-            sed -i "s/^${OLD_UUID}/UUID=${UUID}/g" /etc/fstab
-            RET_VAL=$?
-          fi
-        else
-          if [ "$ENABLE_FSTAB_FILE_UPDATES" != "INPROC" ]; then
-            echo
-            echo "This script will not update your /etc/fstab file automatically."
-            echo "You need to update the value manually, or if you want this script"
-            echo "to attempt the update your /etc/fstab file then uncomment"
-            echo "ENABLE_FSTAB_FILE_UPDATES and set its value to TRUE."
-          fi
-
-          if [ $LINES_LEFT -ne 1 ]; then
-            echo
-            echo "WARNING: More than one possible entry to update detected."
-            echo
-            cat $TMP_UUID_FILE
-            echo 
-            echo "Update one of the above to this UUID=${UUID} and then run this script again."
-            RET_VAL=0
-          else
-            echo
-            echo "This could be the entry to update in /etc/fstab"
-            cat $TMP_UUID_FILE
-            echo 
-            echo "Change above to this: UUID=${UUID} and then run this script again."
-            RET_VAL=0
-          fi
-          echo
-          rm $TMP_UUID_FILE
-          return $RET_VAL
-        fi
-      else
-        echo
-        echo Unable to determine the device to update in /etc/fstab
-        return 1
-      fi
-    fi
-  fi
 }
 # ---------------------------------------------------------------------------
 
@@ -409,12 +292,6 @@ __replace_pool_device() {
 
 # ---[ Replace ZFS Devices ]-------------------------------------------------
 __replace_zfs_devices() {
-  # Attempt work on BOOT Pool
-  if (__replace_pool_device ${ZFS_BPOOL_NAME} ${BOOT_PARTITION}); then
-    echo DONE: ${ZFS_BPOOL_NAME}
-  else
-    echo FAIL: ${ZFS_BPOOL_NAME}
-  fi
   echo
   # Attempt work on ROOT Pool
   if (__replace_pool_device $ZFS_RPOOL_NAME ${ROOT_PARTITION}); then
@@ -507,23 +384,6 @@ if [ $# -gt 0 ]; then
           else
             echo
             echo "ERROR: Create Partitions Failed"
-            exit 3
-          fi
-        fi
-      ;;
-      f|F)
-        if __check_block_device; then
-          if __check_fstab_file; then
-            # If automated updated was successful, set as in-progress
-            # and run one more time to validate.
-            if [ "$ENABLE_FSTAB_FILE_UPDATES" == "TRUE" ]; then
-              ENABLE_FSTAB_FILE_UPDATES=INPROC
-              echo "Update Completed, running again to validate:"
-              __check_fstab_file
-            fi
-          else
-            echo
-            echo "ERROR: Unexpected error detected"
             exit 3
           fi
         fi

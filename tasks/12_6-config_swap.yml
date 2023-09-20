@@ -64,8 +64,10 @@
 
     # The "-R" - is needed to suppress the "Continue creating array?" prompt
     - name: Run chroot command to create mdadm device for multi-disk swap
-      ansible.builtin.command:  # noqa yaml[line-length]
-        "{{ chroot_cmd }} bash -c 'mdadm --create --verbose /dev/md0 -R --metadata=1.2 --level={{ mdadm_type }} --raid-devices={{ disk_by_id | length | int }} {{ mdadm_swap_device_list }} --homehost={{ inventory_hostname_short }}'"
+      ansible.builtin.command: >
+        {{ chroot_cmd }} bash -c 'mdadm --create --verbose /dev/md0 -R --metadata=1.2
+        --level={{ mdadm_type }} --raid-devices={{ disk_by_id | length | int }} {{ mdadm_swap_device_list }}
+        --homehost={{ inventory_hostname_short }}'
       register: cmd_output
       changed_when: cmd_output.rc == 0
 

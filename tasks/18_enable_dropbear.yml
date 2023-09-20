@@ -71,13 +71,11 @@
         - "ecdsa"
         - "ed25519"
 
-    # [ Setup Dracut networking ]##############################################
-    - name: Create /etc/cmdline.d directory
-      ansible.builtin.file:
-        path: "/etc/cmdline.d"
-        mode: "0755"
-        state: directory
+    # [ Setup Dracut Networking for Dropbear]##################################
 
+    # With rd.neednet=1 it will fail to boot if no network available
+    # This can be a problem with laptops and docking stations, if the dock
+    # is not connected (no ethernet) it can fail to boot
     - name: Create file /etc/cmdline.d/dracut-network.conf for DHCP
       ansible.builtin.lineinfile:
         path: "/etc/cmdline.d/dracut-network.conf"
@@ -90,6 +88,9 @@
       when:
         - not apply_dropbear_settings.remoteaccess_ip_config == "static"
 
+    # With rd.neednet=1 it will fail to boot if no network available
+    # This can be a problem with laptops and docking stations, if the dock
+    # is not connected (no ethernet) it can fail to boot
     - name: Create file /etc/cmdline.d/dracut-network.conf for Static IP
       ansible.builtin.lineinfile:
         path: "/etc/cmdline.d/dracut-network.conf"
@@ -136,12 +137,10 @@
         group: "root"
         mode: "0644"
 
-    - name: Run chroot commands for Dracut Generate
-      ansible.builtin.command:
-        cmd: "{{ item }}"
+    - name: Run Dracut Generate
+      ansible.builtin.shell: |
+        dracut -v -f --regenerate-all
+        # generate-zbm only there if we built from scratch, not using downloaded image
+        [ -e /usr/bin/generate-zbm ] && generate-zbm --debug
       register: cmd_output
       changed_when: cmd_output.rc == 0
-      with_items:
-        - "dracut -v -f --regenerate-all"
-        # generate-zbm only there if we built from scratch, not using downloaded image
-        - "generate-zbm --debug"

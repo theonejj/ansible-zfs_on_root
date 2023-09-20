@@ -13,7 +13,7 @@
       changed_when: cmd_output.rc == 0
       with_items:
         - "DEBIAN_FRONTEND=noninteractive apt-get --yes install kexec-tools"
-        - "apt-get --yes install libconfig-inifiles-perl libsort-versions-perl libboolean-perl fzf mbuffer make curl"
+        - "apt-get --yes install libconfig-inifiles-perl libsort-versions-perl libboolean-perl libyaml-pp-perl fzf mbuffer make curl"
       when:
         - ansible_os_family == "Debian"
 
@@ -24,8 +24,8 @@
       register: cmd_output
       changed_when: cmd_output.rc == 0
       with_items:
-        - 'zfs set org.zfsbootmenu:commandline="rw quiet" {{ root_pool_name }}/ROOT'
-        - 'zfs set org.zfsbootmenu:commandline="rw quiet" {{ root_pool_dataset_path }}'
+        - 'zfs set org.zfsbootmenu:commandline="rw" {{ root_pool_name }}/ROOT'
+        - 'zfs set org.zfsbootmenu:commandline="rw" {{ root_pool_dataset_path }}'
         - 'zfs set canmount=noauto {{ root_pool_name }}/ROOT'
         - 'zfs set canmount=noauto {{ root_pool_dataset_path }}'
 
@@ -38,8 +38,9 @@
       changed_when: cmd_output.rc == 0
       with_items:
         - "rm -rf /tmp/zfsbootmenu && mkdir -p /tmp/zfsbootmenu"
-        - "cd /tmp/zfsbootmenu && curl -L https://github.com/zbm-dev/zfsbootmenu/tarball/master | tar xz --strip=1 && make install"
-        - "cd /tmp/zfsbootmenu && PERL_MM_USE_DEFAULT=1 cpan 'YAML::PP'"
+        - "cd /tmp/zfsbootmenu && curl -L https://get.zfsbootmenu.org/source | tar xz --strip=1 && make install"
+        # This seems to fail sometimes - gets killed during install (use libyaml-pp-perl package instead)
+        # - "cd /tmp/zfsbootmenu && PERL_MM_USE_DEFAULT=1 cpan 'YAML::PP'"
         # Create pre and post hooks dirs and syslinux snippets dir
         - "mkdir -p /etc/zfsbootmenu/generate-zbm.pre.d"
         - "mkdir -p /etc/zfsbootmenu/generate-zbm.post.d"

@@ -1,5 +1,5 @@
 ---
-# [ Install Syslinx Boot Loader ]##############################################
+# [ Install Syslinux Boot Loader ]##############################################
 - name: Install Syslinux Boot Loader Block
   when:
     - ansible_nodename != "localhost"
@@ -29,3 +29,15 @@
       ignore_errors: true
       loop:
         "{{ disk_by_id }}"
+
+    - name: Copy Logo Images and Icons
+      ansible.builtin.copy:
+        src: "files/{{ item.source }}"
+        dest: "{{ live_cd_mountpoint }}/{{ item.dest }}"
+        owner: "root"
+        group: "root"
+        mode: "0644"
+      with_items:
+        - { source: "logo_sm.jpg", dest: "{{ syslinx_path }}/" }
+      when:
+        - refind_boot_menu_logo  | default(false)

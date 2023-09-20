@@ -130,6 +130,7 @@ remove_os_prober: true
 # Packages required to be held (not installed or updated) that conflict with
 # Dract and or rEFInd Packages
 packages_to_mark_hold:
+  - "zfs-initramfs"
   - "initramfs-tools"
   - "grub-efi-amd64"
   - "grub-efi-amd64-signed"

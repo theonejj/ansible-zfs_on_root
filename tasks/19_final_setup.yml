@@ -67,7 +67,6 @@
   when:
     - msmtp.enabled | default(false) | bool
   tags:
-    - always
     - final_setup
     - install_msmtp
   block:
@@ -170,7 +169,9 @@
 
     - name: Switch to ZFS Log Compression
       ansible.builtin.shell:
-        cmd: "if grep -Eq '(^|[^#y])compress' {{ item.path }} ; then sed -i -r 's/(^|[^#y])(compress)/\\1#\\2/' {{ item.path }}; fi"
+        cmd: |
+          set -o pipefail
+          if grep -Eq '(^|[^#y])compress' {{ item.path }} ; then sed -i -r 's/(^|[^#y])(compress)/\\1#\\2/' {{ item.path }}; fi
       with_items: "{{ files_matched.files }}"
       register: cmd_output
       changed_when: cmd_output.rc == 0
@@ -181,7 +182,8 @@
     # If a base_install snapshot does not exist, create one
     - name: Create base_install snapshot
       ansible.builtin.shell:
-        cmd: 'zfs get type {{ root_pool_dataset_path }}@base_install || zfs snapshot {{ root_pool_dataset_path }}@base_install'
+        cmd:
+          zfs get type {{ root_pool_dataset_path }}@base_install || zfs snapshot {{ root_pool_dataset_path }}@base_install
       register: cmd_output
       changed_when: cmd_output.rc == 0
 

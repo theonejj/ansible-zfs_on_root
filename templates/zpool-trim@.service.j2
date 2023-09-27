@@ -1,0 +1,13 @@
+[Unit]
+Description=Discard unused blocks on vdev devices in ZFS pool %I
+Requires=zfs.target
+After=zfs.target
+
+[Service]
+Type=oneshot
+# Add a random delay to start to prevent all systems from
+# running trim at the same time and prevent all pools from
+# trimming at the same time
+ExecStartPre=/bin/bash -c '/usr/bin/sleep $$(/usr/bin/shuf -i 1-30 -n1)m' 
+ExecStartPre=-/usr/sbin/zpool trim --cancel %I
+ExecStart=/usr/sbin/zpool trim %I

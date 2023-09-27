@@ -50,6 +50,41 @@
         mode: "0644"
         remote_src: true
 
+    - name: Install ZFS Service Templates
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "{{ live_cd_mountpoint }}/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: '0644'
+      with_items:
+        - zpool-trim@.service   # ZFS zpool trim service
+        - zpool-trim@.timer     # ZFS zpool trim service timer unit
+        - zpool-scrub@.service  # ZFS zpool scrub service
+        - zpool-scrub@.timer    # ZFS zpool scrub service timer unit
+
+    - name: Run chroot commands to enable ZFS Trim Services
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      with_items:
+        - "systemctl enable zpool-trim@{{ root_pool_name }}.service"
+        - "systemctl enable zpool-trim@{{ root_pool_name }}.timer"
+      when:
+        - zfs_pool_trim_systemd_service_enable | default( false) | bool
+
+    - name: Run chroot commands to enable ZFS Scrub Service
+      ansible.builtin.command:
+        cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      with_items:
+        - "systemctl enable zpool-scrub@{{ root_pool_name }}.service"
+        - "systemctl enable zpool-scrub@{{ root_pool_name }}.timer"
+      when:
+        - zfs_pool_scrub_systemd_service_enable | default( false) | bool
+
 ###############################################################################
 # [ ZFS Encryption Unlock Script and Unit File Block ]#########################
 - name: ZFS Encryption Unlock Script and Unit File Block
@@ -67,13 +102,15 @@
         group: root
         mode: '0755'
 
-    - name: ZFS encryption systemd unit to load the keyfile
+    - name: Install ZFS Service Templates for Encryption
       ansible.builtin.template:
-        src: "zfs-load-key.service.j2"
-        dest: "{{ live_cd_mountpoint }}/etc/systemd/system/zfs-load-key.service"
+        src: "{{ item }}.j2"
+        dest: "{{ live_cd_mountpoint }}/etc/systemd/system/{{ item }}"
         owner: root
         group: root
         mode: '0644'
+      with_items:
+        - zfs-load-key.service  # ZFS encryption service to load keyfile
 
     - name: Run chroot commands to enable ZFS load key service
       ansible.builtin.command:
@@ -82,21 +119,3 @@
       changed_when: cmd_output.rc == 0
       with_items:
         - "systemctl enable zfs-load-key.service"
-
-#  - name: Install Packaged Needed to fetch and apply patch
-#    ansible.builtin.command:
-#      "{{chroot_cmd}} bash -c 'apt install --yes --no-install-recommends curl patch'"
-#    when:
-#      - ansible_nodename != "localhost"
-#      - ansible_os_family == "Debian"
-
-#  # Per ZFS on Root Guide this will create error on Hunk#2- know issue, error will be ignored
-#  - name: Run chroot command to curl and apply patch for Bug#1875577 Encrypted Swap with ZFS
-#    ansible.builtin.shell:
-#      cmd: >
-#        {{chroot_cmd}} bash -c
-#        'curl -s https://launchpadlibrarian.net/478315221/2150-fix-systemd-dependency-loops.patch | sed \"s|/etc|/lib|;s|\\.in$||\" | (cd / ; patch -p1)'"
-#    ignore_errors: true
-#
-
-###############################################################################

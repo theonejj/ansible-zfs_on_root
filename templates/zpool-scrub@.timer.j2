@@ -1,0 +1,9 @@
+[Unit]
+Description=Scrub ZFS pool %i Service
+
+[Timer]
+OnCalendar={{ zfs_pool_scrub_systemd_oncalendar }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

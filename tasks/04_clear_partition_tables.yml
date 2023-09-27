@@ -25,6 +25,7 @@
     - name: Remove ZFS labels from previous usage
       ansible.builtin.command:
         cmd: "zpool labelclear -f {{ item }}-part3"
+        removes: "{{ item }}-part3"
       register: cmd_output
       changed_when:
         cmd_output.rc == 0

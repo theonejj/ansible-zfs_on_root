@@ -5,7 +5,7 @@
     - copy_ssh_keys_notice
   block:
     - name: Copy SSH Keys to Remote System Notice
-      ansible.builtin.pause: # noqa yaml[line-length]
+      ansible.builtin.pause:
         prompt: |
 
           ##########################################################
@@ -18,7 +18,8 @@
           IMPORTANT:  Then copy the SSH key for your non-root user NOW! After the next
                       reboot, SSH based password logins may NOT work.
 
-          ssh-copy-id -i ~/.ssh/<public_key>.pub {{ regular_user_accounts[0].user_id }}@{{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}
+          ssh-copy-id -i ~/.ssh/<public_key>.pub {{ regular_user_accounts[0].user_id }}@{{
+          (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }}
 
           {% if enable_dropbear_support | bool %}
           Your SSH keys need to be placed on the system to be included within Dropbear

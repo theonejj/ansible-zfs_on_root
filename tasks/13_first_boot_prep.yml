@@ -138,5 +138,3 @@
         cmd: "{{ chroot_cmd }} bash -c 'zfs set canmount=on {{ root_pool_dataset_path }} && sleep 1'"
       register: cmd_output
       changed_when: cmd_output.rc == 0
-      when:
-        - filestat.stat.size|int == 0

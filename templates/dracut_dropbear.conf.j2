@@ -1,21 +1,8 @@
-## Enable dropbear ssh server and pull in network configuration args
-##The default configuration will start dropbear on TCP port 222.
-##This can be overridden with the dropbear_port configuration option.
-##You do not want the server listening on the default port 22.
-##Clients that expect to find your normal host keys when connecting to an SSH server on port 22 will
-##refuse to connect when they find different keys provided by dropbear.
-add_dracutmodules+=" crypt-ssh "
 install_items+=" /etc/cmdline.d/dracut-network.conf "
+add_dracutmodules+=" crypt-ssh "
 ## Copy system keys for consistent access
 dropbear_rsa_key=/etc/dropbear/ssh_host_rsa_key
 dropbear_ecdsa_key=/etc/dropbear/ssh_host_ecdsa_key
 dropbear_ed25519_key=/etc/dropbear/ssh_host_ed25519_key
 ##Access by authorized keys only. No password.
-##By default, the list of authorized keys is taken from /root/.ssh/authorized_keys on the host.
-##You can add your remote user key using: "ssh-copy-id -i ~/.ssh/id_rsa.pub $user@{IP_ADDRESS or FQDN of the server}"
-##Password access to the root account is disabled by default in "/etc/ssh/sshd_conf".
-##Remember to "generate-zbm" after adding the remote user key to the authorized_keys file. 
-##The last line is optional and assumes the specified user provides an authorized_keys file \
-##that will determine remote access to the ZFSBootMenu image.
-##Note that login to dropbear is "root" regardless of which authorized_keys is used.
 dropbear_acl={{ apply_dropbear_settings.public_key_for_dropbear}}

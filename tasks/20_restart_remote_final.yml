@@ -5,14 +5,15 @@
     - restart_remote_final
   block:
     - name: Final Remote Restart
-      ansible.builtin.pause: # noqa yaml[line-length]
+      ansible.builtin.pause:
         prompt: |
 
           ##########################################################
           # {{ (ansible_ssh_host | default(ansible_host)) | default(inventory_hostname) }} will be rebooted.
           ##########################################################
 
-          {% if root_pool_encryption | default(false) | bool %}When prompted for passphrase for '{{ root_pool_name }}', use: {{ (no_log_secrets | default(true)) | ternary("**********", passphrase) }}
+          {% if root_pool_encryption | default(false) | bool %}When prompted for passphrase for '{{
+          root_pool_name }}', use: {{ (no_log_secrets | default(true)) | ternary("**********", passphrase) }}
           {% endif %}
 
           Press ENTER to reboot:

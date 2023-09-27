@@ -25,12 +25,12 @@
         mode: "0755"
 
     - name: Fetch dracut-crypt-ssh repository tarball
-      ansible.builtin.shell: # noqa command-instead-of-shell
-        cmd: "{{ item }}"
+      ansible.builtin.shell: |
+        set -o pipefail
+        cd /tmp/dracut-crypt-ssh
+        curl -L https://github.com/dracut-crypt-ssh/dracut-crypt-ssh/tarball/master | tar xz --strip=1
       register: cmd_output
       changed_when: cmd_output.rc == 0
-      with_items:
-        - "cd /tmp/dracut-crypt-ssh && curl -L https://github.com/dracut-crypt-ssh/dracut-crypt-ssh/tarball/master | tar xz --strip=1"
 
     # Comment out all lines containing: inst "$moddir"/helper/
     - name: Modify dracut module module-setup.sh
@@ -139,8 +139,8 @@
 
     - name: Run Dracut Generate
       ansible.builtin.shell: |
-        dracut -v -f --regenerate-all
-        # generate-zbm only there if we built from scratch, not using downloaded image
-        [ -e /usr/bin/generate-zbm ] && generate-zbm --debug
+        dracut -f --regenerate-all
+        sleep 2
+        generate-zbm --debug
       register: cmd_output
       changed_when: cmd_output.rc == 0

@@ -31,7 +31,7 @@
 
     ###########################################################################
     # [ Install ZFS Boot Menu git repo and build locally ]#####################
-    - name: Install ZFS Boot Menu git repo and build locally
+    - name: Run chroot command to Install ZFS Boot Menu git repo and build
       ansible.builtin.shell: # noqa command-instead-of-shell
         cmd: "{{ chroot_cmd }} bash -c '{{ item }}'"
       register: cmd_output

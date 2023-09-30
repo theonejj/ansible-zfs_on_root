@@ -1,8 +1,8 @@
 [Unit]
-Description=Discard unused blocks in ZFS pool %I weekly
+Description=Discard unused blocks in ZFS pool %I
 
 [Timer]
-OnCalendar=weekly
+OnCalendar={{ zfs_pool_trim_systemd_oncalendar }}
 Persistent=true
 
 [Install]

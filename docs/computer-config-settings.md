@@ -26,7 +26,7 @@ refind_boot_menu_timeout: "10"
 
 ## CLI or Full Desktop
 
-Select if Full Graphical Desktop or Command Line Server only.
+Select if full graphical desktop or command-line server only.
 
 ```yaml
 # For Full GUI Desktop installation (set to false) or command-line only server environment (set to true)

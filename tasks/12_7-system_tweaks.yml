@@ -97,10 +97,10 @@
     - name: ZFS encryption script to load the keyfile
       ansible.builtin.template:
         src: "zfs-multi-mount.sh.j2"
-        dest: "{{ live_cd_mountpoint }}/usr/local/bin/zfs-multi-mount.sh"
+        dest: "{{ live_cd_mountpoint }}/usr/bin/zfs-multi-mount.sh"
         owner: root
         group: root
-        mode: '0755'
+        mode: "755"
 
     - name: Install ZFS Service Templates for Encryption
       ansible.builtin.template:
@@ -108,7 +108,7 @@
         dest: "{{ live_cd_mountpoint }}/etc/systemd/system/{{ item }}"
         owner: root
         group: root
-        mode: '0644'
+        mode: "644"
       with_items:
         - zfs-load-key.service  # ZFS encryption service to load keyfile
 

@@ -33,7 +33,7 @@ Originally based on the [OpenZFS ZFS on Root](https://openzfs.github.io/openzfs-
 ## TL;DR
 
 * While this is a WORK IN PROGRESS, I've built many systems using various combinations.
-  * However not every combination has been tested.  If you find a problem, please open a Github issue in this repository.
+  * However not every combination has been tested.  If you find a problem, please open a GitHub issue in this repository.
   * Review [known issues](README.md#known-issues) for workarounds.
 
 * This Ansible based process is intended to be used against bare-metal systems or virtual machines (just needs SSH access to get started).
@@ -249,7 +249,7 @@ There should be no reason to alter the configuration file `vars/main.yml` which 
 
 1. Boot the Ubuntu Live CD:
     * Select option <button name="button">Try Ubuntu</button>.
-    * Connect your system to the Internet as appropriate (e.g. join your Wi-Fi network).
+    * Connect your system to the internet as appropriate (e.g. join your Wi-Fi network).
     * Open a terminal within the Live CD environment - press <kbd>Ctrl</kbd> <kbd>Alt</kbd>-<kbd>T</kbd>.
 
 2. Install and start the OpenSSH server in the Live CD environment (see helper script below):
@@ -329,6 +329,19 @@ ansible-playbook -i inventory.yml ./zfs_on_root.yml -l <remote_host_name>
 * [Additional Examples with Playbook Variables](docs/playbook-examples.md)
 
 After a few minutes, if all goes well you will have a reasonably decent standardized configuring to be a base system ready to be used and modified for any other specific role.
+
+The `zfs_on_root.yml` is a simple yaml file used to call the role, which can look like this:
+
+```yaml
+---
+- name: ZFS on Root Ubuntu Installation
+  hosts: zfs_on_root_install
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: zfs_on_root
+```
 
 The first thing I do once this Playbook completes is apply the [Customized Message of the Day](https://github.com/reefland/ansible-motd-zfs-smartd) Ansible Playbook for a login screen with a bit of bling.
 

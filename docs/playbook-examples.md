@@ -4,6 +4,21 @@
 
 The following examples show overriding values from the command line. Typically it will be easier to define these in the inventory or host_var instead.
 
+The `zfs_on_root.yml` referenced in examples below is a simple yaml file used to call the role, which can look like this:
+
+```yaml
+---
+- name: ZFS on Root Ubuntu Installation
+  hosts: zfs_on_root_install
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: zfs_on_root
+```
+
+---
+
 If a non-standard SSH port is required:
 
 ```bash

@@ -1,39 +1,6 @@
----
-# ###[ Restart timesyncd under Virtualbox ]######################################
-
-- name: Restart timesyncd under Virtualbox Block
-  when:
-    - ansible_os_family == "Debian"
-    - virtual_box|default(false)|bool
-  tags:
-    - install-zfs-packages
-    - always
-  block:
-    # ZFS package installs have failed due to "not yet valid" message. This unusually happens
-    # when time is not set correctly on the new system.  This happened often when virtualbox
-    # snapshot images were used.  Restarting timesyncd service forces time to be updated.
-    - name: Restarting timesync service under Virtualbox
-      ansible.builtin.systemd:
-        name: systemd-timesyncd
-        state: restarted
-
-    - name: Pause 10 seconds for time service to settle
-      ansible.builtin.pause:
-        seconds: 10
-
-# ###[ Disable Auto-mounting ]###################################################
-- name: Stop reused disks from being auto mounted
-  tags:
-    - install-zfs-packages
-  block:
-    - name: Stop reused disks from being auto mounted
-      ansible.builtin.command: "gsettings set org.gnome.desktop.media-handling automount false"
-      register: cmd_output
-      changed_when: cmd_output.rc == 0
-
 # ##[ Install Packages Need to get Started ]####################################
-- name: Install Packages Need to get Started
-  when: ansible_os_family == "Debian"
+- name: Install Packages Need to get Started on Ubuntu
+  when: ansible_distribution == "Ubuntu"
   tags:
     - install-zfs-packages
   block:
@@ -43,6 +10,45 @@
         state: present
         update_cache: true
         cache_valid_time: 3600
+
+    - name: Stop ZED Service
+      ansible.builtin.systemd:
+        name: zed
+        enabled: true
+        state: stopped
+
+###############################################################################
+- name: Install Packages Need to get Started on Debian
+  when: ansible_distribution == "Debian"
+  tags:
+    - install-zfs-packages
+  block:
+    - name: Add backports repository into sources list
+      ansible.builtin.apt_repository:
+        repo: deb http://deb.debian.org/debian/ bookworm-backports main contrib non-free-firmware
+        state: present
+        filename: backports
+
+    - name: Install ZFS dep packages (assumes Live CD Environment) Debian
+      ansible.builtin.apt:
+        name: ['debootstrap', 'gdisk', 'dkms', "linux-headers-{{ ansible_kernel }}"]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install ZFS packages (assumes Live CD Environment)
+      ansible.builtin.apt:
+        name: [zfs-dkms, zfsutils-linux]
+        state: present
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
+        # TODO check SB enable, because the module doesn't work with it enabled
+        # https://askubuntu.com/questions/1455528/modprobe-key-was-rejected-by-service-ubuntu-22-04-1-desktop-iso#1463702
+    - name: Debian | enabling zfs module
+      community.general.modprobe:
+        name: zfs
+        state: present
 
     - name: Stop ZED Service
       ansible.builtin.systemd:

@@ -5,6 +5,10 @@ galaxy_info:
     ZFS on Root for Ubuntu 22.04 with rules based on device numbers presented.
     Native ZFS Encryption, UEFI, multiple non-root accounts, Dropbear support and some SSH tweaks.
 
+  role_name: zfs_on_root
+
+  namespace: test
+
   platforms:
     - name: Ubuntu
       release: jammy

@@ -46,7 +46,7 @@
 
     - name: Installing a minimal linux system
       ansible.builtin.command:
-        "debootstrap {{ ubuntu_release }} {{ live_cd_mountpoint }}"
+        "debootstrap {{ distro_release }} {{ live_cd_mountpoint }}"
       register: cmd_output
       changed_when: cmd_output.rc == 0
 

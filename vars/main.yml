@@ -4,8 +4,8 @@
 ####### Nothing Below Here Needs to be Edited ############
 
 # Ubuntu Release name
-ubuntu_release: "jammy"
-distro_name: "ubuntu"
+distro_release: "bookworm"
+distro_name: "debian"
 ubuntu_version: "22.04"
 
 # Define Partition Mapping
@@ -71,28 +71,10 @@ root_dataset_options:
   - "-o mountpoint=/"
   - "-o canmount=noauto"
 
-root_pool_home_dataset_path: "{{ root_pool_name }}/ROOT/home"
+root_pool_home_dataset_path: "{{ root_pool_name }}/HOME"
 
 # Define Additional Datasets to Create
 datasets_to_create:
-  - "{{ root_pool_dataset_path }}/srv"
-  - "-o canmount=off {{ root_pool_dataset_path }}/usr"
-  - "{{ root_pool_dataset_path }}/usr/local"
-  - "-o canmount=off {{ root_pool_dataset_path }}/var"
-  - "-o com.sun:auto-snapshot=false {{ root_pool_dataset_path }}/var/cache"
-  - "{{ root_pool_dataset_path }}/var/games"
-  - "-o canmount=off {{ root_pool_dataset_path }}/var/lib"
-  - "{{ root_pool_dataset_path }}/var/lib/AccountsService"
-  - "{{ root_pool_dataset_path }}/var/lib/apt"
-  - "{{ root_pool_dataset_path }}/var/lib/dpkg"
-  - "-o com.sun:auto-snapshot=false {{ root_pool_dataset_path }}/var/lib/docker"
-  - "{{ root_pool_dataset_path }}/var/lib/NetworkManager"
-  - "{{ root_pool_dataset_path }}/var/log"
-  - "{{ root_pool_dataset_path }}/var/mail"
-  - "{{ root_pool_dataset_path }}/var/snap"
-  - "{{ root_pool_dataset_path }}/var/spool"
-  - "-o com.sun:auto-snapshot=false {{ root_pool_dataset_path }}/var/tmp"
-  - "{{ root_pool_dataset_path }}/var/www"
   # Home Directory Dataset will be kept outside of OS Dataset
   - "-o canmount=on -o mountpoint=/home -o compression={{ zfs_compression }} -o atime=off {{ root_pool_home_dataset_path }}"
   - "-o canmount=on -o mountpoint=/root {{ root_pool_home_dataset_path }}/root"

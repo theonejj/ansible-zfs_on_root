@@ -8,6 +8,18 @@
   tags:
     - install_zfs
   block:
+    - name: Add contrib apt repos
+      ansible.builtin.command:
+        cmd: |-
+          "{{ chroot_cmd }} bash -c 'cat <<EOF > /etc/apt/sources.list
+          deb http://deb.debian.org/debian bookworm main contrib
+          deb-src http://deb.debian.org/debian bookworm main contrib
+          EOF'"
+      register: cmd_output
+      changed_when: cmd_output.rc == 0
+      when:
+        - ansible_os_family == "Debian"
+
     - name: Run chroot command for apt update
       ansible.builtin.command:
         cmd: "{{ chroot_cmd }} bash -c 'apt-get -qq update'"
@@ -23,11 +35,12 @@
       changed_when: cmd_output.rc == 0
       with_items:
         - "apt-get install --yes --no-install-recommends software-properties-common debconf-utils"
+        - "apt-get install --yes --no-install-recommends dkms linux-headers-$(uname -r)"
         #       - "apt-get install --yes --no-install-recommends
         #  {{ enable_ubuntu_lts_hwe | ternary('linux-generic-hwe-' + ubuntu_version + ' linux-headers-generic-hwe-'
         #  + ubuntu_version + ' linux-image-generic-hwe-' + ubuntu_version, 'linux-generic linux-headers-generic linux-image-generic') }}"
         - "apt-get install --yes --no-install-recommends mdadm wget nano vim"
-        - "apt-get install --yes --no-install-recommends zfsutils-linux zfs-zed zfs-initramfs"
+        - "apt-get install --yes --no-install-recommends zfsutils-linux"
       when:
         - ansible_os_family == "Debian"
 
